@@ -1,4 +1,4 @@
-# Yalies
+# Yalie
 ✨ The Yale Search Engine
 
 ## What is this repo?
