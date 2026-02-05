@@ -1,0 +1,19 @@
+{
+  "name": "@ycs/queue",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --max-warnings=0"
+  },
+  "dependencies": {
+    "@ycs/config": "workspace:*",
+    "@ycs/logger": "workspace:*",
+    "bullmq": "^5.12.1",
+    "ioredis": "^5.4.1"
+  }
+}

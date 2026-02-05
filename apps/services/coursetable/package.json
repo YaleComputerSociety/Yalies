@@ -1,0 +1,17 @@
+{
+  "name": "@ycs/service-coursetable",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --max-warnings=0"
+  },
+  "dependencies": {
+    "@ycs/db": "workspace:*",
+    "@ycs/types": "workspace:*"
+  }
+}

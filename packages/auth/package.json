@@ -1,0 +1,19 @@
+{
+  "name": "@ycs/auth",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --max-warnings=0"
+  },
+  "dependencies": {
+    "@ycs/config": "workspace:*",
+    "@ycs/db": "workspace:*",
+    "@ycs/logger": "workspace:*",
+    "hono": "^4.6.3"
+  }
+}
