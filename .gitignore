@@ -23,6 +23,7 @@ out/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+firebase-debug.log
 
 # Python
 __pycache__/
@@ -36,6 +37,9 @@ venv/
 # Testing
 coverage/
 .nyc_output/
+
+# Firebase
+.firebase
 
 # Misc
 *.local

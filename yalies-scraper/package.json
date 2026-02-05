@@ -1,0 +1,33 @@
+{
+  "name": "yalies-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsc && node build/index.js",
+    "lint": "eslint src/**/*.ts",
+    "format": "eslint src/**/*.ts --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yalies/Yalies.git"
+  },
+  "author": "Erik Boesen, Yale Computer Society",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Yalies/Yalies/issues"
+  },
+  "homepage": "https://github.com/Yalies/Yalies#readme",
+  "devDependencies": {
+    "@stylistic/eslint-plugin-js": "^2.10.1",
+    "@types/node": "^20.17.5",
+    "eslint": "^8.57.1",
+    "eslint-plugin-github": "^5.0.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.12.2",
+    "@typescript-eslint/parser": "^8.12.2"
+  }
+}

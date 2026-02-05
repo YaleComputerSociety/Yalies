@@ -1,0 +1,16 @@
+@use "../shared.scss";
+
+.input {
+	font-family: inherit;
+	font-size: 14px;
+	border-radius: shared.$border-radius-standard;
+	height: 100%;
+	background-color: shared.$background-color;
+	color: shared.$foreground-color;
+	border: solid 1px shared.$border-color;
+	padding: 10px 15px;
+
+	&.disabled {
+		background-color: shared.$background-color-disabled;
+	}
+}

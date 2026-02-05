@@ -1,0 +1,35 @@
+@use "../shared.scss";
+
+.profile_button {
+	position: relative;
+	button {
+		width: 30px;
+		height: 30px;
+		border-radius: 500px;
+		background-color: shared.$card-background-color;
+		border: none;
+		cursor: pointer;
+		svg {
+			display: block;
+			margin: auto;
+			height: 15px;
+		}
+	}
+}
+
+.popup {
+	background: shared.$background-color;
+	border-radius: shared.$border-radius-standard;
+	box-shadow: 0 0 .25rem rgba(0, 0, 0, .075);
+	margin-top: 8px;
+	position: absolute;
+	right: 0;
+	z-index: 1000;
+	min-width: 100px;
+}
+
+.button {
+	padding: 8px 16px;
+	font-size: 15px;
+	text-align: center;
+}

@@ -1,0 +1,32 @@
+@use "../shared.scss";
+
+#splash {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 20vh;
+	gap: 30px;
+	#about {
+		margin: 40px 0;
+	}
+	img {
+		width: 38.2%;
+	}
+	h1 {
+		margin: 15px 0;
+	}
+	p {
+		margin: 10px 0;
+	}
+	button {
+		margin-top: 15px;
+	}
+	@include shared.responsive() {
+		padding: 0 20px;
+		margin-top: 5vh;
+		flex-direction: column;
+		img {
+			width: 100%;
+		}
+	}
+}

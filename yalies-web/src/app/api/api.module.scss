@@ -1,0 +1,32 @@
+@use "../../shared.scss";
+
+#api_page {
+	@include shared.info_page();
+}
+
+#key_table {
+	border: shared.$border-color 1px solid;
+	border-radius: shared.$border-radius-standard;
+	width: 100%;
+	td, th {
+		text-align: left;
+		padding: 8px;
+	}
+	.key_cell {
+		width: 50%;
+	}
+	.revoke_cell {
+		color: shared.$destructive-color;
+		cursor: pointer;
+	}
+}
+
+#new_key_form {
+	margin-top: 15px;
+	input {
+		border-radius: 500px;
+	}
+	button {
+		margin-left: 15px;
+	}
+}

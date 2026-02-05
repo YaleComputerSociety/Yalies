@@ -1,0 +1,29 @@
+@use "../shared.scss";
+
+#filters {
+	margin-bottom: 6px;
+	margin-left: calc(100px + 20px + 10px);
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 20px;
+
+	@include shared.responsive() {
+		margin: 30px;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+}
+
+.reset {
+	background-color: transparentize($color: shared.$destructive-color, $amount: 0.3);
+	color: #FFFFFF;
+	font-size: 10px;
+	padding: 5px;
+	border-radius: shared.$border-radius-standard;
+	border: none;
+	&.active {
+		cursor: pointer;
+		background-color: shared.$destructive-color;
+	}
+}

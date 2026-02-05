@@ -1,0 +1,55 @@
+$foreground-color: #000000;
+$secondary-color: #606060;
+$accent-color: #00356b;
+$background-color: #ffffff;
+$background-color-disabled: #EEEEEE;
+$card-background-color: #f5f5f5;
+$selection-color: #468ff2;
+$destructive-color: #dc3545;
+$border-color: #c6c6c6;
+
+$chip-primary-color-fg: #4392c3;
+$chip-primary-color-bg: #4392c322;
+$chip-secondary-color-fg: #888888;
+$chip-secondary-color-bg: #88888822;
+
+$border-radius-standard: 4px;
+
+$MOBILE_WIDTH: 700px;
+@mixin responsive() {
+    @media ( max-width: $MOBILE_WIDTH ) {
+        @content;
+    }
+}
+
+@mixin rails() {
+    padding: 50px 30vw;
+	
+	@include responsive(){
+        padding: 50px 4vw;
+    }
+}
+
+@mixin info_page() {
+	@include rails();
+	h1 {
+		text-align: center;
+		font-size: 50px;
+		margin-bottom: 50px;
+	}
+	h2 {
+		font-size: 25px;
+		margin-bottom: 20px;
+		margin-top: 50px;
+	}
+	h3 {
+		font-weight: 500;
+		font-size: 20px;
+		margin-top: 30px;
+		margin-bottom: 20px;
+	}
+	p {
+		margin-bottom: 20px;
+		font-size: 17px;
+	}
+}

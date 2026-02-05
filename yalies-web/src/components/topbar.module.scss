@@ -1,0 +1,7 @@
+@use "../shared.scss";
+
+#topbar {
+	box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+	border-bottom: 2px solid #ededed;
+	padding: 7px 7px 0 7px;
+}

@@ -1,0 +1,78 @@
+@use "../shared.scss";
+
+.people_grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	justify-content: center;
+    .person {
+        width: 3.3in;
+        display: inline-block;
+        vertical-align: top;
+        text-align: left;
+		margin: 30px 15px 0 0;
+		background-color: shared.$card-background-color;
+		border-radius: 10px;
+		padding: 20px;
+		color: shared.$foreground-color;
+
+        .info_box {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+
+            .profile_image {
+                width: 100px;
+                height: 120px;
+                border-radius: 10%;
+                overflow: hidden;
+                min-width: 100px;
+                margin-right: 10px;
+            }
+            .details {
+                white-space: nowrap;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                gap: 10px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+                .name {
+                    margin-top: 0px;
+                    font-size: 1.17em;
+					overflow: hidden;
+					text-overflow: ellipsis;
+                }
+                .row {
+					font-size: 14px;
+					display: flex;
+					justify-content: flex-start;
+					align-items: center;
+					gap: 10px;
+					.college_shield {
+						width: 14px;
+						height: 14px;
+					}
+                }
+            }
+        }
+        .chip_container {
+			padding: 20px 0 0 0;
+        }
+    }
+	@include shared.responsive() {
+		text-align: center;
+	}
+}
+
+.loading_icon_container {
+	width: 100%;
+}
+
+.loading_icon {
+	filter: grayscale(1) contrast(0.5) brightness(1.4);
+	display: block;
+	margin: 30px auto;
+	width: 25px;
+	height: 25px;
+}
