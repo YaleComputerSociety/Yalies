@@ -1,0 +1,49 @@
+@use "../shared.scss";
+
+#navbar {
+	padding: 0 10px;
+	display: flex;
+	align-items: center;
+	justify-content: stretch;
+	gap: 20px;
+	margin-bottom: 6px;
+	#logo {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		text-decoration: none;
+		color: shared.$accent-color;
+		gap: 10px;
+		width: 100px;
+		img {
+			height: 30px;
+			width: 30px;
+		}
+		h2 {
+			font-size: 20px;
+		}
+	}
+	#links {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 10px;
+		font-size: 13px;
+		font-weight: 500;
+		a {
+			text-decoration: none;
+			color: shared.$secondary-color;
+			height: 32px;
+			display: flex;
+			align-items: center;
+			padding: 0 12px;
+			border-radius: shared.$border-radius-full;
+			transition: background-color 0.15s ease, color 0.15s ease;
+			&:hover {
+				color: shared.$foreground-color;
+				background-color: shared.$accent-color-soft;
+			}
+		}
+	}
+}

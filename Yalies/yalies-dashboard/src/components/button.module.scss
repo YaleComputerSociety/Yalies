@@ -1,0 +1,71 @@
+@use "../shared" as *;
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 20px;
+	border: none;
+	border-radius: $border-radius-standard;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.15s, opacity 0.15s;
+	line-height: 1;
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+}
+
+.primary {
+	background-color: $accent;
+	color: #fff;
+
+	&:hover:not(:disabled) {
+		background-color: darken($accent, 8%);
+	}
+}
+
+.secondary {
+	background-color: #e0e0e0;
+	color: $foreground;
+
+	&:hover:not(:disabled) {
+		background-color: #d0d0d0;
+	}
+}
+
+.destructive {
+	background-color: $destructive;
+	color: #fff;
+
+	&:hover:not(:disabled) {
+		background-color: darken($destructive, 8%);
+	}
+}
+
+.ghost {
+	background-color: transparent;
+	color: $accent;
+
+	&:hover:not(:disabled) {
+		background-color: rgba(0, 53, 107, 0.08);
+	}
+}
+
+.spinner {
+	width: 14px;
+	height: 14px;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

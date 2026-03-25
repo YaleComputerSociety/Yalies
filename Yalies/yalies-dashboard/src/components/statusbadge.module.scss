@@ -1,0 +1,46 @@
+@use "../shared" as *;
+
+.badge {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.pending {
+	background-color: #e0e0e0;
+	color: $secondary;
+}
+
+.active {
+	background-color: rgba(0, 53, 107, 0.12);
+	color: $accent;
+}
+
+.running {
+	background-color: rgba(0, 53, 107, 0.12);
+	color: $accent;
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+.done {
+	background-color: rgba(46, 125, 50, 0.12);
+	color: $success;
+}
+
+.error {
+	background-color: rgba(198, 40, 40, 0.12);
+	color: $destructive;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}

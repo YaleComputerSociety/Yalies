@@ -1,0 +1,49 @@
+@use "../shared" as *;
+
+.header {
+	background-color: $accent;
+	color: #fff;
+	padding: 0 24px;
+	height: 56px;
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	position: sticky;
+	top: 0;
+	z-index: 100;
+}
+
+.headerTitle {
+	font-size: 1.125rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.headerNav {
+	display: flex;
+	gap: 16px;
+	margin-left: auto;
+
+	a {
+		color: rgba(255, 255, 255, 0.8);
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: color 0.15s;
+
+		&:hover {
+			color: #fff;
+			text-decoration: none;
+		}
+	}
+}
+
+.content {
+	max-width: 960px;
+	margin: 32px auto;
+	padding: 0 24px;
+
+	@include responsive {
+		margin: 16px auto;
+		padding: 0 16px;
+	}
+}

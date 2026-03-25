@@ -1,0 +1,136 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import session from "express-session";
+import passport from "passport";
+import ConnectSessionSequelize from "connect-session-sequelize";
+import { Sequelize } from "sequelize";
+
+import CookieRouter from "./routes/CookieRouter.js";
+import ScrapeRouter from "./routes/ScrapeRouter.js";
+import SyncRouter from "./routes/SyncRouter.js";
+import DatabaseRouter from "./routes/DatabaseRouter.js";
+import CasRouter from "./routes/CasRouter.js";
+import DevLoginRouter from "./routes/DevLoginRouter.js";
+import CAS from "./helpers/cas.js";
+
+import SessionModel from "./models/SessionModel.js";
+import AdminModel from "./models/AdminModel.js";
+
+// Database setup
+const sequelize = new Sequelize(process.env.DATABASE_URL!, { logging: false });
+SessionModel.initModel(sequelize);
+AdminModel.initModel(sequelize);
+
+// Initialize Passport (only registers CAS strategy if not in dev mode)
+if (process.env.AUTH_MODE !== "dev") {
+	new CAS();
+} else {
+	// Still need serialize/deserialize for dev login
+	passport.serializeUser((user: Express.User, done) => done(null, user));
+	passport.deserializeUser((user: Express.User, done) => done(null, user as Express.User));
+}
+
+const SequelizeStore = ConnectSessionSequelize(session.Store);
+
+const app = express();
+const PORT = parseInt(process.env.PORT || "8080", 10);
+
+app.set("trust proxy", 1);
+app.use(cors({ credentials: true, origin: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+	res.set("Cache-Control", "no-store");
+	next();
+});
+
+// Session middleware — same config as yalies-backend webServer.ts
+app.use(session({
+	secret: process.env.SESSION_SECRET!,
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		httpOnly: true,
+		secure: process.env.NODE_ENV !== "development",
+		sameSite: process.env.NODE_ENV !== "development" ? "none" : false,
+		maxAge: 34560000 * 1000,
+	},
+	store: new SequelizeStore({
+		db: sequelize,
+		table: "SessionModel",
+		checkExpirationInterval: 15 * 60 * 1000,
+		extendDefaultFields: (defaults, session) => {
+			return {
+				data: defaults.data,
+				expires: defaults.expires,
+				netid: session.netid,
+			};
+		},
+	}),
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Auth routes (unprotected) — same pattern as backend
+if (process.env.AUTH_MODE === "dev") {
+	if (process.env.NODE_ENV !== "development") {
+		console.error("FATAL: AUTH_MODE=dev is not allowed outside of development. Set AUTH_MODE=cas for production.");
+		process.exit(1);
+	}
+	console.log("[Auth] Using dev login bypass (AUTH_MODE=dev)");
+	const devLoginRouter = new DevLoginRouter();
+	app.use("/api/auth", devLoginRouter.getRouter());
+} else {
+	console.log("[Auth] Using Yale CAS login (AUTH_MODE=cas)");
+	const casRouter = new CasRouter();
+	app.use("/api/auth", casRouter.getRouter());
+}
+
+// Health check (unprotected)
+app.get("/health", (_req, res) => {
+	res.json({ status: "ok" });
+});
+
+// Protected routes — require admin
+const cookieRouter = new CookieRouter();
+const scrapeRouter = new ScrapeRouter();
+const syncRouter = new SyncRouter();
+const databaseRouter = new DatabaseRouter();
+
+app.use("/api/cookie", CAS.requireAdmin, cookieRouter.getRouter());
+app.use("/api/scrape", CAS.requireAdmin, scrapeRouter.getRouter());
+app.use("/api/sync", CAS.requireAdmin, syncRouter.getRouter());
+app.use("/api/database", CAS.requireAdmin, databaseRouter.getRouter());
+
+// DB init: create tables and seed initial admin
+async function initDb() {
+	try {
+		await sequelize.authenticate();
+		console.log("Connected to the database");
+
+		await sequelize.query(`
+			CREATE TABLE IF NOT EXISTS admin (
+				netid VARCHAR(255) PRIMARY KEY,
+				added_at TIMESTAMP DEFAULT NOW()
+			);
+		`);
+		await sequelize.query(`
+			CREATE TABLE IF NOT EXISTS session (
+				sid VARCHAR(255) PRIMARY KEY,
+				netid VARCHAR(255),
+				expires TIMESTAMP,
+				data TEXT
+			);
+		`);
+
+	} catch (error) {
+		console.error("Database initialization error:", error);
+	}
+}
+
+initDb().then(() => {
+	app.listen(PORT, () => {
+		console.log(`Yalies scraper API server listening on port ${PORT}`);
+	});
+});

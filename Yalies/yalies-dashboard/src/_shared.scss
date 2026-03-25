@@ -1,0 +1,20 @@
+$accent: #00356b;
+$foreground: #222;
+$secondary: #666;
+$background: #f7f7f7;
+$success: #2e7d32;
+$warning: #f57c00;
+$destructive: #c62828;
+$border-radius-standard: 4px;
+$MOBILE_WIDTH: 700px;
+
+@mixin responsive() {
+	@media (max-width: $MOBILE_WIDTH) {
+		@content;
+	}
+}
+
+@mixin rails() {
+	padding-left: 24px;
+	padding-right: 24px;
+}

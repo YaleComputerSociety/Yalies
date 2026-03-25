@@ -1,0 +1,41 @@
+@use "../shared" as *;
+
+.card {
+	background-color: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: $border-radius-standard;
+	padding: 20px;
+}
+
+.title {
+	font-size: 0.9375rem;
+	font-weight: 700;
+	color: $foreground;
+	margin-bottom: 16px;
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 12px;
+}
+
+.stat {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.statLabel {
+	font-size: 0.75rem;
+	color: $secondary;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-weight: 500;
+}
+
+.statValue {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: $foreground;
+}

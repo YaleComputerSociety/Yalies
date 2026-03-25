@@ -1,0 +1,99 @@
+@use "../_shared.scss" as shared;
+
+.friend_container {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.request_actions {
+	display: flex;
+	gap: 6px;
+}
+
+.friend_button {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: shared.$border-radius-standard;
+	border: 1px solid shared.$border-color;
+	background: shared.$card-background-color;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	color: shared.$accent-color;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+
+	&:hover {
+		background-color: shared.$accent-color-soft;
+		border-color: shared.$accent-color;
+	}
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+
+	&.pending {
+		color: shared.$secondary-color;
+		cursor: default;
+
+		&:hover {
+			background: shared.$card-background-color;
+			border-color: shared.$border-color;
+		}
+	}
+
+	&.accepted {
+		color: #16a34a;
+		border-color: rgba(22, 163, 74, 0.3);
+
+		&:hover {
+			background-color: rgba(220, 38, 38, 0.06);
+			border-color: shared.$destructive-color;
+			color: shared.$destructive-color;
+
+			.icon {
+				color: shared.$destructive-color;
+			}
+
+			span {
+				&::after {
+					content: " (remove)";
+					font-size: 11px;
+				}
+			}
+		}
+	}
+
+	&.accept {
+		color: #16a34a;
+		border-color: rgba(22, 163, 74, 0.3);
+
+		&:hover {
+			background-color: rgba(22, 163, 74, 0.06);
+		}
+	}
+
+	&.decline {
+		color: shared.$secondary-color;
+
+		&:hover {
+			background-color: rgba(220, 38, 38, 0.06);
+			border-color: shared.$destructive-color;
+			color: shared.$destructive-color;
+		}
+	}
+}
+
+.icon {
+	height: 13px;
+	transition: color 0.15s ease;
+}
+
+.count {
+	font-size: 13px;
+	color: shared.$secondary-color;
+}
