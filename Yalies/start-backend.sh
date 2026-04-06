@@ -26,7 +26,7 @@ fi
 echo ""
 
 # Start the backend
-cd "$SCRIPT_DIR/yalies-backend" || exit 1
+cd "$SCRIPT_DIR/yalies-external/yalies-backend" || exit 1
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"

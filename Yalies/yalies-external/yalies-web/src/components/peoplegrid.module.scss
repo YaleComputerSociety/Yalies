@@ -1,0 +1,233 @@
+@use "../shared.scss";
+
+.section_header {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 20px;
+	font-weight: 700;
+	color: shared.$accent-color;
+
+	svg {
+		height: 18px;
+	}
+}
+
+.people_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 380px);
+	justify-content: center;
+	gap: 24px;
+	padding: 30px 24px 40px;
+    .person {
+        width: 380px;
+		box-sizing: border-box;
+        text-align: left;
+		background: #ffffff;
+		border: none;
+		border-radius: shared.$border-radius-lg;
+		padding: 20px;
+		color: shared.$foreground-color;
+		cursor: pointer;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		position: relative;
+
+		&:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+		}
+
+        .info_box {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+
+            .profile_image {
+                width: 105px;
+                height: 125px;
+                border-radius: 10px;
+                overflow: hidden;
+                min-width: 105px;
+                margin-right: 16px;
+				object-fit: cover;
+				box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+				border: 1px solid rgba(0, 53, 107, 0.06);
+            }
+            .details {
+                white-space: nowrap;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                gap: 6px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				padding-top: 2px;
+
+				.name_row {
+					display: flex;
+					align-items: center;
+					gap: 4px;
+					margin-bottom: 4px;
+				}
+                .name {
+                    margin: 0;
+                    font-size: 16px;
+					font-weight: 700;
+					color: shared.$accent-color;
+					overflow: hidden;
+					text-overflow: ellipsis;
+                }
+                .row {
+					font-size: 13px;
+					color: #5a7a94;
+					display: flex;
+					justify-content: flex-start;
+					align-items: center;
+					gap: 8px;
+					overflow: hidden;
+					text-overflow: ellipsis;
+
+					svg {
+						width: 12px;
+						flex-shrink: 0;
+						color: #1a6db5;
+						opacity: 0.5;
+					}
+					a {
+						color: #1a6db5;
+						text-decoration: none;
+						overflow: hidden;
+						text-overflow: ellipsis;
+						&:hover {
+							text-decoration: underline;
+						}
+					}
+					.college_shield {
+						width: 14px;
+						height: 14px;
+						flex-shrink: 0;
+					}
+
+					&:first-child {
+						color: #3a5a7a;
+						font-weight: 500;
+						svg {
+							opacity: 0.7;
+						}
+					}
+                }
+            }
+        }
+
+		.card_footer {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			padding-top: 12px;
+			margin-top: 12px;
+			border-top: 1px solid rgba(0, 53, 107, 0.06);
+			font-size: 12px;
+			color: shared.$secondary-color;
+			line-height: 1;
+		}
+    }
+	@include shared.responsive() {
+		padding: 16px 12px 30px;
+		grid-template-columns: 1fr;
+		gap: 12px;
+
+		.person {
+			width: 100%;
+			padding: 14px;
+
+			.info_box {
+				.profile_image {
+					width: 75px;
+					height: 94px;
+					min-width: 75px;
+					margin-right: 12px;
+				}
+				.details {
+					.name {
+						font-size: 15px;
+					}
+					.row {
+						font-size: 12px;
+					}
+				}
+			}
+
+			.card_footer {
+				padding-top: 10px;
+				margin-top: 10px;
+				font-size: 11px;
+			}
+		}
+	}
+
+	@include shared.small-mobile() {
+		padding: 10px 8px 24px;
+		gap: 10px;
+
+		.person {
+			padding: 12px;
+
+			.info_box {
+				.profile_image {
+					width: 60px;
+					height: 75px;
+					min-width: 60px;
+					margin-right: 10px;
+					border-radius: 8px;
+				}
+				.details {
+					gap: 4px;
+					.name {
+						font-size: 14px;
+					}
+					.row {
+						font-size: 11px;
+						gap: 5px;
+					}
+				}
+			}
+		}
+	}
+}
+
+.separator {
+	color: rgba(0, 53, 107, 0.15);
+	margin: 0 4px;
+	user-select: none;
+}
+
+.meta_item {
+	cursor: pointer;
+	font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+	font-size: 11px;
+	letter-spacing: 0.02em;
+	padding: 3px 8px;
+	border-radius: 5px;
+	background: rgba(0, 53, 107, 0.04);
+	transition: background-color 0.15s ease, color 0.15s ease;
+	color: #5a7a94;
+
+	&:hover {
+		background-color: rgba(0, 53, 107, 0.10);
+		color: shared.$accent-color;
+	}
+}
+
+.loading_icon_container {
+	grid-column: 1 / -1;
+}
+
+.loading_icon {
+	filter: grayscale(1) contrast(0.5) brightness(1.4);
+	display: block;
+	margin: 30px auto;
+	width: 25px;
+	height: 25px;
+}

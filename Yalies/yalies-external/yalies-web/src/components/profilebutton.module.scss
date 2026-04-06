@@ -1,0 +1,13 @@
+@use "../shared.scss";
+
+.profile_link {
+	font-size: 14px;
+	font-weight: 500;
+	color: shared.$foreground-color;
+	text-decoration: none;
+	transition: color 0.15s ease;
+
+	&:hover {
+		color: shared.$accent-color;
+	}
+}

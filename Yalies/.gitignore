@@ -4,3 +4,6 @@ firebase-debug.log
 node_modules/
 .next/
 .env
+.env.local
+build/
+out/

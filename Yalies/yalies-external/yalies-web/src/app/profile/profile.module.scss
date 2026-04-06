@@ -1,0 +1,700 @@
+@use "../../shared.scss";
+
+#profile_page {
+	@include shared.info_page();
+}
+
+.top_bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+.back_button {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 14px;
+	color: shared.$secondary-color;
+	padding: 0;
+	transition: color 0.15s ease;
+
+	svg {
+		height: 14px;
+	}
+
+	&:hover {
+		color: shared.$foreground-color;
+	}
+}
+
+.settings_container {
+	position: relative;
+}
+
+.settings_button {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 5px;
+
+	svg {
+		height: 18px;
+		color: shared.$secondary-color;
+		transition: transform 0.2s ease, color 0.15s ease;
+	}
+
+	&:hover svg {
+		color: shared.$foreground-color;
+		transform: rotate(45deg);
+	}
+}
+
+.settings_dropdown {
+	position: absolute;
+	right: 0;
+	top: 100%;
+	margin-top: 8px;
+	background: shared.$card-background-color;
+	border-radius: shared.$border-radius-standard;
+	border: 1px solid shared.$border-color;
+	box-shadow: shared.$shadow-lg;
+	z-index: 100;
+	min-width: 200px;
+	overflow: hidden;
+}
+
+.data_change_button {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 12px 16px;
+	background: none;
+	border: none;
+	border-bottom: 1px solid shared.$border-color;
+	cursor: pointer;
+	font-size: 14px;
+	color: shared.$foreground-color;
+	font-family: inherit;
+	transition: background-color 0.15s ease;
+
+	svg {
+		height: 14px;
+		color: shared.$secondary-color;
+	}
+
+	&:hover {
+		background-color: shared.$muted-color;
+	}
+}
+
+.logout_button {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 12px 16px;
+	background: none;
+	border: none;
+	border-bottom: 1px solid shared.$border-color;
+	cursor: pointer;
+	font-size: 14px;
+	color: shared.$foreground-color;
+	font-family: inherit;
+	text-decoration: none;
+	transition: background-color 0.15s ease;
+
+	svg {
+		height: 14px;
+		color: shared.$secondary-color;
+	}
+
+	&:hover {
+		background-color: shared.$muted-color;
+	}
+}
+
+.delete_button {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 12px 16px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 14px;
+	color: shared.$destructive-color;
+	font-family: inherit;
+	transition: background-color 0.15s ease;
+
+	svg {
+		height: 14px;
+	}
+
+	&:hover {
+		background-color: rgba(shared.$destructive-color, 0.06);
+	}
+}
+
+.banner {
+	background-color: #16a34a;
+	color: #ffffff;
+	text-align: center;
+	padding: 12px;
+	border-radius: shared.$border-radius-standard;
+	font-size: 14px;
+	font-weight: 600;
+	margin-top: 10px;
+	animation: banner-fade 3s ease forwards;
+}
+
+@keyframes banner-fade {
+	0% { opacity: 0; transform: translateY(-5px); }
+	10% { opacity: 1; transform: translateY(0); }
+	80% { opacity: 1; }
+	100% { opacity: 0; }
+}
+
+.person_card {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 22px;
+	background-color: shared.$card-background-color;
+	border: 1px solid shared.$border-color;
+	border-radius: shared.$border-radius-lg;
+	padding: 24px;
+	margin-bottom: 30px;
+	box-shadow: shared.$shadow-sm;
+
+	@include shared.responsive() {
+		flex-direction: column;
+		align-items: center;
+		padding: 20px 16px;
+		gap: 16px;
+	}
+}
+
+.photo_section {
+	flex-shrink: 0;
+	position: relative;
+
+	&:hover .photo_actions {
+		opacity: 1;
+	}
+}
+
+.photo_actions {
+	position: absolute;
+	bottom: 6px;
+	left: 0;
+	right: 0;
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.photo_action_btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	border: none;
+	background: rgba(0, 0, 0, 0.55);
+	color: #ffffff;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+
+	svg {
+		height: 13px;
+	}
+
+	&:hover {
+		background: rgba(0, 0, 0, 0.8);
+	}
+}
+
+.profile_image {
+	width: 130px;
+	height: 160px;
+	border-radius: 10px;
+	object-fit: cover;
+	object-position: center;
+	display: block;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+	border: 1px solid rgba(0, 53, 107, 0.06);
+
+	@include shared.small-mobile() {
+		width: 100px;
+		height: 125px;
+	}
+}
+
+.photo_placeholder {
+	width: 130px;
+	height: 160px;
+
+	@include shared.small-mobile() {
+		width: 100px;
+		height: 125px;
+	}
+	border-radius: 10px;
+	background-color: shared.$muted-color;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	svg {
+		height: 50px;
+		color: shared.$border-color;
+	}
+}
+
+.photo_spinner {
+	width: 28px;
+	height: 28px;
+	border: 3px solid shared.$border-color;
+	border-top-color: shared.$accent-color;
+	border-radius: 50%;
+	animation: photo-spin 0.7s linear infinite;
+}
+
+@keyframes photo-spin {
+	to { transform: rotate(360deg); }
+}
+
+.photo_error {
+	margin-top: 8px;
+	font-size: 12px;
+	color: shared.$destructive-color;
+	text-align: center;
+	max-width: 160px;
+	line-height: 1.4;
+}
+
+.person_details {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	padding-top: 2px;
+
+	@include shared.responsive() {
+		align-items: center;
+	}
+}
+
+.name_block {
+	margin-bottom: 14px;
+}
+
+.person_name {
+	font-size: 22px;
+	font-weight: 700;
+	margin: 0;
+	color: shared.$accent-color;
+
+	@include shared.small-mobile() {
+		font-size: 19px;
+	}
+}
+
+.pronouns {
+	font-size: 13px;
+	color: shared.$secondary-color;
+	margin-top: 2px;
+	display: block;
+}
+
+.info_rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1;
+}
+
+.info_row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 14px;
+	color: #4a6a84;
+
+	svg {
+		width: 14px;
+		flex-shrink: 0;
+		color: shared.$accent-color;
+		opacity: 0.4;
+	}
+
+	a {
+		color: #1a6db5;
+		text-decoration: none;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+
+	&:first-child {
+		font-weight: 600;
+		color: #3a5a7a;
+
+		svg {
+			opacity: 0.6;
+		}
+	}
+}
+
+.college_shield {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+}
+
+.id_badges {
+	display: flex;
+	gap: 6px;
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid shared.$border-color;
+}
+
+.id_badge {
+	font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+	font-size: 11px;
+	letter-spacing: 0.02em;
+	padding: 3px 10px;
+	border-radius: 5px;
+	background: rgba(0, 53, 107, 0.05);
+	color: #5a7a94;
+}
+
+.profile_stats {
+	display: flex;
+	gap: 20px;
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid shared.$border-color;
+}
+
+.stat {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 14px;
+	color: shared.$secondary-color;
+
+	svg {
+		height: 13px;
+		opacity: 0.5;
+	}
+}
+
+.stat_count {
+	font-weight: 700;
+	color: shared.$foreground-color;
+}
+
+.stat_label {
+	font-weight: 400;
+}
+
+.field {
+	margin-bottom: 15px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+
+	label {
+		font-size: 13px;
+		font-weight: 500;
+		color: shared.$secondary-color;
+	}
+
+	input {
+		width: 100%;
+		box-sizing: border-box;
+	}
+}
+
+.textarea {
+	font-family: inherit;
+	font-size: 14px;
+	border-radius: shared.$border-radius-standard;
+	background-color: shared.$card-background-color;
+	color: shared.$foreground-color;
+	border: 1px solid shared.$border-color;
+	padding: 10px 15px;
+	outline: none;
+	resize: vertical;
+	width: 100%;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+	&:focus {
+		border-color: shared.$accent-color;
+		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+	}
+
+	&::placeholder {
+		color: shared.$secondary-color;
+	}
+}
+
+.field_hint {
+	font-size: 12px;
+	color: shared.$secondary-color;
+}
+
+.tabs {
+	display: flex;
+	gap: 0;
+	border-bottom: 2px solid shared.$border-color;
+	margin-bottom: 10px;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+.tab {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 20px;
+	white-space: nowrap;
+	background: none;
+	border: none;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 15px;
+	font-weight: 500;
+	color: shared.$secondary-color;
+	transition: color 0.15s ease, border-color 0.15s ease;
+
+	@include shared.small-mobile() {
+		padding: 10px 12px;
+		font-size: 13px;
+		gap: 5px;
+	}
+
+	svg {
+		height: 14px;
+	}
+
+	&:hover {
+		color: shared.$foreground-color;
+	}
+
+	&.active {
+		color: shared.$accent-color;
+		border-bottom-color: shared.$accent-color;
+	}
+}
+
+.badge {
+	background-color: shared.$destructive-color;
+	color: #ffffff;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 1px 6px;
+	border-radius: shared.$border-radius-full;
+	min-width: 16px;
+	text-align: center;
+}
+
+.friends_tab {
+	h2 {
+		margin-top: 30px;
+		&:first-child {
+			margin-top: 20px;
+		}
+	}
+}
+
+.friends_list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.friend_card {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 18px;
+	background-color: shared.$card-background-color;
+	border: 1px solid shared.$border-color;
+	border-radius: shared.$border-radius-standard;
+	transition: box-shadow 0.15s ease;
+
+	&:hover {
+		box-shadow: shared.$shadow-sm;
+	}
+
+	@include shared.responsive() {
+		flex-wrap: wrap;
+	}
+
+	@include shared.small-mobile() {
+		padding: 12px;
+		gap: 10px;
+	}
+}
+
+.friend_photo {
+	flex-shrink: 0;
+
+	img {
+		width: 44px;
+		height: 55px;
+		border-radius: shared.$border-radius-standard;
+		object-fit: cover;
+	}
+}
+
+.friend_photo_placeholder {
+	width: 44px;
+	height: 55px;
+	border-radius: shared.$border-radius-standard;
+	background-color: shared.$muted-color;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	svg {
+		height: 18px;
+		color: shared.$border-color;
+	}
+}
+
+.friend_info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.friend_name {
+	font-size: 15px;
+	font-weight: 600;
+	color: shared.$foreground-color;
+}
+
+.friend_detail {
+	font-size: 13px;
+	color: shared.$secondary-color;
+}
+
+.friend_actions {
+	display: flex;
+	gap: 6px;
+	flex-shrink: 0;
+
+	@include shared.responsive() {
+		width: 100%;
+
+		button {
+			flex: 1;
+			justify-content: center;
+		}
+	}
+}
+
+.friend_action {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: shared.$border-radius-standard;
+	border: 1px solid shared.$border-color;
+	background: shared.$card-background-color;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+	svg {
+		height: 12px;
+	}
+
+	&.accept_action {
+		color: #16a34a;
+		border-color: rgba(22, 163, 74, 0.3);
+
+		&:hover {
+			background-color: rgba(22, 163, 74, 0.06);
+		}
+	}
+
+	&.decline_action {
+		color: shared.$secondary-color;
+
+		&:hover {
+			color: shared.$destructive-color;
+			border-color: shared.$destructive-color;
+			background-color: rgba(shared.$destructive-color, 0.06);
+		}
+	}
+
+	&.remove_action {
+		color: shared.$secondary-color;
+
+		&:hover {
+			color: shared.$destructive-color;
+			border-color: shared.$destructive-color;
+			background-color: rgba(shared.$destructive-color, 0.06);
+		}
+	}
+}
+
+.save_section {
+	margin-top: 25px;
+	display: flex;
+	align-items: center;
+	gap: 15px;
+
+	@include shared.small-mobile() {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+}
+
+.save_message {
+	font-size: 14px;
+	color: shared.$secondary-color;
+}
+
+.posts_tab {
+	h2 {
+		margin-top: 20px;
+	}
+}
+
+.posts_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 16px;
+
+	@include shared.responsive() {
+		grid-template-columns: 1fr;
+	}
+}

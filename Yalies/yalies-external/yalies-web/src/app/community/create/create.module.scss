@@ -1,0 +1,373 @@
+@use "../../../shared.scss";
+
+.create_page {
+	max-width: 700px;
+	margin: 0 auto;
+	padding: 40px 24px;
+
+	h1 {
+		font-size: 28px;
+		color: shared.$accent-color;
+		margin-bottom: 30px;
+	}
+
+	@include shared.responsive() {
+		padding: 24px 16px;
+		h1 {
+			font-size: 22px;
+			margin-bottom: 20px;
+		}
+	}
+
+	@include shared.small-mobile() {
+		padding: 16px 10px;
+		h1 {
+			font-size: 20px;
+			margin-bottom: 16px;
+		}
+	}
+}
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	label {
+		font-size: 13px;
+		font-weight: 600;
+		color: shared.$foreground-color;
+	}
+}
+
+.type_options {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+
+	@include shared.responsive() {
+		grid-template-columns: 1fr;
+	}
+}
+
+.type_card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 16px;
+	border-radius: shared.$border-radius-lg;
+	border: 1px solid shared.$border-color;
+	background: shared.$card-background-color;
+	cursor: pointer;
+	text-align: left;
+	font-family: inherit;
+	transition: all 0.15s ease;
+
+	&:hover {
+		border-color: rgba(0, 53, 107, 0.2);
+		box-shadow: shared.$shadow-sm;
+	}
+
+	&.selected {
+		border-color: shared.$accent-color;
+		background-color: rgba(0, 53, 107, 0.03);
+		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+	}
+}
+
+.type_title {
+	font-size: 14px;
+	font-weight: 600;
+	color: shared.$foreground-color;
+}
+
+.type_desc {
+	font-size: 12px;
+	color: shared.$secondary-color;
+	line-height: 1.4;
+}
+
+.chip_options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+}
+
+.competition_fields {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px;
+	background-color: shared.$muted-color;
+	border-radius: shared.$border-radius-lg;
+}
+
+.field_row {
+	display: flex;
+	gap: 16px;
+
+	.field {
+		flex: 1;
+	}
+
+	@include shared.responsive() {
+		flex-direction: column;
+	}
+}
+
+.date_input, .number_input {
+	font-family: inherit;
+	font-size: 14px;
+	border-radius: shared.$border-radius-standard;
+	background-color: shared.$card-background-color;
+	color: shared.$foreground-color;
+	border: 1px solid shared.$border-color;
+	padding: 10px 15px;
+	outline: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	width: 100%;
+	box-sizing: border-box;
+
+	&:focus {
+		border-color: shared.$accent-color;
+		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+	}
+}
+
+.number_input {
+	max-width: 120px;
+
+	@include shared.responsive() {
+		max-width: 100%;
+	}
+}
+
+.custom_tag {
+	margin-top: 8px;
+	max-width: 250px;
+
+	@include shared.responsive() {
+		max-width: 100%;
+	}
+}
+
+.custom_tags {
+	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.field_hint {
+	font-size: 12px;
+	color: shared.$secondary-color;
+}
+
+.member_search_container {
+	position: relative;
+}
+
+.member_search_input {
+	font-family: inherit;
+	font-size: 14px;
+	border-radius: shared.$border-radius-standard;
+	background-color: shared.$card-background-color;
+	color: shared.$foreground-color;
+	border: 1px solid shared.$border-color;
+	padding: 10px 15px;
+	outline: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	width: 100%;
+	box-sizing: border-box;
+
+	&:focus {
+		border-color: shared.$accent-color;
+		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+	}
+
+	&::placeholder {
+		color: shared.$secondary-color;
+	}
+}
+
+.member_dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	margin-top: 4px;
+	background: shared.$card-background-color;
+	border: 1px solid shared.$border-color;
+	border-radius: shared.$border-radius-standard;
+	box-shadow: shared.$shadow-lg;
+	z-index: 100;
+	max-height: 280px;
+	overflow-y: auto;
+}
+
+.dropdown_loading, .dropdown_empty {
+	padding: 14px 16px;
+	font-size: 13px;
+	color: shared.$secondary-color;
+	text-align: center;
+}
+
+.dropdown_item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 10px 14px;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-family: inherit;
+	text-align: left;
+	transition: background-color 0.1s ease;
+
+	&:hover {
+		background-color: shared.$muted-color;
+	}
+
+	& + & {
+		border-top: 1px solid shared.$border-color;
+	}
+}
+
+.dropdown_photo {
+	flex-shrink: 0;
+
+	img {
+		width: 36px;
+		height: 44px;
+		border-radius: 6px;
+		object-fit: cover;
+	}
+}
+
+.dropdown_photo_placeholder {
+	width: 36px;
+	height: 44px;
+	border-radius: 6px;
+	background-color: shared.$muted-color;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	svg {
+		height: 14px;
+		color: shared.$border-color;
+	}
+}
+
+.dropdown_info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.dropdown_name {
+	font-size: 14px;
+	font-weight: 600;
+	color: shared.$foreground-color;
+}
+
+.dropdown_detail {
+	font-size: 12px;
+	color: shared.$secondary-color;
+}
+
+.selected_members {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.selected_member {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	background-color: shared.$muted-color;
+	border-radius: shared.$border-radius-standard;
+	border: 1px solid shared.$border-color;
+}
+
+.selected_member_photo {
+	flex-shrink: 0;
+
+	img {
+		width: 24px;
+		height: 30px;
+		border-radius: 4px;
+		object-fit: cover;
+	}
+}
+
+.selected_member_photo_placeholder {
+	width: 24px;
+	height: 30px;
+	border-radius: 4px;
+	background-color: shared.$border-color;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	svg {
+		height: 10px;
+		color: shared.$card-background-color;
+	}
+}
+
+.selected_member_name {
+	font-size: 13px;
+	font-weight: 500;
+	color: shared.$foreground-color;
+}
+
+.selected_member_remove {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px;
+	color: shared.$secondary-color;
+	transition: color 0.15s ease;
+
+	svg {
+		height: 12px;
+	}
+
+	&:hover {
+		color: shared.$destructive-color;
+	}
+}
+
+.error {
+	font-size: 14px;
+	color: shared.$destructive-color;
+	padding: 10px 14px;
+	background-color: rgba(shared.$destructive-color, 0.06);
+	border-radius: shared.$border-radius-standard;
+	border: 1px solid rgba(shared.$destructive-color, 0.15);
+}
+
+.actions {
+	display: flex;
+	gap: 12px;
+	padding-top: 8px;
+
+	@include shared.small-mobile() {
+		flex-direction: column;
+
+		button {
+			width: 100%;
+		}
+	}
+}

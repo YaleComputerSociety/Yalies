@@ -4,7 +4,7 @@
 # Reads DEV_MODE from .env to select the correct Cloud SQL instance
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/.env"
+ENV_FILE="$SCRIPT_DIR/../.config/.env.proxy"
 
 CREDENTIALS_FILE="/Users/mateicoldea/Documents/Projects/Y-CS/Yalies-new/.config/gcloud/service-key.json"
 PORT=1357

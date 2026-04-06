@@ -9,11 +9,14 @@ If you are a Yale student, please view [the RFC](https://docs.google.com/documen
 ## Getting Started
 
 ### Project Structure
-This project contains four directories:
-- `yalies-web`
-- `yalies-backend`
-- `yalies-scraper`
-- `yalies-shared`
+This project is organized into external (user-facing) and internal (admin/pipeline) packages:
+- `yalies-external/`
+  - `yalies-web` — Frontend (Next.js)
+  - `yalies-backend` — API server (Express)
+- `yalies-internal/`
+  - `yalies-dashboard` — Admin dashboard (Next.js)
+  - `yalies-data-pipeline` — Scraper, enhancer, and DB loader
+- `yalies-shared/` — Shared types, constants, and utilities
 
 ### Windows Developers
 If you're on Windows, everything's easier if you install Windows Subsystem for Linux (WSL). You can follow the instructions [here](https://docs.microsoft.com/en-us/windows/wsl/install).
@@ -67,7 +70,7 @@ cloud-sql-proxy --port 1357 --credentials-file=/path/to/service-key.json  yalies
 
 ### Run the backend
 
-Create a new terminal and `cd yalies-backend`.
+Create a new terminal and `cd yalies-external/yalies-backend`.
 
 `nvm use` to switch to the right version of Node.
 
@@ -77,11 +80,11 @@ Run `cp .env.template .env.development`. Fill in the values, which should have b
 
 `npm run dev` to start the development server.
 
-For more info, see `yalies-backend/README.md`.
+For more info, see `yalies-external/yalies-backend/README.md`.
 
 ### Running the frontend
 
-Create a new terminal, separate from your backend terminal, and `cd yalies-web`.
+Create a new terminal, separate from your backend terminal, and `cd yalies-external/yalies-web`.
 
 `nvm use` to switch to the right version of Node.
 
@@ -135,8 +138,8 @@ There are some additional services you may see enabled in the Cloud Console, but
 	- This is marked as experimental, but for a project like this it's probably ok
 
 ### How to deploy
-1. In `yalies-backend`, run `npm run deploy`.
-2. In `yalies-web`, run `npm run deploy`.
+1. In `yalies-external/yalies-backend`, run `npm run deploy`.
+2. In `yalies-external/yalies-web`, run `npm run deploy`.
 
 ## Maintenance
 - To get a SQL command line, run the following while the Cloud SQL Auth Proxy is running:

@@ -1,0 +1,127 @@
+@use "../shared.scss";
+
+.post_card {
+	background-color: shared.$card-background-color;
+	border-radius: shared.$border-radius-lg;
+	border: 1px solid shared.$border-color;
+	padding: 20px;
+	cursor: pointer;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: shared.$shadow-lg;
+	}
+
+	@include shared.small-mobile() {
+		padding: 14px 12px;
+		gap: 10px;
+	}
+}
+
+.header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.type_badge {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 3px 8px;
+	border-radius: 4px;
+	letter-spacing: 0.02em;
+
+	&.team {
+		background-color: rgba(37, 99, 235, 0.1);
+		color: #2563eb;
+	}
+
+	&.recruiting {
+		background-color: rgba(16, 185, 129, 0.1);
+		color: #059669;
+	}
+
+	&.showcase {
+		background-color: rgba(168, 85, 247, 0.1);
+		color: #7c3aed;
+	}
+}
+
+.category {
+	font-size: 12px;
+	color: shared.$secondary-color;
+	font-weight: 500;
+}
+
+.title {
+	font-size: 16px;
+	font-weight: 700;
+	color: shared.$accent-color;
+	line-height: 1.3;
+}
+
+.description {
+	font-size: 13px;
+	color: shared.$secondary-color;
+	line-height: 1.5;
+}
+
+.tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+}
+
+.competition_info {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: shared.$secondary-color;
+	svg {
+		height: 11px;
+		opacity: 0.6;
+	}
+}
+
+.footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: auto;
+	padding-top: 8px;
+	border-top: 1px solid shared.$border-color;
+	gap: 8px;
+
+	@include shared.small-mobile() {
+		flex-wrap: wrap;
+	}
+}
+
+.meta {
+	display: flex;
+	gap: 12px;
+}
+
+.meta_item {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 12px;
+	color: shared.$secondary-color;
+	font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+	svg {
+		height: 11px;
+		opacity: 0.6;
+	}
+}
+
+.author {
+	font-size: 12px;
+	color: shared.$secondary-color;
+	font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+}

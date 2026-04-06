@@ -1,4 +1,6 @@
 .env
+.env.*
+config/
 output/
 __pycache__/
 venv/

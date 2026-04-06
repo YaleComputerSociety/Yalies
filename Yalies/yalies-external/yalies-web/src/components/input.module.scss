@@ -1,0 +1,35 @@
+@use "../shared.scss";
+
+.input {
+	font-family: inherit;
+	font-size: 14px;
+	border-radius: shared.$border-radius-standard;
+	background-color: shared.$card-background-color;
+	color: shared.$foreground-color;
+	border: 1px solid shared.$border-color;
+	padding: 10px 15px;
+	outline: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	width: 100%;
+	box-sizing: border-box;
+
+	&:focus {
+		border-color: shared.$accent-color;
+		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+	}
+
+	&::placeholder {
+		color: shared.$secondary-color;
+	}
+
+	&.disabled {
+		background-color: shared.$background-color-disabled;
+		color: shared.$secondary-color;
+	}
+}
+
+.textarea {
+	resize: vertical;
+	min-height: 80px;
+	line-height: 1.5;
+}

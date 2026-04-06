@@ -21,6 +21,8 @@ export type Person = {
 
     // Misc
     address?: string;
+    address_state?: string;
+    address_country?: string;
 
     // Students
     school?: string;
@@ -53,6 +55,11 @@ export type Person = {
     website?: string;
     education?: string;
     publications?: string;
+
+    // Inline data (included in people search results)
+    user_profile?: UserProfile;
+    like_data?: { like_count: number; liked_by_me: boolean };
+    friend_data?: { status: string; count: number };
 };
 
 export type ApiKey = {
@@ -71,4 +78,34 @@ export type UserProfile = {
 	instagram_url?: string;
 	classes?: string[];
 	updated_at?: Date;
+};
+
+export type ValidationResult = {
+	passes: string[];
+	warnings: string[];
+	failures: string[];
+};
+
+// Full database row — all Person fields as nullable + DB-specific columns.
+// Used by the dashboard to display/edit student records.
+export type DatabasePerson = {
+	[K in keyof Person]: Person[K] | null;
+} & {
+	id: number;
+	birthday?: string | null;
+	residence?: string | null;
+	linkedin_url?: string | null;
+	instagram_url?: string | null;
+	classes?: string[] | null;
+};
+
+// Row shape for pipeline DB inserts — Person fields + required id.
+export type DbRow = Partial<Person> & {
+	id: number;
+	first_name: string;
+	last_name: string;
+	school: string;
+	school_code: string;
+	address_state?: string | null;
+	address_country?: string | null;
 };

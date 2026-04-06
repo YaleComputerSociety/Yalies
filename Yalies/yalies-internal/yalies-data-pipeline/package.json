@@ -1,0 +1,60 @@
+{
+  "name": "yalies-data-pipeline",
+  "version": "1.0.0",
+  "description": "Yale student directory data pipeline — scrape, enhance, and load",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsc && node build/index.js",
+    "server": "npx tsc && node build/server.js",
+    "lint": "eslint src/**/*.ts",
+    "format": "eslint src/**/*.ts --fix",
+    "enhance": "python python/enhancer/enhance.py",
+    "facecheck": "python python/facecheck/facecheck.py",
+    "qc": "npx tsc && node build/qualityControl.js --dry-run",
+    "qc:fix": "npx tsc && node build/qualityControl.js --fix",
+    "enrich-missing": "npx tsc && node build/enrichMissing.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yalies/Yalies.git"
+  },
+  "author": "Erik Boesen, Yale Computer Society",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Yalies/Yalies/issues"
+  },
+  "homepage": "https://github.com/Yalies/Yalies#readme",
+  "devDependencies": {
+    "@stylistic/eslint-plugin-js": "^2.10.1",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.2",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^20.17.5",
+    "@types/passport": "^1.0.17",
+    "eslint": "^8.57.1",
+    "eslint-plugin-github": "^5.0.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.12.2",
+    "@typescript-eslint/parser": "^8.12.2",
+    "cheerio": "^1.0.0",
+    "connect-session-sequelize": "^7.1.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-session": "^1.19.0",
+    "html-entities": "^2.5.2",
+    "multer": "^2.1.1",
+    "node-fetch-cookies": "^2.1.1",
+    "passport": "^0.7.0",
+    "passport-cas": "github:coursetable/passport-cas",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.5",
+    "yalies-shared": "file:../../yalies-shared"
+  }
+}

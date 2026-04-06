@@ -1,6 +1,0 @@
-models/
-venv/
-__pycache__/
-test_output/
-*.pyc
-gfpgan/

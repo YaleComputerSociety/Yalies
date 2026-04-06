@@ -1,0 +1,457 @@
+@use "../../shared.scss";
+
+#about_page {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 40px 24px 80px;
+
+	@include shared.responsive() {
+		padding: 28px 16px 50px;
+	}
+
+	@include shared.small-mobile() {
+		padding: 20px 12px 40px;
+
+		h1 {
+			font-size: 18px;
+		}
+
+		h2 {
+			font-size: 17px;
+			margin-top: 32px;
+			padding-top: 20px;
+		}
+
+		p {
+			font-size: 13px;
+			line-height: 1.6;
+		}
+	}
+
+	h1 {
+		font-size: 20px;
+		font-weight: 700;
+		color: shared.$accent-color;
+		margin-bottom: 12px;
+	}
+
+	h2 {
+		font-size: 20px;
+		font-weight: 700;
+		color: shared.$accent-color;
+		margin-top: 48px;
+		margin-bottom: 12px;
+		padding-top: 32px;
+		border-top: 1px solid shared.$border-color;
+	}
+
+	h3 {
+		font-weight: 600;
+		font-size: 16px;
+		margin-top: 24px;
+		margin-bottom: 10px;
+		color: shared.$foreground-color;
+	}
+
+	p {
+		line-height: 1.7;
+		font-size: 15px;
+		color: shared.$secondary-color;
+		margin-bottom: 10px;
+
+		a {
+			color: shared.$accent-color;
+			text-decoration: underline;
+			text-underline-offset: 2px;
+
+			&:hover {
+				opacity: 0.75;
+			}
+		}
+	}
+
+	code {
+		background-color: shared.$muted-color;
+		padding: 2px 6px;
+		border-radius: 4px;
+		font-size: 13px;
+	}
+}
+
+.intro {
+	font-size: 16px !important;
+	line-height: 1.75 !important;
+	color: shared.$foreground-color !important;
+}
+
+.section {
+	h2:first-child {
+		margin-top: 32px;
+		border-top: none;
+		padding-top: 0;
+	}
+}
+
+.quote {
+	margin: 16px 0 24px;
+	padding: 14px 20px;
+	border-left: 3px solid shared.$accent-color;
+	font-size: 15px;
+	font-style: italic;
+	color: shared.$secondary-color;
+	line-height: 1.6;
+	background: rgba(0, 53, 107, 0.045);
+	border-radius: 0 shared.$border-radius-standard shared.$border-radius-standard 0;
+
+	cite {
+		display: block;
+		margin-top: 6px;
+		font-size: 12px;
+		font-style: normal;
+		font-weight: 600;
+		color: shared.$accent-color;
+		opacity: 0.5;
+
+		&::before {
+			content: "— ";
+		}
+	}
+}
+
+// API section
+
+.api_section {
+	margin-top: 12px;
+	padding: 20px;
+	background: rgba(0, 53, 107, 0.045);
+	border-radius: shared.$border-radius-lg;
+
+	h3 {
+		margin-top: 16px;
+	}
+}
+
+.show_more {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 12px;
+	padding: 8px 20px;
+	background: rgba(0, 53, 107, 0.045);
+	color: shared.$accent-color;
+	border: 1px solid rgba(0, 53, 107, 0.2);
+	border-radius: shared.$border-radius-full;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+
+	svg {
+		height: 10px;
+	}
+
+	&:hover {
+		background: rgba(0, 53, 107, 0.08);
+		border-color: shared.$accent-color;
+	}
+}
+
+.key_table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	margin-top: 16px;
+	font-size: 14px;
+
+	td, th {
+		text-align: left;
+		padding: 10px 0;
+		border-bottom: 1px solid shared.$border-color;
+	}
+	th {
+		font-weight: 600;
+		font-size: 12px;
+		color: shared.$secondary-color;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+}
+
+.key_cell {
+	width: 50%;
+}
+
+.revoke_cell {
+	color: shared.$destructive-color;
+	cursor: pointer;
+	transition: opacity 0.15s ease;
+	&:hover {
+		opacity: 0.7;
+	}
+}
+
+.new_key_form {
+	margin-top: 16px;
+	display: flex;
+	align-items: center;
+
+	input {
+		border-radius: shared.$border-radius-full;
+	}
+	button {
+		margin-left: 12px;
+	}
+}
+
+// Team section
+
+.team_timeline {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 24px;
+	margin-top: 24px;
+
+	@include shared.responsive() {
+		gap: 14px;
+	}
+}
+
+.team_arrow {
+	height: 16px;
+	color: shared.$accent-color;
+	opacity: 0.3;
+	flex-shrink: 0;
+	margin-bottom: 40px; // align with photos, not the text below
+
+	@include shared.responsive() {
+		height: 12px;
+	}
+}
+
+.team_grid {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 36px;
+	margin-top: 24px;
+
+	@include shared.responsive() {
+		gap: 24px;
+	}
+}
+
+.team_card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 170px;
+
+	@include shared.responsive() {
+		width: 130px;
+	}
+
+	@include shared.small-mobile() {
+		width: 100px;
+	}
+}
+
+.team_photo_wrapper {
+	width: 140px;
+	height: 140px;
+	border-radius: 50%;
+	overflow: hidden;
+	box-shadow: 0 2px 12px rgba(0, 53, 107, 0.1);
+	transition: box-shadow 0.3s ease, transform 0.3s ease;
+
+	&:hover {
+		box-shadow: 0 4px 20px rgba(0, 53, 107, 0.16);
+		transform: translateY(-2px);
+	}
+
+	@include shared.responsive() {
+		width: 110px;
+		height: 110px;
+	}
+
+	@include shared.small-mobile() {
+		width: 80px;
+		height: 80px;
+	}
+}
+
+.team_photo {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center top;
+	display: block;
+}
+
+.team_photo_placeholder {
+	width: 140px;
+	height: 140px;
+	border-radius: 50%;
+	background: shared.$accent-color;
+	color: #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 38px;
+	font-weight: 700;
+	font-family: Georgia, "Times New Roman", serif;
+	box-shadow: 0 2px 12px rgba(0, 53, 107, 0.1);
+
+	@include shared.responsive() {
+		width: 110px;
+		height: 110px;
+		font-size: 30px;
+	}
+
+	@include shared.small-mobile() {
+		width: 80px;
+		height: 80px;
+		font-size: 24px;
+	}
+}
+
+.team_info {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	margin-top: 14px;
+}
+
+.team_name {
+	font-size: 15px;
+	font-weight: 700;
+	color: shared.$foreground-color;
+
+	@include shared.small-mobile() {
+		font-size: 13px;
+	}
+}
+
+.team_role {
+	font-size: 12px;
+	color: shared.$secondary-color;
+	font-style: italic;
+	margin-top: 1px;
+}
+
+.team_links {
+	display: flex;
+	gap: 14px;
+	margin-top: 8px;
+
+	a {
+		color: rgba(0, 53, 107, 0.25);
+		transition: color 0.2s ease;
+		display: flex;
+
+		svg {
+			height: 14px;
+		}
+
+		&:hover {
+			color: shared.$accent-color;
+		}
+	}
+}
+
+// FAQ section
+
+.faq_list {
+	display: flex;
+	flex-direction: column;
+	margin-top: 16px;
+	background: rgba(0, 53, 107, 0.045);
+	border-radius: shared.$border-radius-lg;
+	padding: 4px 20px;
+
+	@include shared.small-mobile() {
+		padding: 4px 12px;
+	}
+}
+
+.faq_item {
+	border-bottom: 1px solid rgba(0, 53, 107, 0.06);
+
+	&:last-child {
+		border-bottom: none;
+	}
+}
+
+.faq_question {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 16px 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	color: shared.$foreground-color;
+	text-align: left;
+	gap: 16px;
+	transition: color 0.15s ease;
+
+	&:hover {
+		color: shared.$accent-color;
+	}
+
+	@include shared.small-mobile() {
+		font-size: 13px;
+		gap: 10px;
+		padding: 14px 0;
+	}
+}
+
+.faq_icon {
+	height: 11px;
+	flex-shrink: 0;
+	color: shared.$secondary-color;
+}
+
+.faq_answer {
+	padding: 0 0 16px;
+
+	p {
+		margin: 0;
+	}
+}
+
+// Sponsors section
+
+.sponsors {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 48px;
+	margin-top: 20px;
+	padding: 24px;
+	background: rgba(0, 53, 107, 0.045);
+	border-radius: shared.$border-radius-lg;
+
+	@include shared.responsive() {
+		gap: 20px;
+		padding: 16px;
+		flex-wrap: wrap;
+	}
+}
+
+.sponsor_logo {
+	height: 36px;
+	opacity: 0.5;
+	transition: opacity 0.2s ease;
+
+	&:hover {
+		opacity: 0.9;
+	}
+}

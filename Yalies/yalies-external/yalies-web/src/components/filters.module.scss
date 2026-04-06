@@ -1,0 +1,89 @@
+@use "../shared.scss";
+
+.filters_toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 14px;
+	height: 36px;
+	font-size: 13px;
+	font-weight: 500;
+	font-family: inherit;
+	color: shared.$card-background-color;
+	background: shared.$accent-color;
+	border: 1px solid shared.$accent-color;
+	border-radius: shared.$border-radius-full;
+	cursor: pointer;
+	transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+	white-space: nowrap;
+	flex-shrink: 0;
+
+	svg {
+		height: 12px;
+	}
+
+	&:hover, &.open {
+		background: shared.$accent-color-hover;
+		border-color: shared.$accent-color-hover;
+	}
+
+	&:active {
+		background: shared.$accent-color-hover;
+	}
+
+	&.has_filters {
+		background: shared.$accent-color-light;
+		border-color: shared.$accent-color-light;
+	}
+}
+
+.badge {
+	background: shared.$accent-color;
+	color: shared.$card-background-color;
+	font-size: 10px;
+	font-weight: 700;
+	min-width: 16px;
+	height: 16px;
+	border-radius: shared.$border-radius-full;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 4px;
+}
+
+.filters_panel {
+	padding: 8px 0 4px;
+
+	@include shared.responsive() {
+		padding: 8px 12px 4px;
+	}
+
+	@include shared.small-mobile() {
+		padding: 6px 8px 4px;
+	}
+}
+
+.filters_row {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.reset {
+	padding: 5px 10px;
+	font-size: 11px;
+	font-weight: 500;
+	font-family: inherit;
+	border: 1px solid shared.$destructive-color;
+	border-radius: 6px;
+	color: shared.$destructive-color;
+	background: rgba(shared.$destructive-color, 0.05);
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+
+	&:hover {
+		background: rgba(shared.$destructive-color, 0.1);
+	}
+}

@@ -1,0 +1,138 @@
+@use "../shared.scss";
+
+#navbar {
+	padding: 0 10px;
+}
+
+.navbar_top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: stretch;
+	gap: 20px;
+}
+
+#logo {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	text-decoration: none;
+	color: shared.$accent-color;
+	gap: 10px;
+	width: 100px;
+	height: 36px;
+	flex-shrink: 0;
+	img {
+		height: 30px;
+		width: 30px;
+	}
+	h2 {
+		font-size: 20px;
+	}
+
+	@include shared.small-mobile() {
+		gap: 6px;
+		img {
+			height: 26px;
+			width: 26px;
+		}
+		h2 {
+			font-size: 17px;
+		}
+	}
+}
+
+#links {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	font-size: 13.5px;
+	font-weight: 600;
+	height: 36px;
+	a {
+		text-decoration: none;
+		color: shared.$accent-color-light;
+		height: 34px;
+		display: flex;
+		align-items: center;
+		padding: 0 14px;
+		border-radius: shared.$border-radius-standard;
+		letter-spacing: 0.01em;
+		transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+		&:hover {
+			color: shared.$accent-color;
+			background-color: shared.$accent-color-soft;
+			box-shadow: 0 0 0 1px rgba(0, 53, 107, 0.1);
+		}
+	}
+
+	@include shared.responsive() {
+		display: none;
+	}
+}
+
+.hamburger {
+	display: none;
+	flex-direction: column;
+	justify-content: center;
+	gap: 4px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	margin-left: auto;
+	height: 36px;
+	width: 36px;
+
+	@include shared.responsive() {
+		display: flex;
+	}
+}
+
+.hamburger_line {
+	display: block;
+	width: 20px;
+	height: 2px;
+	background-color: shared.$accent-color;
+	border-radius: 1px;
+	transition: transform 0.2s ease, opacity 0.2s ease;
+
+	&.open {
+		&:first-child {
+			transform: translateY(6px) rotate(45deg);
+		}
+		&:nth-child(2) {
+			opacity: 0;
+		}
+		&:last-child {
+			transform: translateY(-6px) rotate(-45deg);
+		}
+	}
+}
+
+.mobile_menu {
+	display: none;
+
+	@include shared.responsive() {
+		display: flex;
+		flex-direction: column;
+		padding: 8px 0 4px;
+		border-top: 1px solid shared.$border-color;
+		margin-top: 8px;
+
+		a {
+			text-decoration: none;
+			color: shared.$accent-color-light;
+			font-size: 15px;
+			font-weight: 600;
+			padding: 12px 10px;
+			border-radius: shared.$border-radius-standard;
+			transition: background-color 0.15s ease;
+
+			&:hover {
+				background-color: shared.$accent-color-soft;
+			}
+		}
+	}
+}

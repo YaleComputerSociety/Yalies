@@ -1,0 +1,46 @@
+@use "../_shared.scss" as shared;
+
+h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+	overflow-x: hidden;
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    color: shared.$foreground-color;
+    background-color: shared.$background-color;
+	margin: 0;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-text-size-adjust: 100%;
+
+	&::after {
+		content: '';
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-image: url('/logo.png');
+		background-size: 50px 50px;
+		background-repeat: repeat;
+		opacity: 0.028;
+		pointer-events: none;
+		z-index: 0;
+	}
+}
+
+a {
+	color: inherit;
+}
+
+::selection {
+	background-color: rgba(shared.$accent-color, 0.12);
+	color: shared.$accent-color;
+}

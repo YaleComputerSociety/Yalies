@@ -1,0 +1,56 @@
+@use "../shared.scss";
+
+.button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: shared.$border-radius-full;
+	color: #ffffff;
+	background-color: shared.$accent-color;
+    outline: 0;
+    padding: 10px 20px;
+    border: none;
+	box-shadow: shared.$shadow-sm;
+	cursor: pointer;
+	transition: background-color 0.15s ease, box-shadow 0.15s ease;
+
+	&:hover {
+		background-color: shared.$accent-color-hover;
+		box-shadow: shared.$shadow-md;
+	}
+
+	&:active {
+		transform: scale(0.98);
+	}
+
+	@include shared.small-mobile() {
+		padding: 12px 20px;
+		font-size: 14px;
+	}
+
+	&:disabled {
+		background-color: shared.$background-color-disabled;
+		color: shared.$secondary-color;
+		cursor: not-allowed;
+		box-shadow: none;
+	}
+
+	&.secondary {
+		background-color: transparent;
+		color: shared.$secondary-color;
+		border: 1px solid shared.$border-color;
+		box-shadow: none;
+		&:hover {
+			background-color: shared.$accent-color-soft;
+			color: shared.$accent-color;
+			border-color: rgba(0, 53, 107, 0.15);
+		}
+	}
+
+	&.destructive {
+		background-color: shared.$destructive-color;
+		&:hover {
+			background-color: darken(shared.$destructive-color, 8%);
+		}
+	}
+}

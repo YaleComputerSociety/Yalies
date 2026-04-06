@@ -1,8 +1,0 @@
-@use "../shared.scss";
-
-#topbar {
-	border-top: 3px solid shared.$accent-color;
-	background: linear-gradient(180deg, #f5f8fb 0%, shared.$card-background-color 100%);
-	border-bottom: 1px solid rgba(0, 53, 107, 0.08);
-	padding: 8px 8px 0 8px;
-}
