@@ -8,7 +8,6 @@ import PersonModal from "./PersonModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCake, faBook, faEnvelope, faGraduationCap } from "@fortawesome/free-solid-svg-icons";
 
-
 const COLLEGE_SHIELDS: Record<string, string> = {
 	"BF": "/shields/BF.png",
 	"BK": "/shields/BK.png",

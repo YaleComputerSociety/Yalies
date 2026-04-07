@@ -19,4 +19,13 @@ export default class CommunityPostInterestModel extends Model {
 			...SEQUELIZE_DEFINITION_OPTIONS,
 		});
 	}
+
+	toSanitizedObject() {
+		return {
+			post_id: this.post_id,
+			netid: this.netid,
+			...this.message != null && { message: this.message },
+			created_at: this.created_at,
+		};
+	}
 }

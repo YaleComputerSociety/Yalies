@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback } from "react";
 import { getCookie, setCookie } from "cookies-next";
 

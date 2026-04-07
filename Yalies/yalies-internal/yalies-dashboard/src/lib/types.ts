@@ -1,5 +1,5 @@
-import { ValidationResult, DatabasePerson } from "yalies-shared";
-export type { ValidationResult };
+import { ValidationResult, DatabasePerson, DataChangeRequest } from "yalies-shared";
+export type { ValidationResult, DataChangeRequest };
 export type DatabaseStudent = DatabasePerson;
 
 export type WizardStepId =
@@ -53,4 +53,3 @@ export type DatabaseStudentsResponse = {
 	page: number;
 	pageSize: number;
 };
-

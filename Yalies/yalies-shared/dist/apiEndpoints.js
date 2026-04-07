@@ -9,11 +9,11 @@ export const API = {
     people: `${API_PREFIX}/people`,
     peopleSuggest: `${API_PREFIX}/people/suggest`,
     filters: `${API_PREFIX}/filters`,
-    globe: `${API_PREFIX}/globe`,
     profileMe: `${API_PREFIX}/profile/me`,
     profileMeFull: `${API_PREFIX}/profile/me/full`,
     profileMePhoto: `${API_PREFIX}/profile/me/photo`,
     profileMePhotoDownload: `${API_PREFIX}/profile/me/photo/download`,
+    profileMeChangeRequest: `${API_PREFIX}/profile/me/change-request`,
     profile: (netid) => `${API_PREFIX}/profile/${netid}`,
     likesFor: (netid) => `${API_PREFIX}/likes/${netid}`,
     friendsMe: `${API_PREFIX}/friends/me`,
@@ -44,7 +44,6 @@ export const API_ROUTES = {
     profile: `${API_PREFIX}/profile`,
     likes: `${API_PREFIX}/likes`,
     friends: `${API_PREFIX}/friends`,
-    globe: `${API_PREFIX}/globe`,
     community: `${API_PREFIX}/community`,
     admin: `${API_PREFIX}/admin`,
 };
@@ -64,6 +63,8 @@ export const PIPELINE_API = {
     databaseStudentPhoto: (id) => `${PIPELINE_PREFIX}/database/students/${id}/photo`,
     databaseStudentPhotoDownload: (id) => `${PIPELINE_PREFIX}/database/students/${id}/photo/download`,
     databaseComputeLocations: `${PIPELINE_PREFIX}/database/compute-locations`,
+    databaseChangeRequests: `${PIPELINE_PREFIX}/database/change-requests`,
+    databaseChangeRequest: (id) => `${PIPELINE_PREFIX}/database/change-requests/${id}`,
 };
 // Router mount base paths (used by Express app.use() in the pipeline server)
 export const PIPELINE_ROUTES = {

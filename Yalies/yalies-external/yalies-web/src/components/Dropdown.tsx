@@ -55,7 +55,7 @@ function DropdownPopup({
 }) {
 	const [searchText, setSearchText] = useState("");
 	const onSearchTextChange = (e: React.ChangeEvent<HTMLInputElement>) => setSearchText(e.target.value);
-	
+
 	if(!shown) return null;
 
 	const optionsElems = options
@@ -77,7 +77,7 @@ function DropdownPopup({
 			No options
 		</div>
 	)
-	
+
 	const chips = options
 		.filter((option) => value.includes(option.value))
 		.map((option) => (

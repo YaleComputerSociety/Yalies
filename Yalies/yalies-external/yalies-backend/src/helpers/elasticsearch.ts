@@ -19,17 +19,12 @@ export default class Elasticsearch {
 	}
 
 	initializeElasticsearch = () => {
-		// Credentials are embedded in ELASTICSEARCH_URL (e.g. https://user:pass@host)
+
 		this.#esClient = new Client({
 			node: process.env.ELASTICSEARCH_URL,
 		});
 	};
 
-	/**
-	 * Lightweight suggestion query for autocomplete dropdown.
-	 * Returns minimal person data (name, image, college, year) for display.
-	 * Uses phrase_prefix for instant prefix matching + fuzzy for typo tolerance.
-	 */
 	suggestPerson = async (query: string, limit: number = 8): Promise<SuggestionResult[]> => {
 		if (!query || query.trim().length === 0) return [];
 
@@ -41,7 +36,7 @@ export default class Elasticsearch {
 			query: {
 				bool: {
 					should: [
-						// Exact phrase prefix — highest relevance for "John Sm..."
+
 						{
 							multi_match: {
 								query,
@@ -50,7 +45,7 @@ export default class Elasticsearch {
 								boost: 10,
 							},
 						},
-						// Cross-fields for "Smith John" style queries
+
 						{
 							multi_match: {
 								query,
@@ -60,7 +55,7 @@ export default class Elasticsearch {
 								boost: 5,
 							},
 						},
-						// Fuzzy on individual words for typo tolerance
+
 						...queryWords.map((word) => ({
 							multi_match: {
 								query: word,
@@ -92,10 +87,6 @@ export default class Elasticsearch {
 		}
 	};
 
-	/**
-	 * Full search: exact match (cross_fields AND) + fuzzy fallback.
-	 * Returns netIDs for SQL lookup. Exact results come first.
-	 */
 	searchPersonByNameFuzzy = async (query: string, isFuzzy: boolean): Promise<string[]> => {
 		const queryWords = query.split(/\s+/);
 
@@ -152,7 +143,7 @@ export default class Elasticsearch {
 			console.error("Error searching for person:", e);
 			return [];
 		}
-		// We are doing this by NetID because for some reason, Elasticsearch _id doesn't match up with SQL primary key...
+
 		const ids = res.body.hits.hits.map((hit: PersonElasticsearchResult) => hit._source.netid);
 		return ids;
 	};

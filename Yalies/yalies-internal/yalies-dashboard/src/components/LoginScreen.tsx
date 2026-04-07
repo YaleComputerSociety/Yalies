@@ -37,7 +37,6 @@ export default function LoginScreen() {
 		);
 	}
 
-	// unauthenticated — same pattern as yalies-web Splash.tsx
 	return (
 		<div className={styles.container}>
 			<div className={styles.card}>

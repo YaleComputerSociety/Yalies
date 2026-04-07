@@ -1,10 +1,3 @@
-/**
- * Post-scrape data quality control.
- * Detects and fixes misplaced data, validates field formats, produces a report.
- *
- * Usage:
- *   npx tsc && node build/qualityControl.js [--dry-run] [--fix]
- */
 
 import { configDotenv } from "dotenv";
 import path from "path";
@@ -20,8 +13,6 @@ import {
 	COUNTRY_ALIASES,
 	parseLocation,
 } from "yalies-shared";
-
-// ----- Known data lists -----
 
 const KNOWN_COUNTRIES = new Set([
 	...Object.values(COUNTRY_ALIASES),
@@ -47,8 +38,6 @@ const US_CITY_STATE_REGEX = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*[A-Z]{2}$/;
 const VALID_COLLEGES_SET = new Set<string>(VALID_COLLEGES);
 const EXPECTED_YEARS_SET = new Set<number>(EXPECTED_YEARS);
 
-// ----- Types -----
-
 type Issue = {
 	id: number;
 	netid: string | null;
@@ -65,8 +54,6 @@ type Fix = {
 	old_value: string | null;
 	new_value: string | null;
 };
-
-// ----- QC checks -----
 
 function checkCountryInMajor(row: Record<string, unknown>): Issue | null {
 	const major = row.major as string | null;
@@ -109,7 +96,7 @@ function checkStateOnlyAddress(row: Record<string, unknown>): Issue | null {
 	const address = row.address as string | null;
 	const existingState = row.address_state as string | null;
 	if (!address || address.length > 3) return null;
-	if (existingState) return null; // already fixed
+	if (existingState) return null; 
 	const upper = address.toUpperCase().trim();
 	if (US_STATES[upper]) {
 		return {
@@ -131,7 +118,7 @@ function checkUnparsedAddress(row: Record<string, unknown>): Issue | null {
 	const state = row.address_state as string | null;
 	if (!address || country || state) return null;
 	const parsed = parseLocation(address);
-	// Normalize "Korea, South" → "South Korea" etc
+
 	let parsedCountry = parsed.address_country;
 	if (parsedCountry) {
 		const comma = parsedCountry.indexOf(", ");
@@ -186,8 +173,6 @@ function checkInvalidYear(row: Record<string, unknown>): Issue | null {
 	}
 	return null;
 }
-
-// ----- Fix application -----
 
 function computeFixes(issues: Issue[]): Fix[] {
 	const fixes: Fix[] = [];
@@ -245,7 +230,7 @@ function computeFixes(issues: Issue[]): Fix[] {
 }
 
 async function applyFixes(sequelize: Sequelize, fixes: Fix[]): Promise<number> {
-	// Group fixes by id
+
 	const byId = new Map<number, Fix[]>();
 	for (const fix of fixes) {
 		if (!byId.has(fix.id)) byId.set(fix.id, []);
@@ -271,8 +256,6 @@ async function applyFixes(sequelize: Sequelize, fixes: Fix[]): Promise<number> {
 
 	return applied;
 }
-
-// ----- Main -----
 
 async function main() {
 	const args = process.argv.slice(2);
@@ -314,7 +297,6 @@ async function main() {
 			}
 		}
 
-		// Report
 		const byType = new Map<string, Issue[]>();
 		for (const issue of issues) {
 			const key = issue.problem.split('"')[0].trim();
@@ -337,7 +319,6 @@ async function main() {
 			}
 		}
 
-		// Fixes
 		const fixes = computeFixes(issues);
 		const fixableCount = new Set(fixes.map(f => f.id)).size;
 		console.log(`\n${"=".repeat(60)}`);

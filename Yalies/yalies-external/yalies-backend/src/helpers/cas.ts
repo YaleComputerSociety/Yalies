@@ -72,7 +72,6 @@ export default class CAS {
 			console.warn(`[Auth 403] netid "${netId}" (raw from CAS: "${user.netId}") not found in person table`);
 			return res.status(403).send("Not in directory");
 		}
-		// TODO: Decide if we want to only allow YC students
 
 		return next();
 	};
@@ -97,7 +96,7 @@ export default class CAS {
 		req.netid = key.owner_netid;
 
 		if(!req.secure && process.env.NODE_ENV !== "development") {
-			// Delete the API key!!!!
+
 			try {
 				await key.destroy();
 			} catch(e) {

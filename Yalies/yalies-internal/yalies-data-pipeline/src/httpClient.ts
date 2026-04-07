@@ -77,7 +77,7 @@ export async function httpGet(
 		const resp = await rawRequest(currentUrl, "GET", currentHeaders);
 
 		if (followRedirects && resp.status >= 300 && resp.status < 400 && resp.headers.location) {
-			// Update cookies from redirect response
+
 			if (resp.cookies.JSESSIONID) {
 				currentHeaders = {
 					...currentHeaders,

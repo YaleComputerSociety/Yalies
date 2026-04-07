@@ -49,7 +49,6 @@ export default class SyncRouter {
 			const stats = getPreviewStats();
 			const students = getPreviewStudents(50);
 
-			// Get current DB count for diff calculation
 			let currentDbYcCount = 0;
 			const databaseUrl = process.env.DATABASE_URL;
 			if (databaseUrl) {
@@ -67,7 +66,6 @@ export default class SyncRouter {
 
 			const totalStudents = (stats.totalStudents as number) || 0;
 
-			// Run validations
 			const validations: Record<string, unknown> = {};
 			const fbData = getFacebookData();
 			const enrichedData = getEnrichedData();

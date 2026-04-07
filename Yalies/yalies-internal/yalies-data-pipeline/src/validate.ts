@@ -40,14 +40,12 @@ export function validateFacebook(data: FacebookStudent[]): ValidationResult {
 	const result = createResult();
 	const n = data.length;
 
-	// 1. Total count
 	if (n >= MIN_TOTAL_STUDENTS && n <= MAX_TOTAL_STUDENTS) {
 		result.passes.push(`Student count: ${n} (expected ${MIN_TOTAL_STUDENTS}-${MAX_TOTAL_STUDENTS})`);
 	} else {
 		result.failures.push(`Student count: ${n} (expected ${MIN_TOTAL_STUDENTS}-${MAX_TOTAL_STUDENTS})`);
 	}
 
-	// 2. Required fields
 	for (const [field, label] of [["full_name", "Name"], ["year", "Year"], ["college", "College"], ["photo_id", "Photo ID"]] as const) {
 		const missing = data.filter((s) => !s[field]).length;
 		const pct = (missing / n) * 100;
@@ -56,7 +54,6 @@ export function validateFacebook(data: FacebookStudent[]): ValidationResult {
 		else result.failures.push(`${label}: ${missing}/${n} missing (${pct.toFixed(1)}%)`);
 	}
 
-	// 3. Optional fields
 	for (const [field, label, minPct] of [["major", "Major", 80], ["birthday", "Birthday", 80], ["address", "Address", 70], ["phone", "Phone", 20]] as const) {
 		const present = data.filter((s) => s[field as keyof FacebookStudent]).length;
 		const pct = (present / n) * 100;
@@ -67,7 +64,6 @@ export function validateFacebook(data: FacebookStudent[]): ValidationResult {
 		}
 	}
 
-	// 4. College distribution
 	const colleges: Record<string, number> = {};
 	for (const s of data) {
 		const c = s.college || "MISSING";
@@ -94,7 +90,6 @@ export function validateFacebook(data: FacebookStudent[]): ValidationResult {
 		}
 	}
 
-	// 5. Year distribution
 	const years: Record<number, number> = {};
 	for (const s of data) {
 		const match = s.year?.match(/^'(\d{2})$/);

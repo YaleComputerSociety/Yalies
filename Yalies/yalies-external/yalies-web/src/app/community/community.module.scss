@@ -19,6 +19,9 @@
 			max-width: none;
 			width: 100%;
 		}
+		> button {
+			flex: 1;
+		}
 	}
 
 	@include shared.small-mobile() {

@@ -3,7 +3,8 @@ import PeopleGrid from "@/components/PeopleGrid";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
 import Navbar from "@/components/Navbar";
-import Filters, { FiltersToggle } from "@/components/Filters";
+import Filters from "@/components/Filters";
+import FiltersToggle from "@/components/FiltersToggle";
 import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
 import Searchbar from "@/components/Searchbar";
@@ -29,7 +30,7 @@ export default function HomePage() {
 	const [hasReachedEnd, setHasReachedEnd] = useState(homeCache?.hasReachedEnd ?? false);
 	const [currentPage, setCurrentPage] = useState(homeCache?.currentPage ?? 0);
 	const [filters, setFilters] = useState<Record<string, string[]> | null>(homeCache?.filters ?? DEFAULT_FILTERS);
-	// query <- searchboxText on enter key
+
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
 	const [isClient, setIsClient] = useState(false);
@@ -49,9 +50,7 @@ export default function HomePage() {
 		let response;
 
 		let queryActual = query;
-		// Construct the filter object.
-		// We have to do this because Sequelize treats empty array
-		// as only allowing null values to pass through the filter
+
 		let filterObject: Record<string, string[]> = {};
 		if(filters.year && filters.year.length > 0) filterObject.year = filters.year;
 		if(filters.school && filters.school.length > 0) filterObject.school = filters.school;
@@ -60,14 +59,14 @@ export default function HomePage() {
 		if(filters.address_country && filters.address_country.length > 0) filterObject.address_country = filters.address_country;
 
 		if(queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
-			// This is a netID
+
 			queryActual = "";
 			filterObject = {
 				netid: [query],
 				...filterObject,
 			};
 		} else if(queryActual.match(/^\d{8}$/i)) {
-			// This is a UPI
+
 			queryActual = "";
 			filterObject = {
 				upi: [query],
@@ -131,7 +130,6 @@ export default function HomePage() {
 		setCurrentPage((prev) => prev + 1);
 		setIsSearching(false);
 
-		// Prefetch next page to warm the server cache
 		if(newPeople.length === 20) {
 			fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
 				method: "POST",
@@ -196,7 +194,7 @@ export default function HomePage() {
 	}, []);
 
 	useEffect(() => {
-		// Skip initial fetch if restored from cache
+
 		if (restoredFromCache.current) {
 			restoredFromCache.current = false;
 			return;
@@ -211,7 +209,6 @@ export default function HomePage() {
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [filters, query]);
 
-	// Persist state to cache for instant back-navigation
 	useEffect(() => {
 		if (people.length > 0 && filters) {
 			setHomeCache({
@@ -262,7 +259,7 @@ export default function HomePage() {
 	}
 
 	const onSelectPerson = async (netid: string, school?: string) => {
-		// Fetch this specific person and display them
+
 		setSearchboxText("");
 		setQuery("");
 		setPeople([]);
@@ -271,7 +268,6 @@ export default function HomePage() {
 		setIsSearching(true);
 		setSearchError(null);
 
-		// Clear school filter so non-Yale College people are visible
 		if (school && school !== YALE_COLLEGE) {
 			setFilters((prev) => ({ ...prev, school: [] }));
 		}

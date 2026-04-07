@@ -3,34 +3,7 @@
 import styles from "./filters.module.scss";
 import Dropdown, { DropdownOption } from "./Dropdown";
 import { useCallback, useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSliders } from "@fortawesome/free-solid-svg-icons";
 import { API, YALE_COLLEGE } from "yalies-shared";
-
-export function FiltersToggle({
-	filtersAreDefault,
-	activeFilterCount,
-	open,
-	onToggle,
-}: {
-	filtersAreDefault: boolean;
-	activeFilterCount: number;
-	open: boolean;
-	onToggle: () => void;
-}) {
-	return (
-		<button
-			className={`${styles.filters_toggle} ${!filtersAreDefault ? styles.has_filters : ""} ${open ? styles.open : ""}`}
-			onClick={onToggle}
-		>
-			<FontAwesomeIcon icon={faSliders} />
-			<span>Filters</span>
-			{!filtersAreDefault && (
-				<span className={styles.badge}>{activeFilterCount}</span>
-			)}
-		</button>
-	);
-}
 
 export default function Filters({
 	filters,

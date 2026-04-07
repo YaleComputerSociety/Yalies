@@ -8,6 +8,7 @@ import FriendshipModel from "./models/FriendshipModel.js";
 import CommunityPostModel from "./models/CommunityPostModel.js";
 import CommunityPostMemberModel from "./models/CommunityPostMemberModel.js";
 import CommunityPostInterestModel from "./models/CommunityPostInterestModel.js";
+import DataChangeRequestModel from "./models/DataChangeRequestModel.js";
 
 export const SEQUELIZE_DEFINITION_OPTIONS = {
 	paranoid: false,
@@ -26,7 +27,7 @@ export default class DB {
 		this.registerModels();
 		this.initializeDb();
 	}
-	
+
 	initializeDb = async () => {
 		await this.testConnection();
 		await this.setupDb();
@@ -141,6 +142,23 @@ export default class DB {
 				CREATE INDEX IF NOT EXISTS idx_community_post_status ON community_post (status);
 				CREATE INDEX IF NOT EXISTS idx_community_post_created ON community_post (created_at DESC);
 			`);
+			await this.#sql.query(`
+				CREATE TABLE IF NOT EXISTS data_change_request (
+					id SERIAL PRIMARY KEY,
+					requester_netid VARCHAR(255) NOT NULL,
+					target_netid VARCHAR(255) NOT NULL,
+					status VARCHAR(20) NOT NULL DEFAULT 'pending',
+					requested_changes JSONB NOT NULL,
+					admin_notes TEXT,
+					created_at TIMESTAMP DEFAULT NOW(),
+					resolved_at TIMESTAMP,
+					resolved_by VARCHAR(255)
+				);
+			`);
+			await this.#sql.query(`
+				CREATE INDEX IF NOT EXISTS idx_dcr_status ON data_change_request (status);
+				CREATE INDEX IF NOT EXISTS idx_dcr_requester ON data_change_request (requester_netid);
+			`);
 		} catch (error) {
 			console.error("Error setting up database:", error);
 		}
@@ -168,5 +186,6 @@ export default class DB {
 		CommunityPostModel.initModel(this.#sql);
 		CommunityPostMemberModel.initModel(this.#sql);
 		CommunityPostInterestModel.initModel(this.#sql);
+		DataChangeRequestModel.initModel(this.#sql);
 	};
 };

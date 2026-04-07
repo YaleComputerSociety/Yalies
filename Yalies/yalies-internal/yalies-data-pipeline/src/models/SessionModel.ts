@@ -21,4 +21,12 @@ export default class SessionModel extends Model {
 			deletedAt: false,
 		});
 	}
+
+	toSanitizedObject() {
+		return {
+			sid: this.sid,
+			...this.netid != null && { netid: this.netid },
+			...this.expires != null && { expires: this.expires },
+		};
+	}
 }

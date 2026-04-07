@@ -1,0 +1,174 @@
+@use "../shared.scss";
+
+.backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0);
+	backdrop-filter: blur(0px);
+	z-index: 2000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.2s ease, backdrop-filter 0.2s ease;
+
+	&.visible {
+		background: rgba(0, 20, 50, 0.4);
+		backdrop-filter: blur(8px);
+	}
+}
+
+.modal {
+	background: linear-gradient(180deg, #f0f4f8 0%, #ffffff 15%);
+	border-radius: 16px;
+	padding: 32px;
+	width: 620px;
+	max-width: 90vw;
+	max-height: 85vh;
+	overflow-y: auto;
+	box-shadow: 0 8px 40px rgba(0, 53, 107, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+	border: 1px solid rgba(0, 53, 107, 0.10);
+	position: relative;
+	transform: scale(0.95);
+	opacity: 0;
+	transition: transform 0.2s ease, opacity 0.2s ease;
+
+	&.visible {
+		transform: scale(1);
+		opacity: 1;
+	}
+
+	@include shared.responsive() {
+		width: 95vw;
+		max-height: 90vh;
+		padding: 20px 16px;
+	}
+
+	@include shared.small-mobile() {
+		padding: 16px 12px;
+		border-radius: 12px;
+	}
+}
+
+.close_button {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	background: shared.$muted-color;
+	border: none;
+	cursor: pointer;
+	padding: 6px;
+	border-radius: 6px;
+	transition: background-color 0.15s ease;
+
+	svg {
+		height: 14px;
+		color: shared.$secondary-color;
+		display: block;
+	}
+
+	&:hover {
+		background-color: shared.$border-color;
+		svg {
+			color: shared.$foreground-color;
+		}
+	}
+}
+
+.title {
+	font-size: 22px;
+	font-weight: 700;
+	color: shared.$accent-color;
+	margin: 0 0 8px;
+
+	@include shared.responsive() {
+		font-size: 19px;
+	}
+}
+
+.subtitle {
+	font-size: 14px;
+	color: shared.$secondary-color;
+	line-height: 1.5;
+	margin: 0 0 24px;
+
+	@include shared.responsive() {
+		font-size: 13px;
+		margin-bottom: 16px;
+	}
+}
+
+.sections {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.section {
+	border-top: 1px solid rgba(0, 53, 107, 0.08);
+	padding-top: 16px;
+
+	&:first-child {
+		border-top: none;
+		padding-top: 0;
+	}
+}
+
+.section_label {
+	font-size: 12px;
+	font-weight: 600;
+	color: shared.$accent-color;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	margin: 0 0 10px;
+}
+
+.fields {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+
+	@include shared.responsive() {
+		grid-template-columns: 1fr;
+	}
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.field_label {
+	font-size: 12px;
+	font-weight: 500;
+	color: shared.$secondary-color;
+}
+
+.error {
+	font-size: 14px;
+	color: shared.$destructive-color;
+	padding: 10px 14px;
+	margin-top: 16px;
+	background-color: rgba(shared.$destructive-color, 0.06);
+	border-radius: shared.$border-radius-standard;
+	border: 1px solid rgba(shared.$destructive-color, 0.15);
+}
+
+.actions {
+	display: flex;
+	gap: 12px;
+	margin-top: 24px;
+	padding-top: 20px;
+	border-top: 1px solid rgba(0, 53, 107, 0.08);
+
+	@include shared.small-mobile() {
+		flex-direction: column;
+
+		button {
+			width: 100%;
+		}
+	}
+}

@@ -7,11 +7,11 @@ export declare const API: {
     people: string;
     peopleSuggest: string;
     filters: string;
-    globe: string;
     profileMe: string;
     profileMeFull: string;
     profileMePhoto: string;
     profileMePhotoDownload: string;
+    profileMeChangeRequest: string;
     profile: (netid: string) => string;
     likesFor: (netid: string) => string;
     friendsMe: string;
@@ -41,7 +41,6 @@ export declare const API_ROUTES: {
     profile: string;
     likes: string;
     friends: string;
-    globe: string;
     community: string;
     admin: string;
 };
@@ -60,6 +59,8 @@ export declare const PIPELINE_API: {
     databaseStudentPhoto: (id: number) => string;
     databaseStudentPhotoDownload: (id: number) => string;
     databaseComputeLocations: string;
+    databaseChangeRequests: string;
+    databaseChangeRequest: (id: number) => string;
 };
 export declare const PIPELINE_ROUTES: {
     auth: string;

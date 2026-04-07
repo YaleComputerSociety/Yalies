@@ -14,7 +14,6 @@ const VENV_PYTHON = path.resolve(
 
 const PYTHON = fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3";
 
-// Runtime toggle — defaults to env var, can be flipped via admin endpoint
 let _enabled = process.env.FACECHECK_ENABLED !== "false";
 
 export function isFacecheckEnabled(): boolean {
@@ -28,7 +27,6 @@ export function setFacecheckEnabled(enabled: boolean): void {
 
 let _available: boolean | null = null;
 
-/** Check once whether facecheck can actually run. */
 function checkAvailable(): Promise<boolean> {
 	if (_available !== null) return Promise.resolve(_available);
 	return new Promise((resolve) => {
@@ -40,7 +38,6 @@ function checkAvailable(): Promise<boolean> {
 	});
 }
 
-/** Returns true only if facecheck is both enabled AND the Python deps are installed. */
 export async function shouldRunFacecheck(): Promise<boolean> {
 	if (!_enabled) return false;
 	return checkAvailable();

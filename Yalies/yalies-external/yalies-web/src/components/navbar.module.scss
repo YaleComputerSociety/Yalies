@@ -67,6 +67,10 @@
 		}
 	}
 
+	@include shared.tablet() {
+		display: none;
+	}
+
 	@include shared.responsive() {
 		display: none;
 	}
@@ -84,6 +88,10 @@
 	margin-left: auto;
 	height: 36px;
 	width: 36px;
+
+	@include shared.tablet() {
+		display: flex;
+	}
 
 	@include shared.responsive() {
 		display: flex;
@@ -113,6 +121,28 @@
 
 .mobile_menu {
 	display: none;
+
+	@include shared.tablet() {
+		display: flex;
+		flex-direction: column;
+		padding: 8px 0 4px;
+		border-top: 1px solid shared.$border-color;
+		margin-top: 8px;
+
+		a {
+			text-decoration: none;
+			color: shared.$accent-color-light;
+			font-size: 15px;
+			font-weight: 600;
+			padding: 12px 10px;
+			border-radius: shared.$border-radius-standard;
+			transition: background-color 0.15s ease;
+
+			&:hover {
+				background-color: shared.$accent-color-soft;
+			}
+		}
+	}
 
 	@include shared.responsive() {
 		display: flex;

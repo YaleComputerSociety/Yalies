@@ -7,6 +7,10 @@
 	gap: 24px;
 	padding: 30px 24px 40px;
 
+	@include shared.tablet() {
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	}
+
 	@include shared.responsive() {
 		grid-template-columns: 1fr;
 		padding: 16px 12px 30px;

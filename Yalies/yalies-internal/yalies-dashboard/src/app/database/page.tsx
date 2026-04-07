@@ -6,6 +6,7 @@ import type {
 	DatabaseOverview,
 	DatabaseStudent,
 	DatabaseStudentsResponse,
+	DataChangeRequest,
 } from "@/lib/types";
 import styles from "./database.module.scss";
 
@@ -27,12 +28,20 @@ export default function DatabasePage() {
 	const [yearFilter, setYearFilter] = useState("");
 	const [schoolFilter, setSchoolFilter] = useState("");
 
-	const [activeTab, setActiveTab] = useState<"overview" | "students">(
+	const [activeTab, setActiveTab] = useState<"overview" | "students" | "requests">(
 		"overview"
 	);
 
 	const [editing, setEditing] = useState<DatabaseStudent | null>(null);
 	const [deleting, setDeleting] = useState<DatabaseStudent | null>(null);
+
+	const [changeRequests, setChangeRequests] = useState<DataChangeRequest[]>([]);
+	const [requestsTotal, setRequestsTotal] = useState(0);
+	const [requestsPage, setRequestsPage] = useState(1);
+	const [requestsLoading, setRequestsLoading] = useState(false);
+	const [pendingCount, setPendingCount] = useState(0);
+	const [reviewingRequest, setReviewingRequest] = useState<DataChangeRequest | null>(null);
+	const [requestsStatusFilter, setRequestsStatusFilter] = useState<"pending" | "approved" | "denied">("pending");
 	const [computingLocations, setComputingLocations] = useState(false);
 	const [computeProgress, setComputeProgress] = useState<string | null>(null);
 
@@ -56,11 +65,26 @@ export default function DatabasePage() {
 				setLoading(false);
 			}
 		})();
-		// Fetch facecheck status from backend
-		fetch(`${BACKEND_URL}${API.adminFacecheck}`, { credentials: "include" })
-			.then(r => r.ok ? r.json() : null)
-			.then(data => { if (data) setFacecheckEnabled(data.enabled); })
-			.catch(() => {});
+		const fetchFacecheckStatus = async () => {
+			try {
+				const r = await fetch(`${BACKEND_URL}${API.adminFacecheck}`, { credentials: "include" });
+				if (r.ok) {
+					const data = await r.json();
+					setFacecheckEnabled(data.enabled);
+				}
+			} catch {}
+		};
+		const fetchPendingCount = async () => {
+			try {
+				const r = await fetch(`${API_URL}${PIPELINE_API.databaseChangeRequests}?status=pending&pageSize=1`, { credentials: "include" });
+				if (r.ok) {
+					const data = await r.json();
+					setPendingCount(data.pendingCount);
+				}
+			} catch {}
+		};
+		fetchFacecheckStatus();
+		fetchPendingCount();
 	}, []);
 
 	const toggleFacecheck = async () => {
@@ -81,6 +105,62 @@ export default function DatabasePage() {
 			console.error("Failed to toggle facecheck", e);
 		} finally {
 			setFacecheckToggling(false);
+		}
+	};
+
+	const fetchChangeRequests = useCallback(
+		async (p: number, statusOverride?: string) => {
+			setRequestsLoading(true);
+			try {
+				const params = new URLSearchParams({
+					page: String(p),
+					pageSize: "50",
+					status: statusOverride || requestsStatusFilter,
+				});
+				const res = await fetch(
+					`${API_URL}${PIPELINE_API.databaseChangeRequests}?${params}`,
+					{ credentials: "include" },
+				);
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+				const data = await res.json();
+				setChangeRequests(data.requests);
+				setRequestsTotal(data.total);
+				setRequestsPage(data.page);
+				setPendingCount(data.pendingCount);
+			} catch (err) {
+				console.error(err);
+			} finally {
+				setRequestsLoading(false);
+			}
+		},
+		[requestsStatusFilter],
+	);
+
+	const handleResolveRequest = async (
+		id: number,
+		status: "approved" | "denied",
+		adminNotes?: string,
+		modifiedChanges?: Record<string, string | number | null>,
+	) => {
+		try {
+			const res = await fetch(
+				`${API_URL}${PIPELINE_API.databaseChangeRequest(id)}`,
+				{
+					method: "PUT",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						status,
+						admin_notes: adminNotes,
+						...(modifiedChanges && { modified_changes: modifiedChanges }),
+					}),
+				},
+			);
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			setReviewingRequest(null);
+			fetchChangeRequests(requestsPage);
+		} catch (err) {
+			alert(err instanceof Error ? err.message : "Failed to resolve request.");
 		}
 	};
 
@@ -122,8 +202,10 @@ export default function DatabasePage() {
 	useEffect(() => {
 		if (activeTab === "students") {
 			fetchStudents(1);
+		} else if (activeTab === "requests") {
+			fetchChangeRequests(1);
 		}
-	}, [activeTab, fetchStudents]);
+	}, [activeTab, fetchStudents, fetchChangeRequests]);
 
 	const handleSaveEdit = async (updated: DatabaseStudent) => {
 		try {
@@ -243,11 +325,11 @@ export default function DatabasePage() {
 						const event = JSON.parse(line);
 						setComputeProgress(event.message);
 						if (event.type === "complete") {
-							// Refresh overview
+
 							const res = await fetch(`${API_URL}${PIPELINE_API.databaseOverview}`, { credentials: "include" });
 							if (res.ok) setOverview(await res.json());
 						}
-					} catch { /* skip malformed */ }
+					} catch {  }
 				}
 			}
 		} catch (err) {
@@ -300,9 +382,18 @@ export default function DatabasePage() {
 				>
 					Students
 				</button>
+				<button
+					className={`${styles.tab} ${activeTab === "requests" ? styles.tabActive : ""}`}
+					onClick={() => setActiveTab("requests")}
+				>
+					Change Requests
+					{pendingCount > 0 && (
+						<span className={styles.pendingBadge}>{pendingCount}</span>
+					)}
+				</button>
 			</div>
 
-			{activeTab === "overview" && overview && (
+			{activeTab === "overview" && overview && (<>
 				<div className={styles.overviewGrid}>
 					<div className={styles.summaryRow}>
 						<SummaryCard
@@ -514,7 +605,7 @@ export default function DatabasePage() {
 						</button>
 					</div>
 				</div>
-			)}
+			</>)}
 
 			{activeTab === "students" && (
 				<div className={styles.studentsSection}>
@@ -634,7 +725,109 @@ export default function DatabasePage() {
 				</div>
 			)}
 
-			{/* Edit Modal */}
+			{activeTab === "requests" && (
+				<div className={styles.studentsSection}>
+					<div className={styles.filters}>
+						<select
+							className={styles.filterSelect}
+							value={requestsStatusFilter}
+							onChange={(e) => {
+								const val = e.target.value as "pending" | "approved" | "denied";
+								setRequestsStatusFilter(val);
+								fetchChangeRequests(1, val);
+							}}
+						>
+							<option value="pending">Pending</option>
+							<option value="approved">Approved</option>
+							<option value="denied">Denied</option>
+						</select>
+					</div>
+
+					<div className={styles.resultsInfo}>
+						{requestsTotal} request{requestsTotal !== 1 ? "s" : ""}
+						{requestsLoading && <span className={styles.loadingDot}> Loading...</span>}
+					</div>
+
+					{changeRequests.length > 0 ? (
+						<div className={styles.requestList}>
+							{changeRequests.map((req) => (
+								<div key={req.id} className={styles.requestCard}>
+									<div className={styles.requestHeader}>
+										<span className={styles.requestName}>
+											{req.requester_name || req.requester_netid}
+										</span>
+										<span className={styles.requestNetid}>{req.requester_netid}</span>
+										<span className={styles.requestDate}>
+											{new Date(req.created_at).toLocaleDateString()}
+										</span>
+									</div>
+									<div className={styles.requestChanges}>
+										{Object.entries(req.requested_changes).map(([field, value]) => (
+											<div key={field} className={styles.changeRow}>
+												<span className={styles.changeField}>{field.replace(/_/g, " ")}</span>
+												<span className={styles.changeValue}>{String(value)}</span>
+											</div>
+										))}
+									</div>
+									{req.status === "pending" ? (
+										<div className={styles.requestActions}>
+											<button
+												className={styles.modalSaveBtn}
+												onClick={() => setReviewingRequest(req)}
+											>
+												Review
+											</button>
+										</div>
+									) : (
+										<div className={styles.requestResolved}>
+											<span className={`${styles.requestStatusBadge} ${styles[`status_${req.status}`]}`}>
+												{req.status}
+											</span>
+											{req.admin_notes && <span className={styles.requestNotes}>{req.admin_notes}</span>}
+										</div>
+									)}
+								</div>
+							))}
+						</div>
+					) : !requestsLoading ? (
+						<div className={styles.empty}>No {requestsStatusFilter} change requests.</div>
+					) : null}
+
+					{Math.ceil(requestsTotal / 50) > 1 && (
+						<div className={styles.pagination}>
+							<button
+								className={styles.pageBtn}
+								disabled={requestsPage <= 1}
+								onClick={() => fetchChangeRequests(requestsPage - 1)}
+							>
+								Previous
+							</button>
+							<span className={styles.pageInfo}>
+								Page {requestsPage} of {Math.ceil(requestsTotal / 50)}
+							</span>
+							<button
+								className={styles.pageBtn}
+								disabled={requestsPage >= Math.ceil(requestsTotal / 50)}
+								onClick={() => fetchChangeRequests(requestsPage + 1)}
+							>
+								Next
+							</button>
+						</div>
+					)}
+				</div>
+			)}
+
+			{}
+			{reviewingRequest && (
+				<ReviewRequestModal
+					request={reviewingRequest}
+					onApprove={(notes, modified) => handleResolveRequest(reviewingRequest.id, "approved", notes, modified)}
+					onDeny={(notes) => handleResolveRequest(reviewingRequest.id, "denied", notes)}
+					onCancel={() => setReviewingRequest(null)}
+				/>
+			)}
+
+			{}
 			{editing && (
 				<EditModal
 					student={editing}
@@ -643,7 +836,7 @@ export default function DatabasePage() {
 				/>
 			)}
 
-			{/* Delete Confirmation */}
+			{}
 			{deleting && (
 				<DeleteModal
 					student={deleting}
@@ -654,8 +847,6 @@ export default function DatabasePage() {
 		</div>
 	);
 }
-
-/* ─── Sub-components ─── */
 
 function SummaryCard({
 	label,
@@ -1136,6 +1327,131 @@ function DeleteModal({
 						{confirming ? "Deleting..." : "Delete"}
 					</button>
 				</div>
+			</div>
+		</div>
+	);
+}
+
+function ReviewRequestModal({
+	request,
+	onApprove,
+	onDeny,
+	onCancel,
+}: {
+	request: DataChangeRequest;
+	onApprove: (notes?: string, modifiedChanges?: Record<string, string | number | null>) => void;
+	onDeny: (notes?: string) => void;
+	onCancel: () => void;
+}) {
+	const [adminNotes, setAdminNotes] = useState("");
+	const [modifiedValues, setModifiedValues] = useState<Record<string, string>>(() => {
+		const init: Record<string, string> = {};
+		for (const [key, value] of Object.entries(request.requested_changes)) {
+			init[key] = value != null ? String(value) : "";
+		}
+		return init;
+	});
+	const [processing, setProcessing] = useState(false);
+
+	const handleApprove = async (useModified: boolean) => {
+		setProcessing(true);
+		if (useModified) {
+			const modified: Record<string, string | number | null> = {};
+			for (const [key, value] of Object.entries(modifiedValues)) {
+				if (value.trim() === "") continue;
+				const origType = typeof request.requested_changes[key];
+				modified[key] = origType === "number" ? (parseInt(value) || value) : value;
+			}
+			await onApprove(adminNotes || undefined, modified);
+		} else {
+			await onApprove(adminNotes || undefined);
+		}
+		setProcessing(false);
+	};
+
+	const handleDeny = async () => {
+		setProcessing(true);
+		await onDeny(adminNotes || undefined);
+		setProcessing(false);
+	};
+
+	const hasModifications = Object.entries(modifiedValues).some(([key, value]) => {
+		const original = request.requested_changes[key];
+		return String(original ?? "") !== value;
+	});
+
+	return (
+		<div className={styles.overlay} onClick={onCancel}>
+			<div className={styles.modalWide} onClick={(e) => e.stopPropagation()}>
+				<h2 className={styles.modalTitle}>Review Change Request</h2>
+
+				<div className={styles.requestMeta}>
+					<span><strong>From:</strong> {request.requester_name || request.requester_netid}</span>
+					<span><strong>NetID:</strong> {request.requester_netid}</span>
+					<span><strong>Submitted:</strong> {new Date(request.created_at).toLocaleString()}</span>
+				</div>
+
+				<form onSubmit={(e) => e.preventDefault()} className={styles.modalForm}>
+					<fieldset className={styles.formSection}>
+						<legend className={styles.formLegend}>Requested Changes</legend>
+						{Object.entries(request.requested_changes).map(([field, value]) => (
+							<div key={field} className={styles.formRow}>
+								<label className={styles.fieldLabel}>
+									<span className={styles.fieldLabelText}>
+										{field.replace(/_/g, " ")}
+									</span>
+									<div className={styles.reviewFieldRow}>
+										<span className={styles.reviewOriginal}>
+											Requested: <strong>{String(value)}</strong>
+										</span>
+										<input
+											className={styles.fieldInput}
+											type="text"
+											value={modifiedValues[field] || ""}
+											onChange={(e) =>
+												setModifiedValues((prev) => ({
+													...prev,
+													[field]: e.target.value,
+												}))
+											}
+											placeholder="Modify value (optional)"
+										/>
+									</div>
+								</label>
+							</div>
+						))}
+					</fieldset>
+
+					<fieldset className={styles.formSection}>
+						<legend className={styles.formLegend}>Admin Notes</legend>
+						<textarea
+							className={styles.fieldInput}
+							rows={3}
+							value={adminNotes}
+							onChange={(e) => setAdminNotes(e.target.value)}
+							placeholder="Optional notes about this decision..."
+							style={{ resize: "vertical", width: "100%", boxSizing: "border-box" }}
+						/>
+					</fieldset>
+
+					<div className={styles.modalActions}>
+						<button type="button" className={styles.modalCancelBtn} onClick={onCancel}>
+							Cancel
+						</button>
+						<button type="button" className={styles.modalDeleteBtn} onClick={handleDeny} disabled={processing}>
+							{processing ? "..." : "Deny"}
+						</button>
+						{hasModifications ? (
+							<button type="button" className={styles.modalSaveBtn} onClick={() => handleApprove(true)} disabled={processing}>
+								{processing ? "..." : "Approve (Modified)"}
+							</button>
+						) : (
+							<button type="button" className={styles.modalSaveBtn} onClick={() => handleApprove(false)} disabled={processing}>
+								{processing ? "..." : "Approve"}
+							</button>
+						)}
+					</div>
+				</form>
 			</div>
 		</div>
 	);

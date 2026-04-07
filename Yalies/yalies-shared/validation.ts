@@ -1,8 +1,7 @@
-// Institutional constants
+
 export const YALE_COLLEGE = "Yale College";
 export const YALE_COLLEGE_CODE = "YC";
 
-// Yale residential colleges
 export const VALID_COLLEGES = [
 	"Benjamin Franklin College", "Berkeley College", "Branford College",
 	"Davenport College", "Ezra Stiles College", "Grace Hopper College",
@@ -11,14 +10,11 @@ export const VALID_COLLEGES = [
 	"Timothy Dwight College", "Trumbull College",
 ] as const;
 
-// Update each academic year
 export const EXPECTED_YEARS = [2026, 2027, 2028, 2029] as const;
 
-// Regex patterns
 export const NETID_REGEX = /^[a-z]{2,4}\d{1,4}$/;
 export const YALE_EMAIL_REGEX = /^[^@]+@(.*\.)?yale\.edu$/;
 
-// Pipeline validation thresholds
 export const VALIDATION_THRESHOLDS = {
 	MIN_TOTAL_STUDENTS: 6000,
 	MAX_TOTAL_STUDENTS: 8000,
@@ -28,12 +24,10 @@ export const VALIDATION_THRESHOLDS = {
 	MIN_STUDENTS_PER_COLLEGE: 200,
 } as const;
 
-// Filter fields exposed to the public (unauthenticated) filters endpoint
 export const DEFAULT_FILTER_FIELDS = [
 	"school", "year", "college", "major", "address_country",
 ] as const;
 
-// All fields that authenticated users can filter by
 export const PERSON_ALLOWED_FILTER_FIELDS = [
 	"netid", "upi", "email", "mailbox", "phone",
 	"title", "first_name", "preferred_name", "middle_name", "last_name",

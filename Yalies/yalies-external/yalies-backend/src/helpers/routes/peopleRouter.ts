@@ -9,7 +9,7 @@ import CAS from "../cas.js";
 import Elasticsearch from "../elasticsearch.js";
 
 const SEARCH_CACHE_MAX = 150;
-const SEARCH_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+const SEARCH_CACHE_TTL_MS = 60 * 1000; 
 const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
 
 function getCacheKey(query: string, filters: Record<string, unknown>, page: number, pageSize: number): string {
@@ -18,7 +18,7 @@ function getCacheKey(query: string, filters: Record<string, unknown>, page: numb
 
 function pruneCache() {
 	if (searchCache.size <= SEARCH_CACHE_MAX) return;
-	// Remove oldest entries
+
 	const entries = [...searchCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
 	const toRemove = entries.slice(0, entries.length - SEARCH_CACHE_MAX);
 	for (const [key] of toRemove) {
@@ -63,7 +63,6 @@ export default class PeopleRouter {
 			return;
 		}
 
-		// For netID patterns, do a direct DB lookup
 		if (NETID_REGEX.test(query.toLowerCase())) {
 			try {
 				const people = await PersonModel.findAll({
@@ -88,7 +87,6 @@ export default class PeopleRouter {
 
 		const suggestions = await this.#elasticsearch.suggestPerson(query, 8);
 
-		// Validate suggestions against the DB to filter out stale ES records
 		if (suggestions.length === 0) {
 			res.status(200).json([]);
 			return;
@@ -99,7 +97,7 @@ export default class PeopleRouter {
 			attributes: ["netid", "first_name", "last_name", "image", "college", "year", "school"],
 		});
 		const validMap = new Map(validPeople.map((p) => [p.netid, p]));
-		// Preserve ES relevance ordering, skip stale entries
+
 		const verified = netids
 			.filter((id) => validMap.has(id))
 			.map((id) => {
@@ -128,21 +126,19 @@ export default class PeopleRouter {
 			return;
 		}
 
-		// Check search cache
 		const cacheKey = getCacheKey(query, filtersRaw, page, pageSize);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
 			return res.status(200).json(cached.data);
 		}
 
-		// Go through filters and construct a where query
 		let where: WhereOptions<PersonModel> = {};
 		for(const field of Object.keys(filtersRaw)) {
 			if(!(PERSON_ALLOWED_FILTER_FIELDS as readonly string[]).includes(field)) {
 				res.status(400).send(`Cannot filter by field ${field}`);
 				return;
 			}
-			// For country filter, also search raw address to catch entries where parseLocation missed
+
 			if(field === "address_country") {
 				const countries = Array.isArray(filtersRaw[field]) ? filtersRaw[field] : [filtersRaw[field]];
 				const countryConditions = countries.map((c: string) => ({
@@ -173,8 +169,8 @@ export default class PeopleRouter {
 		let exactNetids: string[] = [];
 		let fuzzyNetids: string[] = [];
 
-		if(query) { // Fuzzy search using trigrams
-			// Check if query is initials (2 letters)
+		if(query) { 
+
 			if(query.match(/^[a-z]{2}$/i)) {
 				where = {
 					...where,
@@ -213,7 +209,7 @@ export default class PeopleRouter {
 			res.status(500).send("Error fetching people");
 			return;
 		}
-		// Batch-fetch user profiles, likes, and friend status for all people
+
 		const netids = people.map(p => p.netid).filter(Boolean);
 		const currentUserNetid = req.netid;
 
@@ -253,9 +249,8 @@ export default class PeopleRouter {
 		}
 		const myLikeSet = new Set(myLikes.map(l => l.liked_netid));
 
-		// Build friend status map
 		const friendStatusMap = new Map<string, { status: string; count: number }>();
-		// First get friend counts for all netids in batch
+
 		const friendCountRows = netids.length > 0
 			? await FriendshipModel.findAll({
 				where: {
@@ -313,7 +308,6 @@ export default class PeopleRouter {
 			});
 		}
 
-		// Cache the result
 		searchCache.set(cacheKey, { data: json, timestamp: Date.now() });
 		pruneCache();
 

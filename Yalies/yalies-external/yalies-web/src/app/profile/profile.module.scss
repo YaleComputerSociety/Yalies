@@ -93,32 +93,6 @@
 	}
 }
 
-.logout_button {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	width: 100%;
-	padding: 12px 16px;
-	background: none;
-	border: none;
-	border-bottom: 1px solid shared.$border-color;
-	cursor: pointer;
-	font-size: 14px;
-	color: shared.$foreground-color;
-	font-family: inherit;
-	text-decoration: none;
-	transition: background-color 0.15s ease;
-
-	svg {
-		height: 14px;
-		color: shared.$secondary-color;
-	}
-
-	&:hover {
-		background-color: shared.$muted-color;
-	}
-}
-
 .delete_button {
 	display: flex;
 	align-items: center;
@@ -162,6 +136,7 @@
 }
 
 .person_card {
+	position: relative;
 	display: flex;
 	flex-direction: row;
 	align-items: flex-start;
@@ -296,6 +271,10 @@
 
 .name_block {
 	margin-bottom: 14px;
+
+	@include shared.responsive() {
+		text-align: center;
+	}
 }
 
 .person_name {
@@ -408,6 +387,42 @@
 
 .stat_label {
 	font-weight: 400;
+}
+
+.card_logout {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	font-size: 12px;
+	font-weight: 500;
+	color: shared.$secondary-color;
+	text-decoration: none;
+	border: 1px solid shared.$border-color;
+	border-radius: shared.$border-radius-standard;
+	background: shared.$card-background-color;
+	cursor: pointer;
+	transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+
+	svg {
+		height: 11px;
+	}
+
+	&:hover {
+		color: shared.$destructive-color;
+		border-color: rgba(shared.$destructive-color, 0.3);
+		background-color: rgba(shared.$destructive-color, 0.04);
+	}
+
+	@include shared.responsive() {
+		top: 12px;
+		right: 12px;
+		padding: 5px 10px;
+		font-size: 11px;
+	}
 }
 
 .field {

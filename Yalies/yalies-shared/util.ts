@@ -12,7 +12,7 @@ export async function fetchWithRetry(
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
 			const response = await fetch(url, options);
-			// Allow 3xx through when redirect: "manual" is set (caller handles redirects)
+
 			if (!response.ok && !(response.status >= 300 && response.status < 400)) {
 				const error = new Error(`HTTP ${response.status}: ${response.statusText}`) as Error & { status: number };
 				error.status = response.status;
@@ -21,7 +21,7 @@ export async function fetchWithRetry(
 			return response;
 		} catch (e) {
 			const err = e as Error & { status?: number };
-			// Don't retry client errors (4xx) except 429
+
 			if (err.status && err.status >= 400 && err.status < 500 && err.status !== 429) {
 				throw e;
 			}

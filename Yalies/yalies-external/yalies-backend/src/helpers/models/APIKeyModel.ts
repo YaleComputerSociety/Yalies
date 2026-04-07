@@ -23,4 +23,15 @@ export default class APIKeyModel extends Model {
 			...SEQUELIZE_DEFINITION_OPTIONS,
 		});
 	};
+
+	toSanitizedObject() {
+		return {
+			id: this.id,
+			owner_netid: this.owner_netid,
+			created_on: this.created_on,
+			description: this.description,
+			key: this.key,
+			uses_count: this.uses_count,
+		};
+	}
 };

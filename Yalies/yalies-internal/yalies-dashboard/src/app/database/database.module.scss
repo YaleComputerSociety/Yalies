@@ -861,3 +861,155 @@
 		font-weight: 600;
 	}
 }
+
+// Change Requests
+
+.pendingBadge {
+	font-size: 0.625rem;
+	font-weight: 700;
+	background-color: $destructive;
+	color: #fff;
+	border-radius: 10px;
+	padding: 1px 6px;
+	margin-left: 6px;
+	min-width: 16px;
+	text-align: center;
+}
+
+.requestList {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.requestCard {
+	background-color: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: $border-radius-standard;
+	padding: 16px;
+}
+
+.requestHeader {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 12px;
+	flex-wrap: wrap;
+}
+
+.requestName {
+	font-weight: 600;
+	font-size: 0.9375rem;
+	color: $foreground;
+}
+
+.requestNetid {
+	font-size: 0.75rem;
+	font-family: "SF Mono", "Monaco", monospace;
+	color: $secondary;
+	background-color: rgba(0, 0, 0, 0.04);
+	padding: 2px 6px;
+	border-radius: 4px;
+}
+
+.requestDate {
+	font-size: 0.75rem;
+	color: $secondary;
+	margin-left: auto;
+}
+
+.requestChanges {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 12px;
+}
+
+.changeRow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.8125rem;
+}
+
+.changeField {
+	font-weight: 600;
+	color: $accent;
+	text-transform: capitalize;
+	min-width: 100px;
+}
+
+.changeValue {
+	color: $foreground;
+	font-family: "SF Mono", "Monaco", monospace;
+	font-size: 0.8125rem;
+	background-color: rgba(0, 53, 107, 0.04);
+	padding: 2px 8px;
+	border-radius: 4px;
+}
+
+.requestActions {
+	display: flex;
+	gap: 8px;
+}
+
+.requestResolved {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding-top: 8px;
+	border-top: 1px solid #e0e0e0;
+}
+
+.requestStatusBadge {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	padding: 3px 10px;
+	border-radius: 10px;
+	text-transform: capitalize;
+}
+
+.status_approved {
+	background-color: rgba(22, 163, 74, 0.1);
+	color: #16a34a;
+}
+
+.status_denied {
+	background-color: rgba(220, 38, 38, 0.1);
+	color: $destructive;
+}
+
+.requestNotes {
+	font-size: 0.8125rem;
+	color: $secondary;
+	font-style: italic;
+}
+
+.requestMeta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin-bottom: 20px;
+	font-size: 0.8125rem;
+	color: $secondary;
+
+	strong {
+		color: $foreground;
+	}
+}
+
+.reviewFieldRow {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.reviewOriginal {
+	font-size: 0.75rem;
+	color: $secondary;
+
+	strong {
+		color: $accent;
+	}
+}

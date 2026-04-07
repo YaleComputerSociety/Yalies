@@ -4,7 +4,7 @@ import { Person, PERSON_ALLOWED_FILTER_FIELDS } from "yalies-shared";
 export { PERSON_ALLOWED_FILTER_FIELDS };
 
 export default class PersonModel extends Model {
-	// Identifiers
+
 	declare id: number;
 	declare netid: string;
 	declare upi: number;
@@ -13,7 +13,6 @@ export default class PersonModel extends Model {
 	declare phone: string;
 	declare fax: string;
 
-	// Naming
 	declare title: string;
 	declare first_name: string;
 	declare preferred_name: string;
@@ -25,17 +24,15 @@ export default class PersonModel extends Model {
 	declare phonetic_name: string;
 	declare name_recording: string;
 
-	// Miscellaneous
 	declare address: string;
 	declare address_state: string;
 	declare address_country: string;
 
-	// Students
 	declare school: string;
 	declare school_code: string;
 	declare year: number;
 	declare curriculum: string;
-	// Undergrads
+
 	declare college: string;
 	declare college_code: string;
 	declare leave: boolean;
@@ -46,7 +43,6 @@ export default class PersonModel extends Model {
 	declare major: string;
 	declare access_code: string;
 
-	// Staff
 	declare organization: string;
 	declare organization_code: string;
 	declare unit_class: string;
@@ -61,14 +57,9 @@ export default class PersonModel extends Model {
 	declare education: string;
 	declare publications: string;
 
-	/**
-	 * Makes sequelize aware of the model, linking the TS class to a database table.
-	 * See https://sequelize.org/docs/v6/other-topics/typescript/
-	 * @param sequelize The sequelize instance
-	 */
 	static initModel(sequelize: Sequelize) {
 		PersonModel.init({
-			// Identifiers
+
 			id: { type: DataTypes.INTEGER, primaryKey: true },
 			netid: { type: DataTypes.STRING },
 			upi: { type: DataTypes.INTEGER },
@@ -77,7 +68,6 @@ export default class PersonModel extends Model {
 			phone: { type: DataTypes.STRING },
 			fax: { type: DataTypes.STRING },
 
-			// Naming
 			title: { type: DataTypes.STRING },
 			first_name: { type: DataTypes.STRING, allowNull: false },
 			preferred_name: { type: DataTypes.STRING },
@@ -89,18 +79,15 @@ export default class PersonModel extends Model {
 			phonetic_name: { type: DataTypes.STRING },
 			name_recording: { type: DataTypes.STRING },
 
-			// Miscellaneous
 			address: { type: DataTypes.STRING },
 			address_state: { type: DataTypes.STRING },
 			address_country: { type: DataTypes.STRING },
 
-			// Students
 			school: { type: DataTypes.STRING },
 			school_code: { type: DataTypes.STRING },
 			year: { type: DataTypes.INTEGER },
 			curriculum: { type: DataTypes.STRING },
 
-			// Undergrads
 			college: { type: DataTypes.STRING },
 			college_code: { type: DataTypes.STRING },
 			leave: { type: DataTypes.BOOLEAN },
@@ -111,7 +98,6 @@ export default class PersonModel extends Model {
 			major: { type: DataTypes.STRING },
 			access_code: { type: DataTypes.STRING },
 
-			// Staff
 			organization: { type: DataTypes.STRING },
 			organization_code: { type: DataTypes.STRING },
 			unit_class: { type: DataTypes.STRING },
@@ -136,9 +122,9 @@ export default class PersonModel extends Model {
 		let addressSanitized = this.address;
 		if(addressSanitized != null) {
 			const split = addressSanitized.split("\n");
-			addressSanitized = split[split.length - 1]; // Only display the last line of the address
+			addressSanitized = split[split.length - 1]; 
 		}
-		// Only return fields that are not null
+
 		return {
 			...this.id != null && 					{ id: this.id },
 			...this.netid != null && 				{ netid: this.netid },

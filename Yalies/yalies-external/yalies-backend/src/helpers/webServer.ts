@@ -44,23 +44,22 @@ export default class WebServer {
 		this.#app.use(express.json());
 		this.#app.use(express.urlencoded({ extended: true }));
 		this.#app.use((req, res, next) => {
-			// Default: no caching for mutation endpoints
+
 			res.set("Cache-Control", "no-store");
 			next();
 		});
-		
+
 		this.#app.use(session({
 			secret: process.env.SESSION_SECRET,
 			resave: false,
 			saveUninitialized: false,
 			cookie: { 
 				httpOnly: true,
-				// Restrict to HTTPS only in prod
+
 				secure: process.env.NODE_ENV !== "development",
-				// TODO: THIS IS INSECURE DUE TO CSRF! Once we get domains, do Domain Relaxation
+
 				sameSite: process.env.NODE_ENV !== "development" ? "none" : false,
-				// 400 days, the max age that Chrome supports
-				// Note that the cookie API uses secs, while express uses millis
+
 				maxAge: 34560000 * 1000,
 			},
 			store: this.createSessionStore(),
@@ -92,6 +91,7 @@ export default class WebServer {
 
 		const peopleRouter = new PeopleRouter(this.#elasticsearch);
 		this.#app.use(API_ROUTES.people, peopleRouter.getRouter());
+		this.#app.use("/v2/people", peopleRouter.getRouter());
 
 		if(process.env.AUTH_MODE === "dev") {
 			console.log("[Auth] Using dev login bypass (AUTH_MODE=dev)");
@@ -104,10 +104,12 @@ export default class WebServer {
 		}
 
 		const filtersRouter = new FiltersRouter();
-		this.#app.use(API_ROUTES.filters, (req, res, next) => {
-			res.set("Cache-Control", "public, max-age=300"); // 5 min browser cache
+		const filtersCacheMiddleware = (req: any, res: any, next: any) => {
+			res.set("Cache-Control", "public, max-age=300");
 			next();
-		}, filtersRouter.getRouter());
+		};
+		this.#app.use(API_ROUTES.filters, filtersCacheMiddleware, filtersRouter.getRouter());
+		this.#app.use("/v2/filters", filtersCacheMiddleware, filtersRouter.getRouter());
 
 		const apiKeyRouter = new APIKeyRouter();
 		this.#app.use(API_ROUTES.apiKeys, apiKeyRouter.getRouter());
@@ -124,7 +126,6 @@ export default class WebServer {
 		const communityPostsRouter = new CommunityPostsRouter();
 		this.#app.use(API_ROUTES.community, communityPostsRouter.getRouter());
 
-		// Admin: facecheck toggle
 		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthentication, (_req, res) => {
 			res.json({ enabled: isFacecheckEnabled() });
 		});

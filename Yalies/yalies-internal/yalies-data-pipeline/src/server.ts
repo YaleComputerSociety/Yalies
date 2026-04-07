@@ -21,16 +21,14 @@ import { PIPELINE_ROUTES } from "yalies-shared";
 import SessionModel from "./models/SessionModel.js";
 import AdminModel from "./models/AdminModel.js";
 
-// Database setup
 const sequelize = new Sequelize(process.env.DATABASE_URL!, { logging: false });
 SessionModel.initModel(sequelize);
 AdminModel.initModel(sequelize);
 
-// Initialize Passport (only registers CAS strategy if not in dev mode)
 if (process.env.AUTH_MODE !== "dev") {
 	new CAS();
 } else {
-	// Still need serialize/deserialize for dev login
+
 	passport.serializeUser((user: Express.User, done) => done(null, user));
 	passport.deserializeUser((user: Express.User, done) => done(null, user as Express.User));
 }
@@ -49,7 +47,6 @@ app.use((req, res, next) => {
 	next();
 });
 
-// Session middleware — same config as yalies-backend webServer.ts
 app.use(session({
 	secret: process.env.SESSION_SECRET!,
 	resave: false,
@@ -76,7 +73,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Auth routes (unprotected) — same pattern as backend
 if (process.env.AUTH_MODE === "dev") {
 	if (process.env.NODE_ENV !== "development") {
 		console.error("FATAL: AUTH_MODE=dev is not allowed outside of development. Set AUTH_MODE=cas for production.");
@@ -91,12 +87,10 @@ if (process.env.AUTH_MODE === "dev") {
 	app.use(PIPELINE_ROUTES.auth, casRouter.getRouter());
 }
 
-// Health check (unprotected)
 app.get("/health", (_req, res) => {
 	res.json({ status: "ok" });
 });
 
-// Protected routes — require admin
 const cookieRouter = new CookieRouter();
 const scrapeRouter = new ScrapeRouter();
 const syncRouter = new SyncRouter();
@@ -107,7 +101,6 @@ app.use(PIPELINE_ROUTES.scrape, CAS.requireAdmin, scrapeRouter.getRouter());
 app.use(PIPELINE_ROUTES.sync, CAS.requireAdmin, syncRouter.getRouter());
 app.use(PIPELINE_ROUTES.database, CAS.requireAdmin, databaseRouter.getRouter());
 
-// DB init: create tables and seed initial admin
 async function initDb() {
 	try {
 		await sequelize.authenticate();
@@ -133,8 +126,10 @@ async function initDb() {
 	}
 }
 
-initDb().then(() => {
+const start = async () => {
+	await initDb();
 	app.listen(PORT, () => {
 		console.log(`Yalies scraper API server listening on port ${PORT}`);
 	});
-});
+};
+start();

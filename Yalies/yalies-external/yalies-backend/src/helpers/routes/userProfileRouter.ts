@@ -7,7 +7,9 @@ import os from "os";
 import CAS from "../cas.js";
 import UserProfileModel from "../models/UserProfileModel.js";
 import PersonModel from "../models/PersonModel.js";
+import DataChangeRequestModel from "../models/DataChangeRequestModel.js";
 import { detectFace, compareFaces, shouldRunFacecheck } from "../facecheck.js";
+import { CHANGE_REQUEST_ALLOWED_FIELDS } from "yalies-shared";
 
 const GCS_BUCKET_NAME = "yalies-photos";
 const GCS_SERVICE_KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS
@@ -15,7 +17,7 @@ const GCS_SERVICE_KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS
 
 const upload = multer({
 	storage: multer.memoryStorage(),
-	limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+	limits: { fileSize: 5 * 1024 * 1024 }, 
 	fileFilter: (_req, file, cb) => {
 		if(file.mimetype.startsWith("image/")) cb(null, true);
 		else cb(new Error("Only image files are allowed"));
@@ -36,6 +38,7 @@ export default class UserProfileRouter {
 		router.put("/me", CAS.requireAuthenticationSessionOnly, this.updateMyProfile);
 		router.post("/me/photo", CAS.requireAuthenticationSessionOnly, upload.single("photo"), this.uploadPhoto);
 		router.get("/me/photo/download", CAS.requireAuthenticationSessionOnly, this.downloadMyPhoto);
+		router.post("/me/change-request", CAS.requireAuthenticationSessionOnly, this.submitChangeRequest);
 		router.delete("/me", CAS.requireAuthenticationSessionOnly, this.deleteMyProfile);
 		router.get("/:netid", CAS.requireAuthentication, this.getProfile);
 		return router;
@@ -119,12 +122,10 @@ export default class UserProfileRouter {
 				return res.status(403).send("Person not found in directory");
 			}
 
-			// Face validation (skipped if facecheck dependencies aren't installed)
 			const canFacecheck = await shouldRunFacecheck();
 			if(canFacecheck) {
 				fs.writeFileSync(newPhotoPath, req.file.buffer);
 
-				// Check that the new photo contains a face
 				const detectResult = await detectFace(newPhotoPath);
 				if(!detectResult.has_face) {
 					return res.status(400).json({
@@ -132,7 +133,6 @@ export default class UserProfileRouter {
 					});
 				}
 
-				// If the person already has a photo, compare faces to ensure it's the same person
 				if(person.image) {
 					const existingPhotoPath = path.join(tmpDir, "existing.jpg");
 					const urlParts = person.image.split("/");
@@ -142,7 +142,6 @@ export default class UserProfileRouter {
 					const [existingBuffer] = await bucket.file(existingFilename).download();
 					fs.writeFileSync(existingPhotoPath, existingBuffer);
 
-					// Check if existing photo has a face (some may not)
 					const existingDetect = await detectFace(existingPhotoPath);
 					if(existingDetect.has_face) {
 						const compareResult = await compareFaces(existingPhotoPath, newPhotoPath);
@@ -156,7 +155,6 @@ export default class UserProfileRouter {
 				}
 			}
 
-			// Derive the GCS filename from the existing image URL, or fall back to netid
 			let filename: string;
 			if(person.image) {
 				const urlParts = person.image.split("/");
@@ -185,7 +183,7 @@ export default class UserProfileRouter {
 			console.error("[photo upload] Error:", e);
 			return res.status(500).json({ error: "Error uploading photo" });
 		} finally {
-			// Clean up temp files
+
 			fs.rmSync(tmpDir, { recursive: true, force: true });
 		}
 	};
@@ -210,6 +208,46 @@ export default class UserProfileRouter {
 		} catch(e) {
 			console.error(e);
 			return res.status(500).send("Error downloading photo");
+		}
+	};
+
+	submitChangeRequest = async (req: Request, res: Response) => {
+		const { requested_changes } = req.body;
+
+		if(!requested_changes || typeof requested_changes !== "object" || Array.isArray(requested_changes)) {
+			return res.status(400).send("requested_changes must be an object");
+		}
+
+		const allowedSet = new Set<string>(CHANGE_REQUEST_ALLOWED_FIELDS);
+		const filtered: Record<string, string | number | null> = {};
+
+		for(const [key, value] of Object.entries(requested_changes)) {
+			if(!allowedSet.has(key)) {
+				return res.status(400).send(`Field "${key}" is not allowed`);
+			}
+			if(value !== null && typeof value !== "string" && typeof value !== "number") {
+				return res.status(400).send(`Field "${key}" must be a string, number, or null`);
+			}
+			if(value !== null && value !== "") {
+				filtered[key] = value as string | number;
+			}
+		}
+
+		if(Object.keys(filtered).length === 0) {
+			return res.status(400).send("No fields to change");
+		}
+
+		try {
+			const request = await DataChangeRequestModel.create({
+				requester_netid: req.netid,
+				target_netid: req.netid,
+				status: "pending",
+				requested_changes: filtered,
+			});
+			return res.status(201).json(request.toJSON());
+		} catch(e) {
+			console.error(e);
+			return res.status(500).send("Error submitting change request");
 		}
 	};
 

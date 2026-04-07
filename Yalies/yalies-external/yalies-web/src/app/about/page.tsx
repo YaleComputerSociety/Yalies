@@ -77,18 +77,19 @@ export default function AboutPage() {
 
 	const [isAuthenticated, setAuthenticated] = useState(false);
 
-	// API keys state
 	const [apiOpen, setApiOpen] = useState(tabParam === "api");
 	const [keys, setKeys] = useState<ApiKey[]>([]);
 	const [keyDescription, setKeyDescription] = useState("");
 
 	useEffect(() => {
-		fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMe}`, {
-			credentials: "include",
-		}).then(res => {
+		const checkAuth = async () => {
+			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMe}`, {
+				credentials: "include",
+			});
 			setAuthenticated(res.ok);
 			if (res.ok) fetchApiKeys();
-		});
+		};
+		checkAuth();
 	}, []);
 
 	const fetchApiKeys = async () => {
@@ -184,30 +185,32 @@ export default function AboutPage() {
 									</p>
 
 									{keys.length > 0 && (
-										<table className={styles.key_table}>
-											<thead>
-												<tr>
-													<th>Description</th>
-													<th>Uses</th>
-													<th>Secret key</th>
-													<th></th>
-												</tr>
-											</thead>
-											<tbody>
-												{keys.map(key => (
-													<tr key={key.id}>
-														<td>{key.description}</td>
-														<td>{key.uses_count}</td>
-														<td className={styles.key_cell}>
-															{key.key ? <Input disabled value={key.key} /> : "Only shown once"}
-														</td>
-														<td className={styles.revoke_cell} onClick={() => revokeApiKey(key.id)}>
-															<FontAwesomeIcon icon={faTrash} />
-														</td>
+										<div className={styles.key_table_wrapper}>
+											<table className={styles.key_table}>
+												<thead>
+													<tr>
+														<th>Description</th>
+														<th>Uses</th>
+														<th>Secret key</th>
+														<th></th>
 													</tr>
-												))}
-											</tbody>
-										</table>
+												</thead>
+												<tbody>
+													{keys.map(key => (
+														<tr key={key.id}>
+															<td>{key.description}</td>
+															<td>{key.uses_count}</td>
+															<td className={styles.key_cell}>
+																{key.key ? <Input disabled value={key.key} /> : "Only shown once"}
+															</td>
+															<td className={styles.revoke_cell} onClick={() => revokeApiKey(key.id)}>
+																<FontAwesomeIcon icon={faTrash} />
+															</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										</div>
 									)}
 
 									<div className={styles.new_key_form}>

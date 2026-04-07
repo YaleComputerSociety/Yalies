@@ -33,6 +33,8 @@ export default class DatabaseRouter {
 		this.#router.get("/students/:id/photo/download", this.#downloadStudentPhoto);
 		this.#router.delete("/students/:id", this.#deleteStudent);
 		this.#router.post("/compute-locations", this.#computeLocations);
+		this.#router.get("/change-requests", this.#getChangeRequests);
+		this.#router.put("/change-requests/:id", this.#resolveChangeRequest);
 	}
 
 	getRouter = (): Router => this.#router;
@@ -265,7 +267,6 @@ export default class DatabaseRouter {
 				res.status(400).send("No fields to update"); return;
 			}
 
-			// Update person table fields
 			if (sets.length > 0) {
 				await sequelize.query(
 					`UPDATE person SET ${sets.join(", ")} WHERE id = :id`,
@@ -273,7 +274,6 @@ export default class DatabaseRouter {
 				);
 			}
 
-			// Update user_profile fields (linkedin_url, instagram_url, classes)
 			const profileFields = ["linkedin_url", "instagram_url", "classes"] as const;
 			const hasProfileUpdate = profileFields.some((f) => f in req.body);
 			if (hasProfileUpdate) {
@@ -282,7 +282,7 @@ export default class DatabaseRouter {
 					{ type: QueryTypes.SELECT, replacements: { id } },
 				);
 				if (person?.netid) {
-					// Normalize values
+
 					let linkedinVal: string | null = null;
 					let instagramVal: string | null = null;
 					let classesVal: string[] | null = null;
@@ -306,7 +306,6 @@ export default class DatabaseRouter {
 						}
 					}
 
-					// Convert array to PG array literal since Sequelize raw queries don't bind arrays
 					const classesPg = classesVal
 						? `{${classesVal.map((s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",")}}`
 						: null;
@@ -540,6 +539,150 @@ export default class DatabaseRouter {
 		} finally {
 			if (sequelize) await sequelize.close();
 			res.end();
+		}
+	};
+
+	#getChangeRequests = async (req: Request, res: Response): Promise<void> => {
+		let sequelize: Sequelize | undefined;
+		try {
+			sequelize = this.#getSequelize();
+			const status = (req.query.status as string) || "pending";
+			const page = Math.max(1, parseInt(req.query.page as string) || 1);
+			const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+			const offset = (page - 1) * pageSize;
+
+			const [[countResult]] = await Promise.all([
+				sequelize.query<{ count: string }>(
+					`SELECT COUNT(*) as count FROM data_change_request WHERE status = :status`,
+					{ type: QueryTypes.SELECT, replacements: { status } },
+				),
+			]);
+
+			const requests = await sequelize.query<Record<string, unknown>>(
+				`SELECT dcr.*,
+					p.first_name || ' ' || p.last_name as requester_name
+				FROM data_change_request dcr
+				LEFT JOIN person p ON dcr.requester_netid = p.netid
+				WHERE dcr.status = :status
+				ORDER BY dcr.created_at DESC
+				LIMIT :limit OFFSET :offset`,
+				{ type: QueryTypes.SELECT, replacements: { status, limit: pageSize, offset } },
+			);
+
+			// Also return total pending count for badge display
+			const [[pendingCount]] = await Promise.all([
+				sequelize.query<{ count: string }>(
+					`SELECT COUNT(*) as count FROM data_change_request WHERE status = 'pending'`,
+					{ type: QueryTypes.SELECT },
+				),
+			]);
+
+			res.json({
+				requests,
+				total: parseInt(countResult.count),
+				pendingCount: parseInt(pendingCount.count),
+				page,
+				pageSize,
+			});
+		} catch (e) {
+			console.error("Change requests error:", e);
+			res.status(500).send(`Failed to load change requests: ${(e as Error).message}`);
+		} finally {
+			if (sequelize) await sequelize.close();
+		}
+	};
+
+	#resolveChangeRequest = async (req: Request, res: Response): Promise<void> => {
+		let sequelize: Sequelize | undefined;
+		try {
+			sequelize = this.#getSequelize();
+			const id = parseInt(req.params.id as string);
+			if (isNaN(id)) { res.status(400).send("Invalid id"); return; }
+
+			const { status, admin_notes, modified_changes } = req.body;
+			if (status !== "approved" && status !== "denied") {
+				res.status(400).send("Status must be 'approved' or 'denied'"); return;
+			}
+
+			// Fetch the request, ensuring it's still pending
+			const [request] = await sequelize.query<{
+				id: number;
+				target_netid: string;
+				requested_changes: Record<string, string | number | null>;
+				status: string;
+			}>(
+				`SELECT id, target_netid, requested_changes, status
+				FROM data_change_request WHERE id = :id`,
+				{ type: QueryTypes.SELECT, replacements: { id } },
+			);
+
+			if (!request) { res.status(404).send("Request not found"); return; }
+			if (request.status !== "pending") { res.status(409).send("Request already resolved"); return; }
+
+			if (status === "approved") {
+				const changes = modified_changes || request.requested_changes;
+
+				const ALLOWED_FIELDS = [
+					"netid", "upi", "email", "mailbox", "phone", "fax",
+					"title", "first_name", "preferred_name", "middle_name", "last_name",
+					"suffix", "pronouns", "phonetic_name", "name_recording",
+					"address", "residence", "school", "school_code", "year", "curriculum",
+					"college", "college_code", "leave", "visitor",
+					"birthday", "birth_month", "birth_day",
+					"major", "access_code", "organization", "organization_code",
+					"unit_class", "unit_code", "unit", "postal_address",
+					"office_building", "office_room", "cv", "profile", "website",
+					"education", "publications",
+				];
+
+				const sets: string[] = [];
+				const replacements: Record<string, string | number | boolean | null> = {
+					target_netid: request.target_netid,
+				};
+
+				for (const [field, value] of Object.entries(changes)) {
+					if (ALLOWED_FIELDS.includes(field)) {
+						sets.push(`${field} = :${field}`);
+						replacements[field] = (value === "" || value === undefined) ? null : value as string | number | boolean;
+					}
+				}
+
+				if (sets.length > 0) {
+					await sequelize.query(
+						`UPDATE person SET ${sets.join(", ")} WHERE netid = :target_netid`,
+						{ type: QueryTypes.UPDATE, replacements },
+					);
+				}
+			}
+
+			// Update the request status
+			await sequelize.query(
+				`UPDATE data_change_request
+				SET status = :status, admin_notes = :admin_notes,
+					resolved_at = NOW(), resolved_by = :resolved_by
+				WHERE id = :id AND status = 'pending'`,
+				{
+					type: QueryTypes.UPDATE,
+					replacements: {
+						id,
+						status,
+						admin_notes: admin_notes || null,
+						resolved_by: (req as any).netid || "admin",
+					},
+				},
+			);
+
+			const [updated] = await sequelize.query<Record<string, unknown>>(
+				`SELECT * FROM data_change_request WHERE id = :id`,
+				{ type: QueryTypes.SELECT, replacements: { id } },
+			);
+
+			res.json(updated);
+		} catch (e) {
+			console.error("Resolve change request error:", e);
+			res.status(500).send(`Failed to resolve change request: ${(e as Error).message}`);
+		} finally {
+			if (sequelize) await sequelize.close();
 		}
 	};
 }

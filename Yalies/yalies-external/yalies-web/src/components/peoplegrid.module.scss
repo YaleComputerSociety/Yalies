@@ -133,6 +133,14 @@
 			line-height: 1;
 		}
     }
+	@include shared.tablet() {
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+
+		.person {
+			width: 100%;
+		}
+	}
+
 	@include shared.responsive() {
 		padding: 16px 12px 30px;
 		grid-template-columns: 1fr;

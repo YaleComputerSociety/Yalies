@@ -3,7 +3,7 @@ import PersonModel from "../models/PersonModel.js";
 import { col, fn } from "sequelize";
 import { DEFAULT_FILTER_FIELDS } from "yalies-shared";
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 5 * 60 * 1000; 
 let filtersCache: { data: Record<string, unknown[]>; timestamp: number } | null = null;
 
 export default class FiltersRouter {
@@ -20,14 +20,13 @@ export default class FiltersRouter {
 
 		try {
 			const results = await Promise.all(
-				DEFAULT_FILTER_FIELDS.map(category =>
-					PersonModel.findAll({
+				DEFAULT_FILTER_FIELDS.map(async (category) => {
+					const values = await PersonModel.findAll({
 						attributes: [[fn("DISTINCT", col(category)), category]],
 						order: [[category, "ASC"]],
-					}).then(values =>
-						[category, values.map(v => v.get(category)).filter(v => v !== null)] as const
-					)
-				)
+					});
+					return [category, values.map(v => v.get(category)).filter(v => v !== null)] as const;
+				})
 			);
 			const filters: Record<string, unknown[]> = {};
 			for (const [category, values] of results) {

@@ -6,7 +6,7 @@ type CachedProfile = {
 	timestamp: number;
 };
 
-const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_TTL = 60 * 1000; 
 let cached: CachedProfile | null = null;
 let inflight: Promise<CachedProfile | null> | null = null;
 

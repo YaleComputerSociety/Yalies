@@ -46,6 +46,11 @@
 		color: shared.$secondary-color;
 	}
 
+	@include shared.tablet() {
+		width: 100%;
+		box-sizing: border-box;
+	}
+
 	@include shared.responsive() {
 		width: 100%;
 		box-sizing: border-box;
@@ -110,15 +115,14 @@
 	overflow: hidden;
 
 	@include shared.responsive() {
-		position: fixed;
-		left: 12px;
-		right: 12px;
-		top: auto;
+		position: absolute;
+		left: 0;
+		right: 0;
 	}
 
 	@include shared.small-mobile() {
-		left: 8px;
-		right: 8px;
+		left: 0;
+		right: 0;
 	}
 }
 

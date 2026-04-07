@@ -20,4 +20,12 @@ export default class ProfileLikeModel extends Model {
 			],
 		});
 	}
+
+	toSanitizedObject() {
+		return {
+			liker_netid: this.liker_netid,
+			liked_netid: this.liked_netid,
+			created_at: this.created_at,
+		};
+	}
 }

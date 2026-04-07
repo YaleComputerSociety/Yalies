@@ -59,12 +59,11 @@ export default function useSSE(url: string, body: Record<string, unknown>) {
 						setEvents((prev) => [...prev, event]);
 						setLatestEvent(event);
 					} catch {
-						// Skip malformed JSON
+
 					}
 				}
 			}
 
-			// Process remaining buffer
 			if (buffer.trim().startsWith("data: ")) {
 				const jsonStr = buffer.trim().slice(6);
 				try {
@@ -72,12 +71,12 @@ export default function useSSE(url: string, body: Record<string, unknown>) {
 					setEvents((prev) => [...prev, event]);
 					setLatestEvent(event);
 				} catch {
-					// Skip malformed JSON
+
 				}
 			}
 		} catch (err) {
 			if (err instanceof DOMException && err.name === "AbortError") {
-				// User cancelled
+
 			} else {
 				const message = err instanceof Error ? err.message : "Unknown error";
 				setError(message);

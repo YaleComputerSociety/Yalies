@@ -20,7 +20,7 @@ export default class APIKeyRouter {
 		const netid = req.netid;
 
 		const key = generateApiKey();
-		
+
 		const newKey = APIKeyModel.build({
 			owner_netid: netid,
 			created_on: new Date(),

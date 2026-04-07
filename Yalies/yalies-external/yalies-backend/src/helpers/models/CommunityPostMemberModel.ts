@@ -19,4 +19,13 @@ export default class CommunityPostMemberModel extends Model {
 			...SEQUELIZE_DEFINITION_OPTIONS,
 		});
 	}
+
+	toSanitizedObject() {
+		return {
+			post_id: this.post_id,
+			netid: this.netid,
+			role: this.role,
+			joined_at: this.joined_at,
+		};
+	}
 }

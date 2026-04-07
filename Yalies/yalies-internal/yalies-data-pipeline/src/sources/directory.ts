@@ -121,13 +121,11 @@ export default class DirectorySource {
 				continue;
 			}
 
-			// Skip already enriched
 			if (student.netid && startFrom === 0) {
 				enrichedCount++;
 				continue;
 			}
 
-			// Periodically refresh CSRF token
 			this.#requestsSinceCsrf++;
 			if (this.#requestsSinceCsrf >= CSRF_REFRESH_INTERVAL) {
 				try {
@@ -138,23 +136,20 @@ export default class DirectorySource {
 			}
 
 			try {
-				// Clean name: strip parenthetical nicknames, accents
+
 				let cleanFirst = first.replace(/\s*\(.*?\)\s*/g, "").trim();
 				let cleanLast = last;
 
-				// Strip accents for searching (directory may not use them)
 				const stripAccents = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 				const searchFirst = stripAccents(cleanFirst);
 				const searchLast = stripAccents(cleanLast);
 
 				let records = await this.searchPerson(searchFirst, searchLast);
 
-				// Retry strategies if no results
 				if (records.length === 0) {
 					const lastParts = searchLast.split(" ");
 					const firstParts = searchFirst.split(" ");
 
-					// Multi-word last name: try first part, then last part
 					if (lastParts.length > 1) {
 						records = await this.searchPerson(searchFirst, lastParts[0]);
 						await sleep(delay);
@@ -164,24 +159,21 @@ export default class DirectorySource {
 						}
 					}
 
-					// Multi-word first name (e.g. "Seung Min"): try just first word
 					if (records.length === 0 && firstParts.length > 1) {
 						records = await this.searchPerson(firstParts[0], searchLast);
 						await sleep(delay);
-						// Try second word as first name
+
 						if (records.length === 0) {
 							records = await this.searchPerson(firstParts[1], searchLast);
 							await sleep(delay);
 						}
 					}
 
-					// Last resort: search by last name only
 					if (records.length === 0) {
 						records = await this.searchPerson("", searchLast);
 						await sleep(delay);
 					}
 
-					// Very last resort: search by first name + first word of last name
 					if (records.length === 0 && lastParts.length > 1) {
 						records = await this.searchPerson(firstParts[0], lastParts[0]);
 						await sleep(delay);
@@ -310,21 +302,16 @@ function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): Dire
 		const recLast = (rec.LastName || "").toLowerCase();
 		const recKnown = (rec.KnownAs || "").toLowerCase();
 
-		// College match (strong signal)
 		if (recCollege && recCollege === studentCollege) score += 3;
 
-		// Year match
 		if (studentYearInt && recYear && Number(recYear) === studentYearInt) score += 2;
 
-		// School match
 		if (rec.PrimarySchoolCode === YALE_COLLEGE_CODE) score += 1;
 
-		// Name match — first name or known-as matches any part of student first name
 		const firstParts = studentFirst.split(" ");
 		if (firstParts.some(p => p === recFirst || p === recKnown)) score += 2;
 		else if (recFirst.includes(studentFirst) || studentFirst.includes(recFirst)) score += 1;
 
-		// Last name similarity
 		if (recLast === studentLast) score += 2;
 		else if (studentLast.includes(recLast) || recLast.includes(studentLast)) score += 1;
 
@@ -334,7 +321,6 @@ function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): Dire
 		}
 	}
 
-	// Require at least college or year match to avoid false positives
 	if (bestScore < 3) return null;
 
 	return bestRecord;

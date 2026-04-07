@@ -60,11 +60,11 @@ export default class CommunityPostsRouter {
 					where: { post_id: { [Op.in]: postIds } },
 					attributes: [
 						"post_id",
-						[CommunityPostModel.sequelize.fn("COUNT", CommunityPostModel.sequelize.col("id")), "count"],
+						[CommunityPostModel.sequelize.fn("COUNT", CommunityPostModel.sequelize.col("*")), "count"],
 					],
 					group: ["post_id"],
 					raw: true,
-				}) as Promise<({ post_id: number; count: string })[]>,
+				}) as unknown as Promise<({ post_id: number; count: string })[]>,
 				CommunityPostInterestModel.findAll({
 					where: { post_id: { [Op.in]: postIds }, netid: req.netid },
 				}),
@@ -157,11 +157,11 @@ export default class CommunityPostsRouter {
 					where: { post_id: { [Op.in]: postIds } },
 					attributes: [
 						"post_id",
-						[CommunityPostModel.sequelize.fn("COUNT", CommunityPostModel.sequelize.col("id")), "count"],
+						[CommunityPostModel.sequelize.fn("COUNT", CommunityPostModel.sequelize.col("*")), "count"],
 					],
 					group: ["post_id"],
 					raw: true,
-				}) as Promise<({ post_id: number; count: string })[]>,
+				}) as unknown as Promise<({ post_id: number; count: string })[]>,
 			]);
 			const interestCounts: Record<number, number> = {};
 			for(const row of interestCountRows) {

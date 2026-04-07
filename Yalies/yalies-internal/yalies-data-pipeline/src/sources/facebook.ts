@@ -15,6 +15,36 @@ const BIRTHDAY_PATTERN = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\
 const PHONE_PATTERN = /^\d+-\d+/;
 const ADDRESS_PATTERN = /[\d,]/;
 
+// Known countries/locations that get misidentified as majors because they lack digits/commas
+import { COUNTRY_ALIASES, US_STATES } from "yalies-shared";
+const KNOWN_LOCATIONS = new Set([
+	...Object.values(COUNTRY_ALIASES).map(c => c.toLowerCase()),
+	...Object.values(US_STATES).map(s => s.toLowerCase()),
+	"romania", "brazil", "indonesia", "japan", "mongolia", "morocco", "ukraine",
+	"china", "india", "south korea", "taiwan", "hong kong", "singapore", "malaysia",
+	"vietnam", "thailand", "philippines", "cambodia", "myanmar", "nepal", "sri lanka",
+	"bangladesh", "pakistan", "iran", "iraq", "israel", "turkey", "saudi arabia",
+	"united arab emirates", "qatar", "kuwait", "bahrain", "oman", "yemen", "jordan",
+	"lebanon", "syria", "egypt", "nigeria", "ghana", "kenya", "south africa",
+	"ethiopia", "tanzania", "uganda", "rwanda", "tunisia", "algeria",
+	"zimbabwe", "mexico", "canada", "colombia", "argentina", "peru",
+	"chile", "ecuador", "venezuela", "bolivia", "paraguay", "uruguay", "cuba",
+	"jamaica", "haiti", "dominican republic", "trinidad", "guatemala", "honduras",
+	"costa rica", "panama", "bermuda", "barbados", "germany", "france", "italy",
+	"spain", "portugal", "netherlands", "belgium", "austria", "switzerland",
+	"sweden", "norway", "denmark", "finland", "ireland", "poland", "hungary",
+	"czech republic", "greece", "russia", "australia", "new zealand",
+	"georgia", "armenia", "azerbaijan", "kazakhstan", "uzbekistan",
+]);
+const US_CITY_STATE_REGEX = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*[A-Z]{2}$/;
+
+function isLocationLine(line: string): boolean {
+	if (ADDRESS_PATTERN.test(line)) return true;
+	if (KNOWN_LOCATIONS.has(line.toLowerCase())) return true;
+	if (US_CITY_STATE_REGEX.test(line)) return true;
+	return false;
+}
+
 function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 	const filtered = parts
 		.map((p) => decode(p.replace(/<[^>]+>/g, "").trim()))
@@ -24,13 +54,11 @@ function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 
 	let idx = 0;
 
-	// Check for phone (e.g. "6-2906 /")
 	if (PHONE_PATTERN.test(filtered[idx])) {
 		data.phone = filtered[idx].replace(/\s*\/\s*$/, "");
 		idx++;
 	}
 
-	// Check for birthday at end
 	let remaining: string[];
 	if (filtered.length > 0 && BIRTHDAY_PATTERN.test(filtered[filtered.length - 1])) {
 		data.birthday = filtered[filtered.length - 1];
@@ -41,12 +69,11 @@ function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 
 	if (remaining.length === 0) return;
 
-	// Walk backwards: last non-address line is the major
 	let major: string | undefined;
 	let addressLines: string[] = [];
 
 	for (let i = remaining.length - 1; i >= 0; i--) {
-		if (major === undefined && !ADDRESS_PATTERN.test(remaining[i])) {
+		if (major === undefined && !isLocationLine(remaining[i])) {
 			major = remaining[i];
 			addressLines = remaining.slice(0, i);
 			break;
@@ -54,7 +81,7 @@ function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 	}
 
 	if (major === undefined) {
-		// Everything looks like address
+
 		addressLines = remaining;
 	}
 
@@ -66,7 +93,6 @@ function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 function parseStudentCard($: cheerio.CheerioAPI, card: any): FacebookStudent {
 	const data: Partial<FacebookStudent> = {};
 
-	// Name
 	const nameTag = $(card).find("h5.yalehead");
 	if (nameTag.length) {
 		const full = nameTag.text().trim();
@@ -81,19 +107,16 @@ function parseStudentCard($: cheerio.CheerioAPI, card: any): FacebookStudent {
 		}
 	}
 
-	// Year
 	const yearTag = $(card).find(".student_year");
 	if (yearTag.length) {
 		data.year = yearTag.text().trim();
 	}
 
-	// Pronouns
 	const pronounTag = $(card).find(".student_info_pronoun");
 	if (pronounTag.length) {
 		data.pronouns = pronounTag.text().trim();
 	}
 
-	// Photo ID
 	const imgTag = $(card).find(".student_img img");
 	if (imgTag.length) {
 		const src = imgTag.attr("src") || "";
@@ -101,7 +124,6 @@ function parseStudentCard($: cheerio.CheerioAPI, card: any): FacebookStudent {
 		if (match) data.photo_id = match[1];
 	}
 
-	// College and info
 	const infoDivs = $(card).find(".student_info");
 	if (infoDivs.length >= 1) {
 		data.college = $(infoDivs[0]).text().trim();
@@ -203,7 +225,6 @@ export default class FacebookSource {
 		const storage = new Storage();
 		const bucket = storage.bucket(GCS_BUCKET_NAME);
 
-		// Get existing photos to skip re-uploads
 		const [files] = await bucket.getFiles();
 		const existing = new Set(files.map((f) => f.name));
 		console.log(`Uploading photos to gs://${GCS_BUCKET_NAME}/ (${existing.size} already exist)...`);
@@ -221,7 +242,7 @@ export default class FacebookSource {
 					uploaded++;
 				}
 			} catch {
-				// Skip failed photos
+
 			}
 
 			if ((i + 1) % 100 === 0) {

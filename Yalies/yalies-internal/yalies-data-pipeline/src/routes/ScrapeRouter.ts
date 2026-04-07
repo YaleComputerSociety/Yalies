@@ -71,11 +71,9 @@ export default class ScrapeRouter {
 
 			const { students: allStudents } = await source.fetchPage(-1, -1);
 
-			// Store in state + save to disk
 			setFacebookData(allStudents);
 			saveJson("students.json", allStudents);
 
-			// Run validation
 			const validation = validateFacebook(allStudents);
 			sendSSE(res, {
 				type: "validation",
@@ -122,7 +120,6 @@ export default class ScrapeRouter {
 			await source.fetchCsrfToken();
 			sendSSE(res, { type: "progress", message: "Got CSRF token. Starting enrichment...", count: 0, total: fbData.length });
 
-			// Replicate enrichment loop from DirectorySource.enrich() with SSE progress
 			const enriched: EnrichedStudent[] = fbData.map((s) => ({ ...s })) as EnrichedStudent[];
 			let enrichedCount = 0;
 			let notFound = 0;
@@ -140,7 +137,6 @@ export default class ScrapeRouter {
 					continue;
 				}
 
-				// Periodically refresh CSRF token
 				requestsSinceCsrf++;
 				if (requestsSinceCsrf >= CSRF_REFRESH_INTERVAL) {
 					try {
@@ -180,7 +176,7 @@ export default class ScrapeRouter {
 							requestsSinceCsrf = 0;
 						} catch {
 							sendSSE(res, { type: "error", message: `Session expired at student ${i}. Could not refresh.` });
-							// Store partial results
+
 							setEnrichedData(enriched);
 			saveJson("students_enriched.json", enriched);
 							sendSSE(res, {
@@ -197,7 +193,6 @@ export default class ScrapeRouter {
 					}
 				}
 
-				// Send progress every 10 students
 				if ((i + 1) % 10 === 0) {
 					sendSSE(res, {
 						type: "progress",
@@ -210,11 +205,9 @@ export default class ScrapeRouter {
 				await sleep(delay);
 			}
 
-			// Store in state
 			setEnrichedData(enriched);
 			saveJson("students_enriched.json", enriched);
 
-			// Run validation
 			const validation = validateEnriched(enriched);
 			sendSSE(res, {
 				type: "validation",
@@ -237,7 +230,6 @@ export default class ScrapeRouter {
 	};
 }
 
-// Replicated from directory.ts to avoid modifying the source
 function enrichStudent(student: EnrichedStudent, record: DirectoryRecord): void {
 	const mapping: Record<string, keyof DirectoryRecord> = {
 		netid: "NetId",

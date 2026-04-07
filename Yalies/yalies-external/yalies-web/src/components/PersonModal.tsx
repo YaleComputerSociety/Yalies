@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import styles from "./personmodal.module.scss";
-import { ClickableChip } from "./Chip";
+import ClickableChip from "./ClickableChip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
 	faBook,
@@ -64,7 +64,7 @@ export default function PersonModal({
 	}, []);
 
 	useEffect(() => {
-		// Skip fetch if profile was already included inline from the people endpoint
+
 		if(userProfile) return;
 		if(!person.netid) return;
 		const fetchProfile = async () => {
@@ -130,7 +130,7 @@ export default function PersonModal({
 								alt={displayName}
 								decoding="async"
 								onError={(e) => {
-									// Hide broken image and show placeholder instead
+
 									const img = e.target as HTMLImageElement;
 									const placeholder = img.nextElementSibling as HTMLElement;
 									img.style.display = "none";

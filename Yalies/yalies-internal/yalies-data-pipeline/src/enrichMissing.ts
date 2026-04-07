@@ -1,9 +1,3 @@
-/**
- * Re-enrich students who are missing netids by querying the Yale Directory.
- *
- * Usage:
- *   npx tsc && node build/enrichMissing.js --cookie <directory_session_cookie> [--dry-run]
- */
 
 import { configDotenv } from "dotenv";
 import path from "path";
@@ -56,7 +50,6 @@ async function main() {
 		await sequelize.authenticate();
 		console.log("Connected to database");
 
-		// Fetch students without netids
 		const missing = await sequelize.query(
 			`SELECT id, netid, first_name, last_name, college, year, email, upi, phone, mailbox,
 			        preferred_name, middle_name, suffix, school, school_code, curriculum, college_code, address
@@ -74,10 +67,8 @@ async function main() {
 			return;
 		}
 
-		// Initialize directory source
 		const directory = new DirectorySource(cookie);
 
-		// Convert DB rows to FacebookStudent format for the enrichment
 		const asStudents: FacebookStudent[] = missing.map(p => ({
 			full_name: `${p.first_name} ${p.last_name}`,
 			first_name: p.first_name,
@@ -91,11 +82,9 @@ async function main() {
 			details_raw: "",
 		}));
 
-		// Run enrichment
 		console.log("Starting directory enrichment...\n");
 		const enriched = await directory.enrich(asStudents, 300, 50, 0);
 
-		// Count how many got enriched
 		const newlyEnriched = enriched.filter(s => s.netid);
 		console.log(`\nEnriched ${newlyEnriched.length} out of ${missing.length} students`);
 
@@ -108,7 +97,6 @@ async function main() {
 			return;
 		}
 
-		// Update the database
 		console.log("\nUpdating database...");
 		let updated = 0;
 
@@ -154,7 +142,6 @@ async function main() {
 
 		console.log(`Done. Updated ${updated} students.`);
 
-		// Summary
 		const [remaining] = await sequelize.query(
 			`SELECT COUNT(*) as cnt FROM person
 			 WHERE (school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}') AND netid IS NULL`,

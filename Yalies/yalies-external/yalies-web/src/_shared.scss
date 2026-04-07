@@ -52,6 +52,10 @@ $TABLET_WIDTH: 1024px;
 @mixin rails() {
     padding: 50px 30vw;
 
+	@include tablet(){
+        padding: 50px 10vw;
+    }
+
 	@include responsive(){
         padding: 50px 4vw;
     }

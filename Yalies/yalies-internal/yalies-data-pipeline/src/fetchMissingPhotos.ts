@@ -1,10 +1,3 @@
-/**
- * Fetch photos from Yale Facebook for students who are missing images.
- * Tries each student's UPI as a photo ID.
- *
- * Usage:
- *   npx tsc && node build/fetchMissingPhotos.js --cookie <JSESSIONID>
- */
 
 import { configDotenv } from "dotenv";
 import path from "path";
@@ -92,7 +85,6 @@ async function main() {
 
 		console.log(`Found ${missing.length} students without photos\n`);
 
-		// Test cookie with first student
 		console.log("Testing cookie...");
 		const testBuffer = await fetchPhoto(String(missing[0].upi), cookie);
 		if (!testBuffer || testBuffer.length < 100) {
@@ -113,12 +105,11 @@ async function main() {
 				const buffer = await fetchPhoto(photoId, cookie);
 
 				if (buffer && buffer.length > 500) {
-					// Upload to GCS
+
 					const filename = `${photoId}.jpg`;
 					const file = bucket.file(filename);
 					await file.save(buffer, { contentType: "image/jpeg" });
 
-					// Update DB
 					const imageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${filename}`;
 					await sequelize.query(
 						`UPDATE person SET image = :image WHERE id = :id`,

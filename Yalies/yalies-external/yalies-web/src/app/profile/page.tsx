@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
 import { Post } from "@/lib/communityTypes";
 import PostCard from "@/components/PostCard";
+import ChangeRequestModal from "@/components/ChangeRequestModal";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
@@ -49,6 +50,7 @@ export default function ProfilePage() {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [deleteStep, setDeleteStep] = useState(0);
 	const [showDataChangeBanner, setShowDataChangeBanner] = useState(false);
+	const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
 	const [activeTab, setActiveTab] = useState<"about" | "friends" | "posts">("about");
 	const [friends, setFriends] = useState<Person[]>([]);
 	const [friendRequests, setFriendRequests] = useState<Person[]>([]);
@@ -97,7 +99,7 @@ export default function ProfilePage() {
 				fetchStats(cached.profile.netid);
 				return;
 			}
-			// If cache returned null, user is likely unauthenticated
+
 			setUnauthenticated(true);
 		} catch(e) {
 			console.error(e);
@@ -300,6 +302,24 @@ export default function ProfilePage() {
 
 	const handleRequestDataChange = () => {
 		setSettingsOpen(false);
+		setShowChangeRequestModal(true);
+	};
+
+	const handleSubmitChangeRequest = async (changes: Record<string, string | number | null>) => {
+		const response = await fetch(
+			`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMeChangeRequest}`,
+			{
+				method: "POST",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ requested_changes: changes }),
+			},
+		);
+		if(!response.ok) {
+			const text = await response.text();
+			throw new Error(text || `Error ${response.status}`);
+		}
+		setShowChangeRequestModal(false);
 		setShowDataChangeBanner(true);
 		setTimeout(() => setShowDataChangeBanner(false), 3000);
 	};
@@ -353,7 +373,7 @@ export default function ProfilePage() {
 				try {
 					const data = await response.json();
 					msg = data.error || msg;
-				} catch { /* non-JSON response */ }
+				} catch {  }
 				setPhotoError(msg);
 				console.error("[photo upload]", response.status, msg);
 			}
@@ -433,13 +453,6 @@ export default function ProfilePage() {
 									<FontAwesomeIcon icon={faPen} />
 									<span>Request Info Update</span>
 								</button>
-								<a
-									className={styles.logout_button}
-									href={process.env.NEXT_PUBLIC_YALIES_API_URL + API.logout}
-								>
-									<FontAwesomeIcon icon={faRightFromBracket} />
-									<span>Log Out</span>
-								</a>
 								<button
 									className={styles.delete_button}
 									onClick={handleDeleteClick}
@@ -454,7 +467,13 @@ export default function ProfilePage() {
 					</div>
 				</div>
 				{showDataChangeBanner && (
-					<div className={styles.banner}>Confirmed</div>
+					<div className={styles.banner}>Your change request has been submitted!</div>
+				)}
+				{showChangeRequestModal && (
+					<ChangeRequestModal
+						onSubmit={handleSubmitChangeRequest}
+						onCancel={() => setShowChangeRequestModal(false)}
+					/>
 				)}
 				<h1>Profile</h1>
 
@@ -579,6 +598,13 @@ export default function ProfilePage() {
 							</div>
 						</div>
 					</div>
+					<a
+						className={styles.card_logout}
+						href={process.env.NEXT_PUBLIC_YALIES_API_URL + API.logout}
+					>
+						<FontAwesomeIcon icon={faRightFromBracket} />
+						<span>Log Out</span>
+					</a>
 				</div>
 
 				<div className={styles.tabs}>

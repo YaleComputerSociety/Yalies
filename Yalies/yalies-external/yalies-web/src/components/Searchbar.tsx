@@ -60,7 +60,6 @@ export default function Searchbar({
 			return;
 		}
 
-		// Cancel any in-flight request
 		if (abortRef.current) {
 			abortRef.current.abort();
 		}
@@ -93,7 +92,6 @@ export default function Searchbar({
 		}
 	}, []);
 
-	// Debounced fetch on value change
 	useEffect(() => {
 		if (debounceRef.current) {
 			clearTimeout(debounceRef.current);
@@ -106,7 +104,6 @@ export default function Searchbar({
 		};
 	}, [value, fetchSuggestions]);
 
-	// Close suggestions on click outside
 	useEffect(() => {
 		const handleClickOutside = (e: MouseEvent) => {
 			if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {

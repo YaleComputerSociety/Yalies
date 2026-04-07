@@ -24,7 +24,6 @@ export default class CasRouter {
 			if (!user) return res.status(401).send("No user");
 			const userWithData = user as RequestUser;
 
-			// Check admin before logging in
 			const admin = await AdminModel.findOne({ where: { netid: userWithData.netId } });
 			if (!admin) {
 				return res.redirect(process.env.DASHBOARD_URL + "/?error=not_admin");

@@ -74,4 +74,13 @@ export default class FriendshipModel extends Model {
 		if(row.requester_netid === netid1) return "pending_sent";
 		return "pending_received";
 	}
+
+	toSanitizedObject() {
+		return {
+			requester_netid: this.requester_netid,
+			requested_netid: this.requested_netid,
+			status: this.status,
+			created_at: this.created_at,
+		};
+	}
 }

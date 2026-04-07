@@ -1,13 +1,12 @@
 export type Person = {
-    // Identifiers
+
     netid?: string;
     upi?: number;
     email?: string;
     mailbox?: string;
     phone?: string;
     fax?: string;
-    
-    // Naming
+
     title?: string;
     first_name: string;
     preferred_name?: string;
@@ -19,18 +18,15 @@ export type Person = {
     phonetic_name?: string;
     name_recording?: string;
 
-    // Misc
     address?: string;
     address_state?: string;
     address_country?: string;
 
-    // Students
     school?: string;
     school_code?: string;
     year?: number;
     curriculum?: string;
-    
-    // Undergrads
+
     college?: string;
     college_code?: string;
     leave?: boolean;
@@ -41,7 +37,6 @@ export type Person = {
     major?: string;
     access_code?: string;
 
-    // Staff
     organization?: string;
     organization_code?: string;
     unit_class?: string;
@@ -56,7 +51,6 @@ export type Person = {
     education?: string;
     publications?: string;
 
-    // Inline data (included in people search results)
     user_profile?: UserProfile;
     like_data?: { like_count: number; liked_by_me: boolean };
     friend_data?: { status: string; count: number };
@@ -86,8 +80,6 @@ export type ValidationResult = {
 	failures: string[];
 };
 
-// Full database row — all Person fields as nullable + DB-specific columns.
-// Used by the dashboard to display/edit student records.
 export type DatabasePerson = {
 	[K in keyof Person]: Person[K] | null;
 } & {
@@ -99,7 +91,38 @@ export type DatabasePerson = {
 	classes?: string[] | null;
 };
 
-// Row shape for pipeline DB inserts — Person fields + required id.
+export type DataChangeRequest = {
+	id: number;
+	requester_netid: string;
+	target_netid: string;
+	status: "pending" | "approved" | "denied";
+	requested_changes: Record<string, string | number | null>;
+	admin_notes?: string;
+	created_at: string;
+	resolved_at?: string;
+	resolved_by?: string;
+
+	requester_name?: string;
+};
+
+export const CHANGE_REQUEST_ALLOWED_FIELDS = [
+
+	"netid", "upi", "email", "mailbox", "phone", "fax",
+
+	"title", "first_name", "preferred_name", "middle_name", "last_name",
+	"suffix", "pronouns", "phonetic_name", "name_recording",
+
+	"address", "address_state", "address_country",
+
+	"school", "school_code", "year", "curriculum",
+
+	"college", "college_code", "major", "birth_month", "birth_day",
+
+	"organization", "organization_code", "unit_class", "unit_code", "unit",
+	"postal_address", "office_building", "office_room",
+	"cv", "profile", "website", "education", "publications",
+] as const;
+
 export type DbRow = Partial<Person> & {
 	id: number;
 	first_name: string;

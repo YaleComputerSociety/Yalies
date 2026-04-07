@@ -17,4 +17,11 @@ export default class AdminModel extends Model {
 			deletedAt: false,
 		});
 	}
+
+	toSanitizedObject() {
+		return {
+			netid: this.netid,
+			added_at: this.added_at,
+		};
+	}
 }

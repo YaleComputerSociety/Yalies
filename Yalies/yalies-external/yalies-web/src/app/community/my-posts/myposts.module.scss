@@ -101,6 +101,14 @@
 		padding: 6px 14px;
 		font-size: 12px;
 	}
+
+	@include shared.responsive() {
+		width: 100%;
+
+		button {
+			flex: 1;
+		}
+	}
 }
 
 .empty {

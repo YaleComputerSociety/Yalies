@@ -7,7 +7,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook, faEnvelope, faGraduationCap, faUsers } from "@fortawesome/free-solid-svg-icons";
 import InfiniteScroll from "react-infinite-scroll-component";
 
-
 const COLLEGE_SHIELDS = {
 	"BF": "/shields/BF.png",
 	"BK": "/shields/BK.png",
@@ -72,7 +71,6 @@ export default function PeopleGrid({
 	const peopleElems = people.map(person => {
 			const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
 
-			// College + Year combined into one concise line
 			const collegeYearParts: string[] = [];
 			if(person.college) collegeYearParts.push(person.college);
 			if(person.year) collegeYearParts.push(`'${String(person.year).slice(-2)}`);
@@ -103,7 +101,6 @@ export default function PeopleGrid({
 				),
 			];
 
-			// Footer: small copy-able IDs
 			const footerItems: React.ReactNode[] = [];
 			if(person.netid) footerItems.push(<CopyableText key="netid" text={person.netid} />);
 			if(person.upi) footerItems.push(<CopyableText key="upi" text={person.upi.toString()} />);

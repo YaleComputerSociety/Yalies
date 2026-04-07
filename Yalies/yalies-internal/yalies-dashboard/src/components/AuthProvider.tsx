@@ -26,7 +26,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 	const [netid, setNetid] = useState<string | null>(null);
 
 	useEffect(() => {
-		// Check for error params from CAS redirect
+
 		const params = new URLSearchParams(window.location.search);
 		const error = params.get("error");
 		if (error === "not_admin") {
@@ -35,24 +35,22 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 
-		fetch(`${SCRAPER_URL}${PIPELINE_API.authMe}`, { credentials: "include" })
-			.then((res) => {
+		const checkAuth = async () => {
+			try {
+				const res = await fetch(`${SCRAPER_URL}${PIPELINE_API.authMe}`, { credentials: "include" });
 				if (res.status === 401) {
 					setState("unauthenticated");
-					return null;
+					return;
 				}
 				if (res.status === 403) {
 					setState("forbidden");
-					return null;
+					return;
 				}
 				if (!res.ok) {
 					setState("unauthenticated");
-					return null;
+					return;
 				}
-				return res.json();
-			})
-			.then((data) => {
-				if (!data) return;
+				const data = await res.json();
 				if (data.authenticated && data.isAdmin) {
 					setState("authenticated");
 					setNetid(data.netid);
@@ -61,10 +59,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 				} else {
 					setState("unauthenticated");
 				}
-			})
-			.catch(() => {
+			} catch {
 				setState("unauthenticated");
-			});
+			}
+		};
+		checkAuth();
 	}, []);
 
 	return (
