@@ -5,3 +5,5 @@ output/
 __pycache__/
 venv/
 .config/
+config.zip
+.DS_Store
