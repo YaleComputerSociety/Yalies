@@ -22,7 +22,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-infinite-scroll-component": "^6.1.0",
-    "yalies-shared": "file:./yalies-shared"
+    "yalies-shared": "file:../../yalies-shared"
   },
   "devDependencies": {
     "@types/node": "^20",
