@@ -15,14 +15,15 @@ npm pkg set dependencies.yalies-shared="file:./yalies-shared"
 echo "Installing dependencies..."
 npm install
 
-echo "Building..."
-NEXT_PUBLIC_YALIES_API_URL="https://yalies-backend-335460719231.us-central1.run.app" npx next build
+# Hide .env.local so Firebase's build uses .env.production instead
+[ -f .env.local ] && mv .env.local .env.local.bak
 
 echo "Deploying to Firebase..."
 firebase experiments:enable webframeworks
 firebase deploy --only hosting
 
 echo "Cleaning up..."
+[ -f .env.local.bak ] && mv .env.local.bak .env.local
 npm pkg set dependencies.yalies-shared="file:../../yalies-shared"
 rm -rf "$SCRIPT_DIR/yalies-shared"
 
