@@ -5,14 +5,10 @@ import CAS from "./helpers/cas.js";
 import DB from "./helpers/db.js";
 import Elasticsearch from "./helpers/elasticsearch.js";
 
-const configDir = path.resolve(process.cwd(), "../../../.config/external");
-
-configDotenv({
-	path: process.env.NODE_ENV === "development"
-		? path.join(configDir, ".env.backend.development")
-		: path.join(configDir, ".env.backend.production"),
-	override: true,
-});
+if (process.env.NODE_ENV === "development") {
+	const configDir = path.resolve(process.cwd(), "../../../.config/external");
+	configDotenv({ path: path.join(configDir, ".env.backend.development"), override: true });
+}
 
 if(process.env.NODE_ENV === "development") console.log("******\nRunning in development mode.\n******\n\n");
 
