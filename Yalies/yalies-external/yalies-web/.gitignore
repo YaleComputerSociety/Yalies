@@ -1,4 +1,5 @@
 src/yalies-shared
+yalies-shared/
 
 
 .env.production
