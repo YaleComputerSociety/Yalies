@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import styles from "./profile.module.scss";
 import Navbar from "@/components/Navbar";
@@ -78,7 +79,7 @@ export default function ProfilePage() {
 
 	const fetchStats = async (netid: string) => {
 		try {
-			const friendsRes = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsCount(netid)}`, {
+			const friendsRes = await fetch(`${API_URL}${API.friendsCount(netid)}`, {
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
 			});
@@ -122,7 +123,7 @@ export default function ProfilePage() {
 
 		let response;
 		try {
-			response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMe}`, {
+			response = await fetch(`${API_URL}${API.profileMe}`, {
 				method: "PUT",
 				credentials: "include",
 				headers: {
@@ -158,7 +159,7 @@ export default function ProfilePage() {
 	const fetchPeopleByNetids = async (netids: string[]): Promise<Person[]> => {
 		if(netids.length === 0) return [];
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			const response = await fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -181,11 +182,11 @@ export default function ProfilePage() {
 		setFriendsLoading(true);
 		try {
 			const [friendsRes, requestsRes] = await Promise.all([
-				fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsMe}`, {
+				fetch(`${API_URL}${API.friendsMe}`, {
 					credentials: "include",
 					headers: { "Content-Type": "application/json" },
 				}),
-				fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsRequests}`, {
+				fetch(`${API_URL}${API.friendsRequests}`, {
 					credentials: "include",
 					headers: { "Content-Type": "application/json" },
 				}),
@@ -214,7 +215,7 @@ export default function ProfilePage() {
 	const fetchMyPosts = async () => {
 		setPostsLoading(true);
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.communityMine}`, {
+			const response = await fetch(`${API_URL}${API.communityMine}`, {
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
 			});
@@ -231,7 +232,7 @@ export default function ProfilePage() {
 
 	const handleAcceptRequest = async (netid: string) => {
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsAccept(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsAccept(netid)}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -248,7 +249,7 @@ export default function ProfilePage() {
 
 	const handleDeclineRequest = async (netid: string) => {
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsDecline(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsDecline(netid)}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -263,7 +264,7 @@ export default function ProfilePage() {
 
 	const handleRemoveFriend = async (netid: string) => {
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsRemove(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsRemove(netid)}`, {
 				method: "DELETE",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -307,7 +308,7 @@ export default function ProfilePage() {
 
 	const handleSubmitChangeRequest = async (changes: Record<string, string | number | null>) => {
 		const response = await fetch(
-			`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMeChangeRequest}`,
+			`${API_URL}${API.profileMeChangeRequest}`,
 			{
 				method: "POST",
 				credentials: "include",
@@ -334,7 +335,7 @@ export default function ProfilePage() {
 			return;
 		}
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMe}`, {
+			const response = await fetch(`${API_URL}${API.profileMe}`, {
 				method: "DELETE",
 				credentials: "include",
 			});
@@ -358,7 +359,7 @@ export default function ProfilePage() {
 		formData.append("photo", file);
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMePhoto}`, {
+			const response = await fetch(`${API_URL}${API.profileMePhoto}`, {
 				method: "POST",
 				credentials: "include",
 				body: formData,
@@ -390,7 +391,7 @@ export default function ProfilePage() {
 		if(!person?.image) return;
 		try {
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMePhotoDownload}`,
+				`${API_URL}${API.profileMePhotoDownload}`,
 				{ credentials: "include" },
 			);
 			if(!response.ok) return;
@@ -600,7 +601,7 @@ export default function ProfilePage() {
 					</div>
 					<a
 						className={styles.card_logout}
-						href={process.env.NEXT_PUBLIC_YALIES_API_URL + API.logout}
+						href={API_URL + API.logout}
 					>
 						<FontAwesomeIcon icon={faRightFromBracket} />
 						<span>Log Out</span>

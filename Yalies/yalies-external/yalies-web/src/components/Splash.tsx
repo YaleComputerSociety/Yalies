@@ -1,3 +1,4 @@
+import { API_URL } from "@/consts";
 import Button from "./Button";
 import styles from "./splash.module.scss";
 import { Lexend_Deca } from "next/font/google";
@@ -14,7 +15,7 @@ export default function Splash() {
 				<p>🔒 Censors things Yale shouldn&#39;t be divulging (<a href="/about">hide your info</a>)</p>
 				<p>💞 Our <a href="/about?tab=api">API</a> supports student projects serving 30,000+ users</p>
 				<p>💻 Maintained by the <a href="http://yalecomputersociety.org">Yale Computer Society</a></p>
-				<a href={process.env.NEXT_PUBLIC_YALIES_API_URL + API.login}>
+				<a href={API_URL + API.login}>
 					<Button>Log in with CAS</Button>
 				</a>
 			</div>

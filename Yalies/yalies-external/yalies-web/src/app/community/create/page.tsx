@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -65,7 +66,7 @@ export default function CreatePostPage() {
 		}
 		setMemberSearchLoading(true);
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			const res = await fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -131,7 +132,7 @@ export default function CreatePostPage() {
 		setError("");
 
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.community}`, {
+			const res = await fetch(`${API_URL}${API.community}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -151,7 +152,7 @@ export default function CreatePostPage() {
 
 			if(!res.ok) {
 				if(res.status === 401) {
-					window.location.href = process.env.NEXT_PUBLIC_YALIES_API_URL + API.login;
+					window.location.href = API_URL + API.login;
 					return;
 				}
 				const text = await res.text();
@@ -376,9 +377,9 @@ export default function CreatePostPage() {
 								onSubmit={addCustomTag}
 							/>
 						</div>
-						{selectedTags.filter(t => !COMMON_TAGS.includes(t)).length > 0 && (
+						{selectedTags.filter(t => !(COMMON_TAGS as readonly string[]).includes(t)).length > 0 && (
 							<div className={styles.custom_tags}>
-								{selectedTags.filter(t => !COMMON_TAGS.includes(t)).map(tag => (
+								{selectedTags.filter(t => !(COMMON_TAGS as readonly string[]).includes(t)).map(tag => (
 									<Chip
 										key={tag}
 										primary

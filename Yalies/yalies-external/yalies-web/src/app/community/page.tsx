@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useCallback, useEffect, useState } from "react";
 import { Post } from "@/lib/communityTypes";
@@ -33,7 +34,7 @@ export default function CommunityPage() {
 	const fetchPosts = useCallback(async () => {
 		setIsLoading(true);
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.communitySearch}`, {
+			const res = await fetch(`${API_URL}${API.communitySearch}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
