@@ -7,23 +7,7 @@ import gridStyles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCake, faBook, faEnvelope, faGraduationCap } from "@fortawesome/free-solid-svg-icons";
-
-const COLLEGE_SHIELDS: Record<string, string> = {
-	"BF": "/shields/BF.png",
-	"BK": "/shields/BK.png",
-	"BR": "/shields/BR.png",
-	"DC": "/shields/DC.png",
-	"ES": "/shields/ES.png",
-	"GH": "/shields/GH.png",
-	"JE": "/shields/JE.png",
-	"MC": "/shields/MC.png",
-	"MY": "/shields/MY.png",
-	"PC": "/shields/PC.png",
-	"SM": "/shields/SM.png",
-	"SY": "/shields/SY.png",
-	"TC": "/shields/TC.png",
-	"TD": "/shields/TD.png",
-};
+import { COLLEGE_SHIELDS } from "@/consts";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];

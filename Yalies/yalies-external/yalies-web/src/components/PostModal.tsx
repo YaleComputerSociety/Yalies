@@ -1,7 +1,7 @@
 "use client";
 import { API_URL } from "@/consts";
 
-import { Post } from "@/lib/communityTypes";
+import { Post, TYPE_LABELS, CATEGORY_LABELS } from "@/lib/communityTypes";
 import styles from "./postmodal.module.scss";
 import Chip from "./Chip";
 import Button from "./Button";
@@ -13,22 +13,6 @@ import {
 import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
 import { useCallback, useEffect, useState } from "react";
 import { Person, API } from "yalies-shared";
-
-const TYPE_LABELS: Record<string, string> = {
-	team: "Looking for Team",
-	recruiting: "Recruiting",
-	showcase: "Showcase",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-	competition: "Competition",
-	hackathon: "Hackathon",
-	startup: "Startup",
-	research: "Research",
-	club: "Club Project",
-	side_project: "Side Project",
-	class_project: "Class Project",
-};
 
 export default function PostModal({
 	post,

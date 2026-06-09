@@ -1,5 +1,5 @@
 "use client";
-import { API_URL } from "@/consts";
+import { API_URL, COLLEGE_SHIELDS } from "@/consts";
 
 import { useEffect, useState, useRef } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
@@ -20,23 +20,6 @@ import {
 import { faLinkedin, faInstagram } from "@fortawesome/free-brands-svg-icons";
 import FriendButton from "./FriendButton";
 import Chip from "./Chip";
-
-const COLLEGE_SHIELDS: Record<string, string> = {
-	"BF": "/shields/BF.png",
-	"BK": "/shields/BK.png",
-	"BR": "/shields/BR.png",
-	"DC": "/shields/DC.png",
-	"ES": "/shields/ES.png",
-	"GH": "/shields/GH.png",
-	"JE": "/shields/JE.png",
-	"MC": "/shields/MC.png",
-	"MY": "/shields/MY.png",
-	"PC": "/shields/PC.png",
-	"SM": "/shields/SM.png",
-	"SY": "/shields/SY.png",
-	"TC": "/shields/TC.png",
-	"TD": "/shields/TD.png",
-};
 
 export default function PersonModal({
 	person,

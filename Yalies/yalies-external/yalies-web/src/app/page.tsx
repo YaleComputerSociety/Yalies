@@ -329,7 +329,7 @@ export default function HomePage() {
 		setSearchError(null);
 	};
 
-	const activeFilterCount = (filters?.school?.length || 0) + (filters?.year?.length || 0) + (filters?.college?.length || 0) + (filters?.major?.length || 0);
+	const activeFilterCount = (filters?.school?.length || 0) + (filters?.year?.length || 0) + (filters?.college?.length || 0) + (filters?.major?.length || 0) + (filters?.address_country?.length || 0);
 
 	const searchWithFilters = (
 		<div style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minWidth: 0 }}>
