@@ -6,26 +6,10 @@ import PersonModal from "./PersonModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook, faEnvelope, faGraduationCap, faUsers } from "@fortawesome/free-solid-svg-icons";
 import InfiniteScroll from "react-infinite-scroll-component";
+import { COLLEGE_SHIELDS } from "@/consts";
 
-const COLLEGE_SHIELDS = {
-	"BF": "/shields/BF.png",
-	"BK": "/shields/BK.png",
-	"BR": "/shields/BR.png",
-	"DC": "/shields/DC.png",
-	"ES": "/shields/ES.png",
-	"GH": "/shields/GH.png",
-	"JE": "/shields/JE.png",
-	"MC": "/shields/MC.png",
-	"MY": "/shields/MY.png",
-	"PC": "/shields/PC.png",
-	"SM": "/shields/SM.png",
-	"SY": "/shields/SY.png",
-	"TC": "/shields/TC.png",
-	"TD": "/shields/TD.png",
-};
-
-function CollegeIcon({ collegeCode }: { collegeCode: keyof typeof COLLEGE_SHIELDS }) {
-	const shield: string = COLLEGE_SHIELDS[collegeCode];
+function CollegeIcon({ collegeCode }: { collegeCode: string }) {
+	const shield = COLLEGE_SHIELDS[collegeCode];
 	if(!shield) return null;
 	return <img src={shield} alt={collegeCode} className={styles.college_shield} />;
 }

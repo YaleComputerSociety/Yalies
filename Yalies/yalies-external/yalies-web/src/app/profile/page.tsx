@@ -1,5 +1,5 @@
 "use client";
-import { API_URL } from "@/consts";
+import { API_URL, COLLEGE_SHIELDS } from "@/consts";
 
 import styles from "./profile.module.scss";
 import Navbar from "@/components/Navbar";
@@ -18,23 +18,6 @@ import PostCard from "@/components/PostCard";
 import ChangeRequestModal from "@/components/ChangeRequestModal";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
-
-const COLLEGE_SHIELDS: Record<string, string> = {
-	"BF": "/shields/BF.png",
-	"BK": "/shields/BK.png",
-	"BR": "/shields/BR.png",
-	"DC": "/shields/DC.png",
-	"ES": "/shields/ES.png",
-	"GH": "/shields/GH.png",
-	"JE": "/shields/JE.png",
-	"MC": "/shields/MC.png",
-	"MY": "/shields/MY.png",
-	"PC": "/shields/PC.png",
-	"SM": "/shields/SM.png",
-	"SY": "/shields/SY.png",
-	"TC": "/shields/TC.png",
-	"TD": "/shields/TD.png",
-};
 
 export default function ProfilePage() {
 	const router = useRouter();

@@ -1,26 +1,10 @@
 "use client";
 
-import { Post } from "@/lib/communityTypes";
+import { Post, TYPE_LABELS, CATEGORY_LABELS } from "@/lib/communityTypes";
 import styles from "./postcard.module.scss";
 import Chip from "./Chip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers, faHeart, faCalendar, faArrowUpRightFromSquare } from "@fortawesome/free-solid-svg-icons";
-
-const TYPE_LABELS: Record<string, string> = {
-	team: "Looking for Team",
-	recruiting: "Recruiting",
-	showcase: "Showcase",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-	competition: "Competition",
-	hackathon: "Hackathon",
-	startup: "Startup",
-	research: "Research",
-	club: "Club Project",
-	side_project: "Side Project",
-	class_project: "Class Project",
-};
 
 export default function PostCard({
 	post,
