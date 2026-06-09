@@ -10,5 +10,15 @@ else
   echo "Warning: $ENV_SRC not found"
 fi
 
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+echo "Switching Node version..."
+nvm use
+
+echo "Installing dependencies..."
+npm install
+
+echo ""
 echo "Starting dashboard on port 3001..."
 npm run dev
