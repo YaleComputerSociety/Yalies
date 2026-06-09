@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import styles from "./about.module.scss";
 import Navbar from "@/components/Navbar";
@@ -6,7 +7,7 @@ import Topbar from "@/components/Topbar";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { Lexend_Deca } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ApiKey, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -55,12 +56,12 @@ function TeamMember({ name, role, image, website, linkedin, x }: {
 					)}
 					{linkedin && (
 						<a href={linkedin} target="_blank" title="LinkedIn">
-							<FontAwesomeIcon icon={faLinkedin} />
+							<FontAwesomeIcon icon={faLinkedin as import("@fortawesome/fontawesome-svg-core").IconProp} />
 						</a>
 					)}
 					{x && (
 						<a href={x} target="_blank" title="X">
-							<FontAwesomeIcon icon={faXTwitter} />
+							<FontAwesomeIcon icon={faXTwitter as import("@fortawesome/fontawesome-svg-core").IconProp} />
 						</a>
 					)}
 				</div>
@@ -71,7 +72,7 @@ function TeamMember({ name, role, image, website, linkedin, x }: {
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
-export default function AboutPage() {
+function AboutPageInner() {
 	const searchParams = useSearchParams();
 	const tabParam = searchParams.get("tab");
 
@@ -83,7 +84,7 @@ export default function AboutPage() {
 
 	useEffect(() => {
 		const checkAuth = async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMe}`, {
+			const res = await fetch(`${API_URL}${API.profileMe}`, {
 				credentials: "include",
 			});
 			setAuthenticated(res.ok);
@@ -94,7 +95,7 @@ export default function AboutPage() {
 
 	const fetchApiKeys = async () => {
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.apiKeysList}`, {
+			const response = await fetch(`${API_URL}${API.apiKeysList}`, {
 				method: "GET",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -107,7 +108,7 @@ export default function AboutPage() {
 
 	const createApiKey = async () => {
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.apiKeysCreate}`, {
+			const response = await fetch(`${API_URL}${API.apiKeysCreate}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -126,7 +127,7 @@ export default function AboutPage() {
 
 	const revokeApiKey = async (id: number) => {
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.apiKeysRevoke}`, {
+			const response = await fetch(`${API_URL}${API.apiKeysRevoke}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -339,4 +340,8 @@ export default function AboutPage() {
 			</div>
 		</>
 	);
+}
+
+export default function AboutPage() {
+	return <Suspense><AboutPageInner /></Suspense>;
 }

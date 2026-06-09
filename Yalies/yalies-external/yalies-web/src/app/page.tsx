@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 import PeopleGrid from "@/components/PeopleGrid";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
@@ -80,7 +81,7 @@ export default function HomePage() {
 		setSearchError(null);
 
 		try {
-			response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			response = await fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: {
@@ -131,7 +132,7 @@ export default function HomePage() {
 		setIsSearching(false);
 
 		if(newPeople.length === 20) {
-			fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -149,7 +150,7 @@ export default function HomePage() {
 	const getTodaysBirthdays = async () => {
 		let response;
 		try {
-			response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			response = await fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: {
@@ -273,7 +274,7 @@ export default function HomePage() {
 		}
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			const response = await fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },

@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -25,7 +26,7 @@ export default function LikeButton({
 		if (hasInitialData) return;
 		const fetchLikes = async () => {
 			try {
-				const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.likesFor(netid)}`, {
+				const response = await fetch(`${API_URL}${API.likesFor(netid)}`, {
 					method: "GET",
 					credentials: "include",
 					headers: { "Content-Type": "application/json" },
@@ -52,7 +53,7 @@ export default function LikeButton({
 		setCount(prev => prev + (newLiked ? 1 : -1));
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.likesFor(netid)}`, {
+			const response = await fetch(`${API_URL}${API.likesFor(netid)}`, {
 				method: newLiked ? "POST" : "DELETE",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -75,7 +76,7 @@ export default function LikeButton({
 	return (
 		<button className={styles.like_button} onClick={toggleLike} disabled={loading}>
 			<FontAwesomeIcon
-				icon={liked ? faHeartSolid : faHeartOutline}
+				icon={(liked ? faHeartSolid : faHeartOutline) as import("@fortawesome/fontawesome-svg-core").IconProp}
 				className={`${styles.heart} ${liked ? styles.liked : ""}`}
 			/>
 			<span className={styles.count}>{count}</span>

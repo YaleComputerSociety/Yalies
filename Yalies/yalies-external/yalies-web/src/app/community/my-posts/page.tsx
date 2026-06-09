@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,12 +21,12 @@ export default function MyPostsPage() {
 	const fetchMyPosts = useCallback(async () => {
 		setIsLoading(true);
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.communityMine}`, {
+			const res = await fetch(`${API_URL}${API.communityMine}`, {
 				credentials: "include",
 			});
 			if(!res.ok) {
 				if(res.status === 401) {
-					window.location.href = process.env.NEXT_PUBLIC_YALIES_API_URL + API.login;
+					window.location.href = API_URL + API.login;
 					return;
 				}
 				console.error("Error fetching posts");
@@ -49,7 +50,7 @@ export default function MyPostsPage() {
 
 	const updatePostStatus = async (postId: number, status: string) => {
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.communityPost(postId)}`, {
+			const res = await fetch(`${API_URL}${API.communityPost(postId)}`, {
 				method: "PUT",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -66,7 +67,7 @@ export default function MyPostsPage() {
 	const deletePost = async (postId: number) => {
 		if(!confirm("Are you sure you want to delete this post?")) return;
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.communityPost(postId)}`, {
+			const res = await fetch(`${API_URL}${API.communityPost(postId)}`, {
 				method: "DELETE",
 				credentials: "include",
 			});

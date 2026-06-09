@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./searchbar.module.scss";
@@ -39,7 +40,7 @@ export default function Searchbar({
 	const prefetchPerson = useCallback((netid: string) => {
 		if (prefetchedRef.current.has(netid)) return;
 		prefetchedRef.current.add(netid);
-		fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+		fetch(`${API_URL}${API.people}`, {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json" },
@@ -68,7 +69,7 @@ export default function Searchbar({
 		setIsLoading(true);
 		try {
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.peopleSuggest}?q=${encodeURIComponent(query.trim())}`,
+				`${API_URL}${API.peopleSuggest}?q=${encodeURIComponent(query.trim())}`,
 				{
 					credentials: "include",
 					signal: abortRef.current.signal,

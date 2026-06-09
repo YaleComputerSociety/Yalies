@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useEffect, useState, useRef } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
@@ -69,7 +70,7 @@ export default function PersonModal({
 		if(!person.netid) return;
 		const fetchProfile = async () => {
 			try {
-				const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profile(person.netid)}`, {
+				const response = await fetch(`${API_URL}${API.profile(person.netid!)}`, {
 					method: "GET",
 					credentials: "include",
 					headers: {
@@ -265,7 +266,7 @@ export default function PersonModal({
 								rel="noopener noreferrer"
 								className={styles.social_link}
 							>
-								<FontAwesomeIcon icon={faLinkedin} />
+								<FontAwesomeIcon icon={faLinkedin as import("@fortawesome/fontawesome-svg-core").IconProp} />
 								<span>LinkedIn</span>
 							</a>
 						) : (
@@ -278,7 +279,7 @@ export default function PersonModal({
 								rel="noopener noreferrer"
 								className={styles.social_link}
 							>
-								<FontAwesomeIcon icon={faInstagram} />
+								<FontAwesomeIcon icon={faInstagram as import("@fortawesome/fontawesome-svg-core").IconProp} />
 								<span>Instagram</span>
 							</a>
 						)}

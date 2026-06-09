@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -26,7 +27,7 @@ export default function FriendButton({
 		if (hasInitialData) return;
 		const fetchStatus = async () => {
 			try {
-				const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsStatus(netid)}`, {
+				const response = await fetch(`${API_URL}${API.friendsStatus(netid)}`, {
 					method: "GET",
 					credentials: "include",
 					headers: { "Content-Type": "application/json" },
@@ -50,7 +51,7 @@ export default function FriendButton({
 		setStatus("pending_sent");
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsRequest(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsRequest(netid)}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -74,7 +75,7 @@ export default function FriendButton({
 		setCount(prev => prev + 1);
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsAccept(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsAccept(netid)}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -99,7 +100,7 @@ export default function FriendButton({
 		setStatus("none");
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsDecline(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsDecline(netid)}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -123,7 +124,7 @@ export default function FriendButton({
 		setCount(prev => prev - 1);
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.friendsRemove(netid)}`, {
+			const response = await fetch(`${API_URL}${API.friendsRemove(netid)}`, {
 				method: "DELETE",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },

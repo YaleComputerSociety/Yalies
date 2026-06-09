@@ -1,3 +1,4 @@
+import { API_URL } from "@/consts";
 import { Person, UserProfile, API } from "yalies-shared";
 
 type CachedProfile = {
@@ -12,7 +13,7 @@ let inflight: Promise<CachedProfile | null> | null = null;
 
 async function fetchFullProfile(): Promise<CachedProfile | null> {
 	try {
-		const response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.profileMeFull}`, {
+		const response = await fetch(`${API_URL}${API.profileMeFull}`, {
 			credentials: "include",
 			headers: { "Content-Type": "application/json" },
 		});

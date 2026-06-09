@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import { Post } from "@/lib/communityTypes";
 import styles from "./postmodal.module.scss";
@@ -56,7 +57,7 @@ export default function PostModal({
 	const toggleInterest = useCallback(async () => {
 		const method = isInterested ? "DELETE" : "POST";
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.communityInterest(post.id)}`, {
+			const res = await fetch(`${API_URL}${API.communityInterest(post.id)}`, {
 				method,
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -82,7 +83,7 @@ export default function PostModal({
 		}
 		setContactLoading(true);
 		try {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.people}`, {
+			const res = await fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
@@ -191,7 +192,7 @@ export default function PostModal({
 						</Button>
 					)}
 					<button className={styles.interest_button} onClick={toggleInterest}>
-						<FontAwesomeIcon icon={isInterested ? faHeartSolid : faHeartRegular} />
+						<FontAwesomeIcon icon={(isInterested ? faHeartSolid : faHeartRegular) as import("@fortawesome/fontawesome-svg-core").IconProp} />
 						<span>{interestCount}</span>
 					</button>
 				</div>

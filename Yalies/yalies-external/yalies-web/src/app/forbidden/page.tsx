@@ -1,3 +1,4 @@
+import { API_URL } from "@/consts";
 import Button from "@/components/Button";
 import Navbar from "@/components/Navbar";
 import Topbar from "@/components/Topbar";
@@ -16,7 +17,7 @@ export default function ForbiddenPage() {
 					If you believe this is an error, try logging out and back in.
 				</p>
 				<div style={{ marginTop: "24px", display: "flex", gap: "12px", justifyContent: "center" }}>
-					<a href={process.env.NEXT_PUBLIC_YALIES_API_URL + API.logout}>
+					<a href={API_URL + API.logout}>
 						<Button>Log out</Button>
 					</a>
 					<a href="/">

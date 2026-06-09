@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import styles from "./profilebutton.module.scss";
 import Link from "next/link";
@@ -23,7 +24,7 @@ export default function ProfileButton({
 	}
 
 	return (
-		<a href={process.env.NEXT_PUBLIC_YALIES_API_URL + API.login} className={styles.profile_link}>
+		<a href={API_URL + API.login} className={styles.profile_link}>
 			Log in
 		</a>
 	);

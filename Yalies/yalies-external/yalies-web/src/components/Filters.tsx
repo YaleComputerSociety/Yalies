@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/consts";
 
 import styles from "./filters.module.scss";
 import Dropdown, { DropdownOption } from "./Dropdown";
@@ -29,7 +30,7 @@ export default function Filters({
 	const getFilters = useCallback(async () => {
 		let response;
 		try {
-			response = await fetch(`${process.env.NEXT_PUBLIC_YALIES_API_URL}${API.filters}`, {
+			response = await fetch(`${API_URL}${API.filters}`, {
 				headers: {
 					"Content-Type": "application/json",
 				},
