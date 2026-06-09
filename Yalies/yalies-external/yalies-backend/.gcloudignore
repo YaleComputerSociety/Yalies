@@ -1,4 +1,4 @@
 build/
 node_modules/
 .env.development
-!src/yalies-shared/
+yalies-shared/node_modules/
