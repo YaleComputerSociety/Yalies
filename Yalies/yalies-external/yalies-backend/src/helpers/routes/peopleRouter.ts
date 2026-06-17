@@ -56,6 +56,64 @@ export default class PeopleRouter {
 		};
 	};
 
+	buildNameFallbackWhere = (query: string) => {
+		const terms = query.trim().split(/\s+/).filter(Boolean);
+		return {
+			[Op.and]: terms.map((term) => ({
+				[Op.or]: [
+					{ first_name: { [Op.iLike]: `%${term}%` } },
+					{ preferred_name: { [Op.iLike]: `%${term}%` } },
+					{ last_name: { [Op.iLike]: `%${term}%` } },
+					{ email: { [Op.iLike]: `%${term}%` } },
+					{ major: { [Op.iLike]: `%${term}%` } },
+					{ organization: { [Op.iLike]: `%${term}%` } },
+					Sequelize.where(
+						Sequelize.fn("first_last_name", Sequelize.col("first_name"), Sequelize.col("last_name")),
+						{ [Op.iLike]: `%${term}%` },
+					),
+				],
+			})),
+		};
+	};
+
+	searchPersonByNameFallback = async (query: string, limit: number = 200): Promise<string[]> => {
+		if (!query.trim()) return [];
+
+		try {
+			const people = await PersonModel.findAll({
+				where: this.buildNameFallbackWhere(query),
+				attributes: ["netid"],
+				limit,
+			});
+			return people.map((person) => person.netid).filter(Boolean);
+		} catch (e) {
+			console.error("Error searching people via database fallback:", e);
+			return [];
+		}
+	};
+
+	getSuggestionsFallback = async (query: string, limit: number = 8) => {
+		try {
+			const people = await PersonModel.findAll({
+				where: this.buildNameFallbackWhere(query),
+				attributes: ["netid", "first_name", "last_name", "image", "college", "year", "school"],
+				limit,
+			});
+			return people.map((p) => ({
+				netid: p.netid,
+				first_name: p.first_name,
+				last_name: p.last_name,
+				image: p.image,
+				college: p.college,
+				year: p.year,
+				school: p.school,
+			}));
+		} catch (e) {
+			console.error("Error fetching suggestions via database fallback:", e);
+			return [];
+		}
+	};
+
 	getSuggestions = async (req: Request, res: Response) => {
 		const query = (req.query.q as string || "").trim();
 		if (query.length < 2) {
@@ -88,7 +146,8 @@ export default class PeopleRouter {
 		const suggestions = await this.#elasticsearch.suggestPerson(query, 8);
 
 		if (suggestions.length === 0) {
-			res.status(200).json([]);
+			const fallbackSuggestions = await this.getSuggestionsFallback(query, 8);
+			res.status(200).json(fallbackSuggestions);
 			return;
 		}
 		const netids = suggestions.map((s) => s.netid);
@@ -183,13 +242,21 @@ export default class PeopleRouter {
 				]);
 				const allNetids = [...new Set([...exactNetids, ...fuzzyNetids])];
 				if (allNetids.length === 0) {
-					res.status(200).json([]);
-					return;
+					const fallbackNetids = await this.searchPersonByNameFallback(query);
+					if (fallbackNetids.length === 0) {
+						res.status(200).json([]);
+						return;
+					}
+					where = {
+						...where,
+						netid: { [Op.in]: fallbackNetids },
+					};
+				} else {
+					where = {
+						...where,
+						netid: { [Op.in]: allNetids },
+					};
 				}
-				where = {
-					...where,
-					netid: { [Op.in]: allNetids },
-				};
 			}
 		}
 
