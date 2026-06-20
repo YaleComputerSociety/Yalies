@@ -63,25 +63,30 @@ function runFacecheck(args: string[]): Promise<string> {
 			timeout: 60000,
 		}, (error, stdout, stderr) => {
 			if (stderr) console.error("[facecheck stderr]", stderr);
-			if (stdout.trim()) {
-				resolve(stdout.trim());
+			const out = stdout.trim();
+			if (out) {
+				resolve(out);
 				return;
 			}
-			if (error) {
-				reject(new Error(`facecheck failed: ${error.message}`));
-				return;
-			}
-			resolve(stdout.trim());
+			reject(new Error(`facecheck failed: ${error ? error.message : "no output"}`));
 		});
 	});
 }
 
 export async function detectFace(imagePath: string): Promise<DetectResult> {
 	const output = await runFacecheck(["detect", imagePath]);
-	return JSON.parse(output);
+	try {
+		return JSON.parse(output);
+	} catch {
+		throw new Error(`facecheck detect returned invalid JSON: ${output.slice(0, 200)}`);
+	}
 }
 
 export async function compareFaces(imagePath1: string, imagePath2: string): Promise<CompareResult> {
 	const output = await runFacecheck(["compare", imagePath1, imagePath2]);
-	return JSON.parse(output);
+	try {
+		return JSON.parse(output);
+	} catch {
+		throw new Error(`facecheck compare returned invalid JSON: ${output.slice(0, 200)}`);
+	}
 }
