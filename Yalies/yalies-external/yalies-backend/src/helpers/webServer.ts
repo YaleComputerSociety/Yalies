@@ -104,7 +104,7 @@ export default class WebServer {
 		}
 
 		const filtersRouter = new FiltersRouter();
-		const filtersCacheMiddleware = (req: any, res: any, next: any) => {
+		const filtersCacheMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
 			res.set("Cache-Control", "public, max-age=300");
 			next();
 		};
@@ -149,6 +149,14 @@ export default class WebServer {
 				"								    <br />" +
 				"</pre></body></html>",
 			);
+		});
+
+		// Catch-all JSON error handler (must be registered last). Ensures clients
+		// that expect JSON never receive Express's default HTML error page.
+		this.#app.use((err: Error, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+			console.error("[unhandled error]", err);
+			if(res.headersSent) return next(err);
+			res.status(500).json({ error: "Internal server error" });
 		});
 	};
 
