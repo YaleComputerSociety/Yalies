@@ -14,8 +14,6 @@ const OUTPUT_DIR = "output";
 const FACEBOOK_FILE = `${OUTPUT_DIR}/students.json`;
 const ENRICHED_FILE = `${OUTPUT_DIR}/students_enriched.json`;
 
-const DEFAULT_DATABASE_URL = "postgres://postgres:u3YFVWjTcU8MoFUatRtPBUnjfv7wJEhA@127.0.0.1:1357/postgres";
-
 function saveJson(path: string, data: unknown): void {
 	mkdirSync(OUTPUT_DIR, { recursive: true });
 	writeFileSync(path, JSON.stringify(data, null, 2));
@@ -68,10 +66,10 @@ async function runPhotos(cookie: string): Promise<void> {
 	console.log(`Done. ${uploaded} new photos uploaded.`);
 }
 
-async function runLoad(databaseUrl: string, dryRun: boolean): Promise<void> {
+async function runLoad(databaseUrl: string, dryRun: boolean, force: boolean): Promise<void> {
 	const students = loadJson<EnrichedStudent[]>(ENRICHED_FILE);
 	console.log(`Loaded ${students.length} students from ${ENRICHED_FILE}`);
-	await loadToDatabase(students, databaseUrl, dryRun);
+	await loadToDatabase(students, databaseUrl, dryRun, force);
 }
 
 async function runValidate(step: string, databaseUrl: string): Promise<boolean> {
@@ -90,11 +88,12 @@ async function main(): Promise<void> {
 		options: {
 			"facebook-cookie": { type: "string" },
 			"directory-cookie": { type: "string" },
-			"database-url": { type: "string", default: DEFAULT_DATABASE_URL },
+			"database-url": { type: "string" },
 			"delay": { type: "string", default: "300" },
 			"start-from": { type: "string", default: "0" },
 			"dry-run": { type: "boolean", default: false },
 			"upload-photos": { type: "boolean", default: false },
+			"force": { type: "boolean", default: false },
 			"help": { type: "boolean", default: false },
 		},
 	});
@@ -117,11 +116,12 @@ Commands:
 Options:
   --facebook-cookie   JSESSIONID cookie for students.yale.edu (required for facebook/all)
   --directory-cookie  _people_search_session cookie for directory.yale.edu (required for directory/all)
-  --database-url      PostgreSQL connection URL (default: local proxy)
+  --database-url      PostgreSQL connection URL (or set DATABASE_URL env)
   --delay             Delay between directory API requests in ms (default: 300)
   --start-from        Index to resume directory enrichment from (default: 0)
   --dry-run           Preview database changes without writing
   --upload-photos     Upload student photos to Google Cloud Storage
+  --force             Skip safety guards (small-sync guard + validation gate)
   --help              Show this help message
 
 Examples:
@@ -134,9 +134,14 @@ Examples:
 		return;
 	}
 
-	const databaseUrl = values["database-url"] || DEFAULT_DATABASE_URL;
+	const databaseUrl = values["database-url"] || process.env.DATABASE_URL || "";
 	const delay = parseInt(values.delay || "300");
 	const startFrom = parseInt(values["start-from"] || "0");
+
+	if ((command === "load" || command === "all") && !databaseUrl) {
+		console.error("ERROR: no database URL. Set DATABASE_URL in your env or pass --database-url <url>");
+		process.exit(1);
+	}
 
 	if (command === "facebook" || command === "all") {
 		const cookie = values["facebook-cookie"];
@@ -172,13 +177,17 @@ Examples:
 		const passed = await runValidate("enriched", databaseUrl);
 		if (!passed) {
 			console.error("\nEnrichment validation failed. Review warnings above.");
-			if (command === "all") console.log("Continuing to load despite warnings...");
+			if (command === "all" && !values.force) {
+				console.error("Aborting before load. Re-run with --force to load anyway.");
+				process.exit(1);
+			}
+			if (command === "all") console.log("Continuing to load despite warnings (--force)...");
 		}
 		console.log(`\nDirectory enrichment complete: ${enriched.filter((s) => s.netid).length} enriched`);
 	}
 
 	if (command === "load" || command === "all") {
-		await runLoad(databaseUrl, values["dry-run"] || false);
+		await runLoad(databaseUrl, values["dry-run"] || false, values.force || false);
 		const passed = await runValidate("database", databaseUrl);
 		if (!passed) {
 			console.error("\nDatabase validation failed.");
@@ -193,7 +202,11 @@ Examples:
 	}
 }
 
-main().catch((e) => {
-	console.error("Fatal error:", e);
-	process.exit(1);
-});
+(async () => {
+	try {
+		await main();
+	} catch (e) {
+		console.error("Fatal error:", e);
+		process.exit(1);
+	}
+})();
