@@ -4,6 +4,7 @@ import CAS from "../cas.js";
 import CommunityPostModel from "../models/CommunityPostModel.js";
 import CommunityPostMemberModel from "../models/CommunityPostMemberModel.js";
 import CommunityPostInterestModel from "../models/CommunityPostInterestModel.js";
+import PersonModel from "../models/PersonModel.js";
 
 export default class CommunityPostsRouter {
 	getRouter = () => {
@@ -24,7 +25,9 @@ export default class CommunityPostsRouter {
 	};
 
 	searchPosts = async (req: Request, res: Response) => {
-		const { type, category, tags, status, page = 0, page_size = 20, query } = req.body;
+		const { type, category, tags, status, query } = req.body;
+		const page = Math.max(0, parseInt(String(req.body.page ?? 0), 10) || 0);
+		const page_size = Math.min(100, Math.max(1, parseInt(String(req.body.page_size ?? 20), 10) || 20));
 
 		try {
 			const where: Record<string, unknown> = {};
@@ -126,7 +129,18 @@ export default class CommunityPostsRouter {
 			});
 
 			if(members && Array.isArray(members)) {
-				const uniqueMembers = [...new Set(members as string[])].filter(n => n !== req.netid);
+				let uniqueMembers = [...new Set(members as string[])].filter(n => n && n !== req.netid);
+				// Only add netids that exist in the directory (no garbage / typos).
+				if(uniqueMembers.length > 0) {
+					const existing = await PersonModel.findAll({
+						where: { netid: { [Op.in]: uniqueMembers } },
+						attributes: ["netid"],
+					});
+					const existingSet = new Set(existing.map(p => p.netid));
+					uniqueMembers = uniqueMembers.filter(n => existingSet.has(n));
+				}
+				// Respect spots_total (the creator already occupies one spot).
+				if(spots_total) uniqueMembers = uniqueMembers.slice(0, Math.max(0, spots_total - 1));
 				for(const netid of uniqueMembers) {
 					await CommunityPostMemberModel.create({
 						post_id: post.id,
@@ -195,7 +209,7 @@ export default class CommunityPostsRouter {
 					raw: true,
 				}),
 				CommunityPostModel.sequelize.query(
-					`SELECT DISTINCT unnest(tags) as tag FROM community_post WHERE status != 'archived' ORDER BY tag`,
+					"SELECT DISTINCT unnest(tags) as tag FROM community_post WHERE status != 'archived' ORDER BY tag",
 					{ type: QueryTypes.SELECT },
 				),
 			]);
@@ -306,13 +320,15 @@ export default class CommunityPostsRouter {
 
 	removeInterest = async (req: Request, res: Response) => {
 		const { id } = req.params;
+		const postId = parseInt(id, 10);
+		if(Number.isNaN(postId)) return res.status(400).send("Invalid post id");
 
 		try {
 			await CommunityPostInterestModel.destroy({
-				where: { post_id: parseInt(id), netid: req.netid },
+				where: { post_id: postId, netid: req.netid },
 			});
 
-			const count = await CommunityPostInterestModel.count({ where: { post_id: parseInt(id) } });
+			const count = await CommunityPostInterestModel.count({ where: { post_id: postId } });
 			return res.status(200).json({ interested: false, count });
 		} catch(e) {
 			console.error(e);
@@ -377,10 +393,12 @@ export default class CommunityPostsRouter {
 
 	leavePost = async (req: Request, res: Response) => {
 		const { id } = req.params;
+		const postId = parseInt(id, 10);
+		if(Number.isNaN(postId)) return res.status(400).send("Invalid post id");
 
 		try {
 			const member = await CommunityPostMemberModel.findOne({
-				where: { post_id: parseInt(id), netid: req.netid },
+				where: { post_id: postId, netid: req.netid },
 			});
 			if(!member) return res.status(400).send("Not a member");
 			if(member.role === "creator") return res.status(400).send("Creator cannot leave. Delete the post instead.");
