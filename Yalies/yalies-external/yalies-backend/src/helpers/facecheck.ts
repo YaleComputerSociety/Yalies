@@ -2,7 +2,7 @@ import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 
-const FACECHECK_SCRIPT = path.resolve(
+const FACECHECK_SCRIPT = process.env.FACECHECK_SCRIPT || path.resolve(
 	process.cwd(),
 	"../../yalies-internal/yalies-data-pipeline/python/facecheck/facecheck.py",
 );
@@ -12,7 +12,7 @@ const VENV_PYTHON = path.resolve(
 	"../../yalies-internal/yalies-data-pipeline/python/venv/bin/python",
 );
 
-const PYTHON = fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3";
+const PYTHON = process.env.FACECHECK_PYTHON || (fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3");
 
 let _enabled = process.env.FACECHECK_ENABLED !== "false";
 
