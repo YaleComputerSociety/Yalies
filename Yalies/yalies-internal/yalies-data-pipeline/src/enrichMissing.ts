@@ -5,7 +5,7 @@ configDotenv({ path: path.resolve(process.cwd(), "../../../.config/internal/.env
 
 import { Sequelize, QueryTypes } from "sequelize";
 import DirectorySource from "./sources/directory.js";
-import { FacebookStudent, DirectoryRecord } from "./types.js";
+import { FacebookStudent, EnrichedStudent } from "./types.js";
 import { YALE_COLLEGE, YALE_COLLEGE_CODE } from "yalies-shared";
 
 type DbPerson = {
@@ -54,10 +54,10 @@ async function main() {
 			`SELECT id, netid, first_name, last_name, college, year, email, upi, phone, mailbox,
 			        preferred_name, middle_name, suffix, school, school_code, curriculum, college_code, address
 			 FROM person
-			 WHERE (school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}')
+			 WHERE (school = :yc OR school_code = :ycCode)
 			   AND netid IS NULL
 			 ORDER BY last_name, first_name`,
-			{ type: QueryTypes.SELECT },
+			{ type: QueryTypes.SELECT, replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 		) as DbPerson[];
 
 		console.log(`Found ${missing.length} students without netids\n`);
@@ -69,7 +69,7 @@ async function main() {
 
 		const directory = new DirectorySource(cookie);
 
-		const asStudents: FacebookStudent[] = missing.map(p => ({
+		const asStudents: (FacebookStudent & { _dbId: number })[] = missing.map(p => ({
 			full_name: `${p.first_name} ${p.last_name}`,
 			first_name: p.first_name,
 			last_name: p.last_name,
@@ -80,6 +80,7 @@ async function main() {
 			address: p.address || undefined,
 			photo_id: "0",
 			details_raw: "",
+			_dbId: p.id,
 		}));
 
 		console.log("Starting directory enrichment...\n");
@@ -100,15 +101,14 @@ async function main() {
 		console.log("\nUpdating database...");
 		let updated = 0;
 
-		for (let i = 0; i < enriched.length; i++) {
-			const student = enriched[i];
-			const original = missing[i];
+		for (const student of enriched) {
+			const dbId = (student as EnrichedStudent & { _dbId: number })._dbId;
 
 			if (!student.netid) continue;
 
 			const fields: Record<string, unknown> = {
 				netid: student.netid,
-				id: original.id,
+				id: dbId,
 			};
 
 			if (student.email) fields.email = student.email;
@@ -144,8 +144,8 @@ async function main() {
 
 		const [remaining] = await sequelize.query(
 			`SELECT COUNT(*) as cnt FROM person
-			 WHERE (school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}') AND netid IS NULL`,
-			{ type: QueryTypes.SELECT },
+			 WHERE (school = :yc OR school_code = :ycCode) AND netid IS NULL`,
+			{ type: QueryTypes.SELECT, replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 		) as [{ cnt: string }];
 		console.log(`Remaining students without netid: ${remaining.cnt}`);
 
@@ -154,7 +154,11 @@ async function main() {
 	}
 }
 
-main().catch(err => {
-	console.error("Fatal error:", err);
-	process.exit(1);
-});
+(async () => {
+	try {
+		await main();
+	} catch (err) {
+		console.error("Fatal error:", err);
+		process.exit(1);
+	}
+})();
