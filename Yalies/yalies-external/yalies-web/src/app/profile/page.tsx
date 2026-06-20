@@ -713,7 +713,7 @@ export default function ProfilePage() {
 													{p.preferred_name || p.first_name} {p.last_name}
 												</span>
 												{p.college && p.year && (
-													<span className={styles.friend_detail}>{p.college} &middot; '{String(p.year).slice(-2)}</span>
+													<span className={styles.friend_detail}>{p.college} &middot; &apos;{String(p.year).slice(-2)}</span>
 												)}
 											</div>
 											<div className={styles.friend_actions}>
@@ -759,7 +759,7 @@ export default function ProfilePage() {
 												{p.preferred_name || p.first_name} {p.last_name}
 											</span>
 											{p.college && p.year && (
-												<span className={styles.friend_detail}>{p.college} &middot; '{String(p.year).slice(-2)}</span>
+												<span className={styles.friend_detail}>{p.college} &middot; &apos;{String(p.year).slice(-2)}</span>
 											)}
 										</div>
 										<button
@@ -773,7 +773,7 @@ export default function ProfilePage() {
 								))}
 							</div>
 						) : (
-							<p>No friends yet. Visit someone's profile and send them a friend request!</p>
+							<p>No friends yet. Visit someone&apos;s profile and send them a friend request!</p>
 						)}
 					</div>
 				)}
@@ -794,7 +794,7 @@ export default function ProfilePage() {
 								))}
 							</div>
 						) : (
-							<p>You haven't created any posts yet. Head to the Community page to create one!</p>
+							<p>You haven&apos;t created any posts yet. Head to the Community page to create one!</p>
 						)}
 					</div>
 				)}
