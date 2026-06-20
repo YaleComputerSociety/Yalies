@@ -76,14 +76,19 @@ async function main() {
 
 		const missing = await sequelize.query(
 			`SELECT id, netid, first_name, last_name, upi FROM person
-			 WHERE (school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}')
+			 WHERE (school = :yc OR school_code = :ycCode)
 			   AND (image IS NULL OR image = '')
 			   AND upi IS NOT NULL
 			 ORDER BY last_name`,
-			{ type: QueryTypes.SELECT },
+			{ type: QueryTypes.SELECT, replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 		) as MissingStudent[];
 
 		console.log(`Found ${missing.length} students without photos\n`);
+
+		if (missing.length === 0) {
+			console.log("Nothing to do.");
+			return;
+		}
 
 		console.log("Testing cookie...");
 		const testBuffer = await fetchPhoto(String(missing[0].upi), cookie);
@@ -112,14 +117,14 @@ async function main() {
 
 					const imageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${filename}`;
 					await sequelize.query(
-						`UPDATE person SET image = :image WHERE id = :id`,
+						"UPDATE person SET image = :image WHERE id = :id",
 						{ replacements: { image: imageUrl, id: student.id } },
 					);
 					fetched++;
 				} else {
 					noPhoto++;
 				}
-			} catch (e) {
+			} catch {
 				errors++;
 			}
 
@@ -130,16 +135,16 @@ async function main() {
 			await sleep(300);
 		}
 
-		console.log(`\nDone.`);
+		console.log("\nDone.");
 		console.log(`  Fetched & uploaded: ${fetched}`);
 		console.log(`  No photo on Facebook: ${noPhoto}`);
 		console.log(`  Errors: ${errors}`);
 
 		const [remaining] = await sequelize.query(
 			`SELECT COUNT(*) as cnt FROM person
-			 WHERE (school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}')
+			 WHERE (school = :yc OR school_code = :ycCode)
 			   AND (image IS NULL OR image = '')`,
-			{ type: QueryTypes.SELECT },
+			{ type: QueryTypes.SELECT, replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 		) as [{ cnt: string }];
 		console.log(`  Still missing images: ${remaining.cnt}`);
 
@@ -148,7 +153,11 @@ async function main() {
 	}
 }
 
-main().catch(err => {
-	console.error("Fatal error:", err);
-	process.exit(1);
-});
+(async () => {
+	try {
+		await main();
+	} catch (err) {
+		console.error("Fatal error:", err);
+		process.exit(1);
+	}
+})();
