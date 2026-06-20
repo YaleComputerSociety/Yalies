@@ -23,6 +23,13 @@ import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
 const SequelizeStore = ConnectSessionSequelize(session.Store);
 
+// Admin allow-list for /v3/admin/* routes (comma-separated netids in env).
+const ADMIN_NETIDS = (process.env.ADMIN_NETIDS || "").split(",").map((s) => s.trim()).filter(Boolean);
+const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+	if (req.netid && ADMIN_NETIDS.includes(req.netid)) return next();
+	return res.status(403).json({ error: "Admin access required" });
+};
+
 export default class WebServer {
 	#app: Express;
 	#db: DB;
@@ -126,10 +133,10 @@ export default class WebServer {
 		const communityPostsRouter = new CommunityPostsRouter();
 		this.#app.use(API_ROUTES.community, communityPostsRouter.getRouter());
 
-		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthentication, (_req, res) => {
+		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthenticationSessionOnly, requireAdmin, (_req, res) => {
 			res.json({ enabled: isFacecheckEnabled() });
 		});
-		this.#app.put(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthentication, (req, res) => {
+		this.#app.put(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthenticationSessionOnly, requireAdmin, (req, res) => {
 			const { enabled } = req.body;
 			if (typeof enabled !== "boolean") {
 				return res.status(400).json({ error: "enabled must be a boolean" });
