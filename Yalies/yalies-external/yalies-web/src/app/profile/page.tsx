@@ -335,6 +335,19 @@ export default function ProfilePage() {
 		const file = e.target.files?.[0];
 		if(!file) return;
 
+		// Mirror the backend limits (images only, 5MB) so users get an
+		// immediate, clear message instead of an opaque server error.
+		if(!file.type.startsWith("image/")) {
+			setPhotoError("Please choose an image file.");
+			if(fileInputRef.current) fileInputRef.current.value = "";
+			return;
+		}
+		if(file.size > 5 * 1024 * 1024) {
+			setPhotoError("Image must be under 5MB.");
+			if(fileInputRef.current) fileInputRef.current.value = "";
+			return;
+		}
+
 		setPhotoError("");
 		setPhotoUploading(true);
 
@@ -354,10 +367,12 @@ export default function ProfilePage() {
 				invalidateProfileCache();
 			} else {
 				let msg = "Failed to upload photo";
+				const text = await response.text();
 				try {
-					const data = await response.json();
-					msg = data.error || msg;
-				} catch {  }
+					msg = JSON.parse(text).error || msg;
+				} catch {
+					if(text) msg = text;
+				}
 				setPhotoError(msg);
 				console.error("[photo upload]", response.status, msg);
 			}
