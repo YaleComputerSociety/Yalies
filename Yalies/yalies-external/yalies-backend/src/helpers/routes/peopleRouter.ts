@@ -12,8 +12,10 @@ const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
 const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
 
-function getCacheKey(query: string, filters: Record<string, unknown>, page: number, pageSize: number): string {
-	return JSON.stringify({ query, filters, page, pageSize });
+function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, page: number, pageSize: number): string {
+	// netid is part of the key because the cached payload embeds per-user state
+	// (liked_by_me, directional friend status) — sharing it across users leaks data.
+	return JSON.stringify({ netid, query, filters, page, pageSize });
 }
 
 function pruneCache() {
@@ -185,7 +187,7 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const cacheKey = getCacheKey(query, filtersRaw, page, pageSize);
+		const cacheKey = getCacheKey(req.netid, query, filtersRaw, page, pageSize);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
 			return res.status(200).json(cached.data);
@@ -338,7 +340,7 @@ export default class PeopleRouter {
 		for (const netid of netids) {
 			const friendship = friendships.find(f =>
 				(f.requester_netid === currentUserNetid && f.requested_netid === netid) ||
-				(f.requester_netid === netid && f.requested_netid === currentUserNetid)
+				(f.requester_netid === netid && f.requested_netid === currentUserNetid),
 			);
 			let status: string = "none";
 			if (friendship) {
