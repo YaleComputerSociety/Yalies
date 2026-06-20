@@ -89,10 +89,12 @@ export async function loadToDatabase(
 	students: EnrichedStudent[],
 	databaseUrl: string,
 	dryRun = false,
+	force = false,
 ): Promise<void> {
 	console.log(`Loading ${students.length} students into database...`);
 
 	const sequelize = new Sequelize(databaseUrl, { logging: false });
+	const ycReplacements = { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE };
 
 	try {
 		await sequelize.authenticate();
@@ -100,11 +102,20 @@ export async function loadToDatabase(
 
 		// Pre-check
 		const [existingResult] = await sequelize.query<{ count: string }>(
-			`SELECT COUNT(*) as count FROM person WHERE school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}'`,
-			{ type: QueryTypes.SELECT },
+			"SELECT COUNT(*) as count FROM person WHERE school = :yc OR school_code = :ycCode",
+			{ type: QueryTypes.SELECT, replacements: ycReplacements },
 		);
 		const existingCount = parseInt(existingResult.count);
 		console.log(`Existing ${YALE_COLLEGE} rows: ${existingCount}`);
+
+		// Safety guard: refuse to replace a healthy roster with a much smaller
+		// one (e.g. a partial scrape from an expired cookie) unless forced.
+		if (!force && existingCount > 0 && students.length < existingCount * 0.8) {
+			throw new Error(
+				`Refusing to sync: new set (${students.length}) is under 80% of existing ` +
+				`${YALE_COLLEGE} rows (${existingCount}). Re-run with --force to override.`,
+			);
+		}
 
 		if (dryRun) {
 			console.log(`DRY RUN: Would delete ${existingCount} rows and insert ~${students.length}`);
@@ -115,9 +126,9 @@ export async function loadToDatabase(
 
 		try {
 			// Step 1: Delete existing rows
-			const [, deleteResult] = await sequelize.query(
-				`DELETE FROM person WHERE school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}'`,
-				{ transaction },
+			await sequelize.query(
+				"DELETE FROM person WHERE school = :yc OR school_code = :ycCode",
+				{ transaction, replacements: ycReplacements },
 			);
 			console.log(`Deleted existing ${YALE_COLLEGE} rows`);
 
@@ -173,15 +184,15 @@ export async function loadToDatabase(
 				{ type: QueryTypes.SELECT },
 			);
 			const [ycResult] = await sequelize.query<{ count: string }>(
-				`SELECT COUNT(*) as count FROM person WHERE school = '${YALE_COLLEGE}'`,
-				{ type: QueryTypes.SELECT },
+				"SELECT COUNT(*) as count FROM person WHERE school = :yc",
+				{ type: QueryTypes.SELECT, replacements: ycReplacements },
 			);
 			const [netidResult] = await sequelize.query<{ count: string }>(
-				`SELECT COUNT(*) as count FROM person WHERE school = '${YALE_COLLEGE}' AND netid IS NOT NULL`,
-				{ type: QueryTypes.SELECT },
+				"SELECT COUNT(*) as count FROM person WHERE school = :yc AND netid IS NOT NULL",
+				{ type: QueryTypes.SELECT, replacements: ycReplacements },
 			);
 
-			console.log(`\nDatabase summary:`);
+			console.log("\nDatabase summary:");
 			console.log(`  Total rows: ${totalResult.count}`);
 			console.log(`  ${YALE_COLLEGE} rows: ${ycResult.count}`);
 			console.log(`  ${YALE_COLLEGE} with netid: ${netidResult.count}`);
