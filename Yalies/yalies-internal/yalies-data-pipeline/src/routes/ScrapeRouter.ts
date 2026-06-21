@@ -37,6 +37,8 @@ const setupSSE = (res: Response): void => {
 	res.setHeader("Cache-Control", "no-cache");
 	res.setHeader("Connection", "keep-alive");
 	res.flushHeaders();
+	// Swallow write-after-close errors if the client disconnects mid-stream.
+	res.on("error", () => {});
 };
 
 const CSRF_REFRESH_INTERVAL = 500;
@@ -211,19 +213,21 @@ export default class ScrapeRouter {
 			setEnrichedData(enriched);
 			saveJson("students_enriched.json", enriched);
 
-			const validation = validateEnriched(enriched);
-			sendSSE(res, {
-				type: "validation",
-				message: `Validation: ${validation.passes.length} passed, ${validation.warnings.length} warnings, ${validation.failures.length} failures`,
-				data: validation,
-			});
+			if (!aborted) {
+				const validation = validateEnriched(enriched);
+				sendSSE(res, {
+					type: "validation",
+					message: `Validation: ${validation.passes.length} passed, ${validation.warnings.length} warnings, ${validation.failures.length} failures`,
+					data: validation,
+				});
 
-			sendSSE(res, {
-				type: "complete",
-				message: `Directory enrichment complete: ${enrichedCount} enriched, ${notFound} not found, ${errors} errors`,
-				count: enriched.length,
-				total: enriched.length,
-			});
+				sendSSE(res, {
+					type: "complete",
+					message: `Directory enrichment complete: ${enrichedCount} enriched, ${notFound} not found, ${errors} errors`,
+					count: enriched.length,
+					total: enriched.length,
+				});
+			}
 		} catch (e) {
 			console.error("Directory scrape error:", e);
 			sendSSE(res, { type: "error", message: `Fatal error: ${(e as Error).message}` });
