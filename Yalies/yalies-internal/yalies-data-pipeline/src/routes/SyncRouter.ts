@@ -22,7 +22,7 @@ export default class SyncRouter {
 
 	getRouter = (): Router => this.#router;
 
-	#syncToDatabase = async (_req: Request, res: Response): Promise<void> => {
+	#syncToDatabase = async (req: Request, res: Response): Promise<void> => {
 		try {
 			const enrichedData = getEnrichedData();
 			if (!enrichedData) {
@@ -36,7 +36,9 @@ export default class SyncRouter {
 				return;
 			}
 
-			await loadToDatabase(enrichedData, databaseUrl);
+			// `force: true` in the body overrides the small-sync safety guard.
+			const force = req.body?.force === true;
+			await loadToDatabase(enrichedData, databaseUrl, false, force);
 			res.json({ success: true, message: `Loaded ${enrichedData.length} students to database` });
 		} catch (e) {
 			console.error("Sync to database error:", e);
@@ -55,8 +57,8 @@ export default class SyncRouter {
 				const sequelize = new Sequelize(databaseUrl, { logging: false });
 				try {
 					const [result] = await sequelize.query<{ count: string }>(
-						`SELECT COUNT(*) as count FROM person WHERE school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}'`,
-						{ type: QueryTypes.SELECT },
+						"SELECT COUNT(*) as count FROM person WHERE school = :yc OR school_code = :ycCode",
+						{ type: QueryTypes.SELECT, replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 					);
 					currentDbYcCount = parseInt(result.count);
 				} finally {
