@@ -27,5 +27,12 @@ echo "Installing data pipeline dependencies..."
 npm install
 
 echo ""
+ENV_FILE="$SCRIPT_DIR/../.config/internal/.env.data-pipeline"
+if [ ! -f "$ENV_FILE" ]; then
+	echo "ERROR: $ENV_FILE not found."
+	echo "The server needs DATABASE_URL, SESSION_SECRET, AUTH_MODE, DASHBOARD_URL — see yalies-internal/README.md."
+	exit 1
+fi
+
 echo "Starting data pipeline API server on port 8080..."
 npm run server
