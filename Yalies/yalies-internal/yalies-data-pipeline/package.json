@@ -4,16 +4,20 @@
   "description": "Yale student directory data pipeline — scrape, enhance, and load",
   "main": "build/index.js",
   "type": "module",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "npx tsc && node build/index.js",
     "server": "npx tsc && node build/server.js",
     "lint": "eslint src/**/*.ts",
     "format": "eslint src/**/*.ts --fix",
-    "enhance": "python python/enhancer/enhance.py",
-    "facecheck": "python python/facecheck/facecheck.py",
+    "enhance": "python/venv/bin/python python/enhancer/enhance.py",
+    "facecheck": "python/venv/bin/python python/facecheck/facecheck.py",
     "qc": "npx tsc && node build/qualityControl.js --dry-run",
     "qc:fix": "npx tsc && node build/qualityControl.js --fix",
-    "enrich-missing": "npx tsc && node build/enrichMissing.js"
+    "enrich-missing": "npx tsc && node build/enrichMissing.js",
+    "add-admin": "npx tsc && node build/addAdmin.js"
   },
   "repository": {
     "type": "git",
