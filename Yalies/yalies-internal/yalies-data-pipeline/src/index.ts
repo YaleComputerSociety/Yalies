@@ -138,7 +138,10 @@ Examples:
 	const delay = parseInt(values.delay || "300");
 	const startFrom = parseInt(values["start-from"] || "0");
 
-	if ((command === "load" || command === "all") && !databaseUrl) {
+	const validateStep = command === "validate" ? (positionals[1] || "all") : null;
+	const needsDb = command === "load" || command === "all"
+		|| (command === "validate" && (validateStep === "database" || validateStep === "all"));
+	if (needsDb && !databaseUrl) {
 		console.error("ERROR: no database URL. Set DATABASE_URL in your env or pass --database-url <url>");
 		process.exit(1);
 	}
