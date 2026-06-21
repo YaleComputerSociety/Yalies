@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { Sequelize, QueryTypes } from "sequelize";
+import { Sequelize, QueryTypes, Transaction } from "sequelize";
 import multer from "multer";
 import { Storage } from "@google-cloud/storage";
 import { parseLocation } from "../parseLocation.js";
@@ -394,7 +394,7 @@ export default class DatabaseRouter {
 				{ type: QueryTypes.UPDATE, replacements: { image: imageUrl, id } },
 			);
 
-			res.json({ image: imageUrl });
+			res.json({ image: `${imageUrl}?v=${Date.now()}` });
 		} catch (e) {
 			console.error("Upload photo error:", e);
 			res.status(500).send(`Failed to upload photo: ${(e as Error).message}`);
@@ -605,6 +605,7 @@ export default class DatabaseRouter {
 
 	#resolveChangeRequest = async (req: Request, res: Response): Promise<void> => {
 		let sequelize: Sequelize | undefined;
+		let transaction: Transaction | undefined;
 		try {
 			sequelize = this.#getSequelize();
 			const id = parseInt(req.params.id as string);
@@ -630,7 +631,7 @@ export default class DatabaseRouter {
 			if (!request) { res.status(404).send("Request not found"); return; }
 			if (request.status !== "pending") { res.status(409).send("Request already resolved"); return; }
 
-			const transaction = await sequelize.transaction();
+			transaction = await sequelize.transaction();
 
 			if (status === "approved") {
 				const changes = (modified_changes && Object.keys(modified_changes).length > 0)
@@ -697,6 +698,9 @@ export default class DatabaseRouter {
 
 			res.json(updated);
 		} catch (e) {
+			if (transaction) {
+				try { await transaction.rollback(); } catch { /* already committed or connection closed */ }
+			}
 			console.error("Resolve change request error:", e);
 			res.status(500).send(`Failed to resolve change request: ${(e as Error).message}`);
 		} finally {
