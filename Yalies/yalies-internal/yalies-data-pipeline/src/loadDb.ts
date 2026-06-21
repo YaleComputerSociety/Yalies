@@ -108,18 +108,19 @@ export async function loadToDatabase(
 		const existingCount = parseInt(existingResult.count);
 		console.log(`Existing ${YALE_COLLEGE} rows: ${existingCount}`);
 
+		if (dryRun) {
+			console.log(`DRY RUN: Would delete ${existingCount} rows and insert ~${students.length}`);
+			return;
+		}
+
 		// Safety guard: refuse to replace a healthy roster with a much smaller
 		// one (e.g. a partial scrape from an expired cookie) unless forced.
+		// Runs after the dry-run return so a preview is never blocked.
 		if (!force && existingCount > 0 && students.length < existingCount * 0.8) {
 			throw new Error(
 				`Refusing to sync: new set (${students.length}) is under 80% of existing ` +
 				`${YALE_COLLEGE} rows (${existingCount}). Re-run with --force to override.`,
 			);
-		}
-
-		if (dryRun) {
-			console.log(`DRY RUN: Would delete ${existingCount} rows and insert ~${students.length}`);
-			return;
 		}
 
 		const transaction = await sequelize.transaction();
