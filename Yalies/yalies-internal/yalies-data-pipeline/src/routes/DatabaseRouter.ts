@@ -633,7 +633,9 @@ export default class DatabaseRouter {
 			const transaction = await sequelize.transaction();
 
 			if (status === "approved") {
-				const changes = modified_changes || request.requested_changes;
+				const changes = (modified_changes && Object.keys(modified_changes).length > 0)
+					? modified_changes
+					: request.requested_changes;
 
 				const ALLOWED_FIELDS = [
 					"netid", "upi", "email", "mailbox", "phone", "fax",
