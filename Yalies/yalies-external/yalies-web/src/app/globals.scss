@@ -1,5 +1,40 @@
 @use "../_shared.scss" as shared;
 
+:root {
+	--color-text: #{shared.$foreground-color};
+	--color-text-secondary: #{shared.$secondary-color};
+	--color-primary: #{shared.$accent-color};
+	--color-primary-hover: #{shared.$accent-color-hover};
+	--color-primary-subdued: rgba(0, 53, 107, 0.08);
+	--color-background: #{shared.$background-color};
+	--color-surface: #{shared.$card-background-color};
+	--color-surface-active: #{shared.$muted-color};
+	--color-select: #ffffff;
+	--color-border: #{shared.$border-color};
+	--color-border-control: #d5d9e2;
+	--color-shadow: rgba(0, 0, 0, 0.08);
+	--color-danger: #{shared.$destructive-color};
+	--trans-dur: 0.15s;
+	color-scheme: light;
+}
+
+[data-theme='dark'] {
+	--color-text: #f1f5f9;
+	--color-text-secondary: #a7b0bf;
+	--color-primary: #74b8ff;
+	--color-primary-hover: #a7d2ff;
+	--color-primary-subdued: rgba(116, 184, 255, 0.18);
+	--color-background: #111827;
+	--color-surface: #1f2937;
+	--color-surface-active: #263447;
+	--color-select: #111827;
+	--color-border: #374151;
+	--color-border-control: #4b5563;
+	--color-shadow: rgba(0, 0, 0, 0.32);
+	--color-danger: #fb7185;
+	color-scheme: dark;
+}
+
 h1, h2, h3, h4, h5, h6, p {
     margin: 0;
     padding: 0;
@@ -11,14 +46,14 @@ html {
 
 body {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-    color: shared.$foreground-color;
-    background-color: shared.$background-color;
+    color: var(--color-text);
+    background-color: var(--color-background);
 	margin: 0;
 	overflow-x: hidden;
-	overflow-y: auto;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	-webkit-text-size-adjust: 100%;
+	transition: background-color var(--trans-dur), color var(--trans-dur);
 
 	&::after {
 		content: '';
@@ -34,6 +69,11 @@ body {
 		pointer-events: none;
 		z-index: 0;
 	}
+}
+
+[data-theme='dark'] body::after {
+	opacity: 0.018;
+	filter: invert(1);
 }
 
 a {

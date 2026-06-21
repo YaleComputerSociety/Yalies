@@ -1,7 +1,5 @@
-// API version prefixes — change these when bumping API versions
 export const API_PREFIX = "/v3";
 export const PIPELINE_PREFIX = "/api";
-// Backend API (yalies-backend) endpoints
 export const API = {
     ping: `${API_PREFIX}/ping`,
     login: `${API_PREFIX}/login`,
@@ -34,7 +32,6 @@ export const API = {
     apiKeysRevoke: `${API_PREFIX}/api-keys/revoke`,
     adminFacecheck: `${API_PREFIX}/admin/facecheck`,
 };
-// Router mount base paths (used by Express app.use() in the backend)
 export const API_ROUTES = {
     ping: `${API_PREFIX}/ping`,
     people: `${API_PREFIX}/people`,
@@ -47,7 +44,6 @@ export const API_ROUTES = {
     community: `${API_PREFIX}/community`,
     admin: `${API_PREFIX}/admin`,
 };
-// Data pipeline (yalies-data-pipeline) endpoints
 export const PIPELINE_API = {
     auth: `${PIPELINE_PREFIX}/auth`,
     authMe: `${PIPELINE_PREFIX}/auth/me`,
@@ -66,7 +62,6 @@ export const PIPELINE_API = {
     databaseChangeRequests: `${PIPELINE_PREFIX}/database/change-requests`,
     databaseChangeRequest: (id) => `${PIPELINE_PREFIX}/database/change-requests/${id}`,
 };
-// Router mount base paths (used by Express app.use() in the pipeline server)
 export const PIPELINE_ROUTES = {
     auth: `${PIPELINE_PREFIX}/auth`,
     cookie: `${PIPELINE_PREFIX}/cookie`,

@@ -1,4 +1,4 @@
-import express, {Request, Response} from "express";
+import express, {Request, Response, NextFunction} from "express";
 import PersonModel, { PERSON_ALLOWED_FILTER_FIELDS } from "../models/PersonModel.js";
 import { NETID_REGEX } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
@@ -7,6 +7,7 @@ import FriendshipModel from "../models/FriendshipModel.js";
 import { Op, Sequelize, WhereOptions } from "sequelize";
 import CAS from "../cas.js";
 import Elasticsearch from "../elasticsearch.js";
+import { getMockPeople, getMockSuggestions, isMockDirectoryEnabled, MOCK_DIRECTORY_NETID } from "../mockDirectory.js";
 
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
@@ -27,16 +28,22 @@ function pruneCache() {
 }
 
 export default class PeopleRouter {
-	#elasticsearch: Elasticsearch;
+	#elasticsearch?: Elasticsearch;
 
-	constructor(elasticsearch: Elasticsearch) {
+	constructor(elasticsearch?: Elasticsearch) {
 		this.#elasticsearch = elasticsearch;
 	}
 
+	mockAuthentication = (req: Request, _res: Response, next: NextFunction) => {
+		req.netid = MOCK_DIRECTORY_NETID;
+		next();
+	};
+
 	getRouter = () => {
 		const router = express.Router();
-		router.post("/", CAS.requireAuthentication, this.getPeople);
-		router.get("/suggest", CAS.requireAuthentication, this.getSuggestions);
+		const requireDirectoryAccess = isMockDirectoryEnabled() ? this.mockAuthentication : CAS.requireAuthentication;
+		router.post("/", requireDirectoryAccess, this.getPeople);
+		router.get("/suggest", requireDirectoryAccess, this.getSuggestions);
 		return router;
 	};
 
@@ -63,6 +70,11 @@ export default class PeopleRouter {
 			return;
 		}
 
+		if (isMockDirectoryEnabled()) {
+			res.status(200).json(getMockSuggestions(query, 8));
+			return;
+		}
+
 		if (NETID_REGEX.test(query.toLowerCase())) {
 			try {
 				const people = await PersonModel.findAll({
@@ -85,7 +97,7 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const suggestions = await this.#elasticsearch.suggestPerson(query, 8);
+		const suggestions = await this.#elasticsearch!.suggestPerson(query, 8);
 
 		if (suggestions.length === 0) {
 			res.status(200).json([]);
@@ -126,6 +138,11 @@ export default class PeopleRouter {
 			return;
 		}
 
+		if (isMockDirectoryEnabled()) {
+			res.status(200).json(getMockPeople({ query, filters: filtersRaw, page, page_size: pageSize }));
+			return;
+		}
+
 		const cacheKey = getCacheKey(query, filtersRaw, page, pageSize);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
@@ -150,6 +167,25 @@ export default class PeopleRouter {
 				where = {
 					...where,
 					[Op.or]: countryConditions,
+				};
+			} else if(field === "address_state") {
+				const states = Array.isArray(filtersRaw[field]) ? filtersRaw[field] : [filtersRaw[field]];
+				where = {
+					...where,
+					address_country: "United States",
+					address_state: {
+						[Op.in]: states,
+					},
+				};
+			} else if(field === "birth_month") {
+				const months = (Array.isArray(filtersRaw[field]) ? filtersRaw[field] : [filtersRaw[field]])
+					.map((month) => Number(month))
+					.filter((month) => Number.isInteger(month) && month >= 1 && month <= 12);
+				where = {
+					...where,
+					birth_month: {
+						[Op.in]: months,
+					},
 				};
 			} else if(Array.isArray(filtersRaw[field])) {
 				where = {
@@ -178,8 +214,8 @@ export default class PeopleRouter {
 				};
 			} else {
 				[exactNetids, fuzzyNetids] = await Promise.all([
-					this.#elasticsearch.searchPersonByNameFuzzy(query, false),
-					this.#elasticsearch.searchPersonByNameFuzzy(query, true),
+					this.#elasticsearch!.searchPersonByNameFuzzy(query, false),
+					this.#elasticsearch!.searchPersonByNameFuzzy(query, true),
 				]);
 				const allNetids = [...new Set([...exactNetids, ...fuzzyNetids])];
 				if (allNetids.length === 0) {

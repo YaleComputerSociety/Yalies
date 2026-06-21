@@ -1,50 +1,15 @@
 @use "../shared.scss";
 
-.announcement {
-	background-color: shared.$accent-color;
-	color: #ffffff;
-	text-align: center;
-	padding: 6px 12px;
-	font-size: 12px;
-	font-weight: 600;
-	letter-spacing: 0.05em;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 8px;
-
-	@include shared.responsive() {
-		font-size: 11px;
-		padding: 6px 16px;
-	}
-
-	@include shared.small-mobile() {
-		font-size: 10px;
-		padding: 5px 10px;
-		gap: 4px;
-		flex-wrap: wrap;
-	}
-}
-
-.announcementLink {
-	color: #ffffff;
-	text-decoration: underline;
-	text-decoration-color: rgba(255, 255, 255, 0.4);
-	text-underline-offset: 2px;
-	font-weight: 600;
-	transition: text-decoration-color 0.2s ease;
-
-	&:hover {
-		text-decoration-color: #ffffff;
-	}
-}
-
 #topbar {
-	background: linear-gradient(180deg, #f5f8fb 0%, shared.$card-background-color 100%);
-	border-bottom: 1px solid rgba(0, 53, 107, 0.08);
-	padding: 10px 8px;
+	position: sticky;
+	top: 0;
+	z-index: 2000;
+	background: var(--color-surface);
+	padding: 12px 14px;
+	box-shadow: 0 2px 6px 0 var(--color-shadow);
+	transition: background-color var(--trans-dur), box-shadow var(--trans-dur);
 
 	@include shared.small-mobile() {
-		padding: 8px 4px;
+		padding: 10px;
 	}
 }

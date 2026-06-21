@@ -1,5 +1,15 @@
 # Yalies Backend
 
+## Local mock directory data
+
+If you do not have the private backend env vars, run the backend in mock directory mode:
+
+```bash
+MOCK_DIRECTORY=true npm run dev
+```
+
+In development, mock mode is also enabled automatically when `DATABASE_URL` is missing. It serves seeded read-only directory data for people, suggestions, filters, profiles, likes, and friend status while bypassing CAS, Postgres, and Elasticsearch.
+
 ## Breaking API changes from V1
 - Base API URL changed to `https://api.yalies.io/v2/`
 - HTTP (insecure) calls are no longer supported; any call to the API over HTTP will invalidate your key

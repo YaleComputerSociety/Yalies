@@ -1,6 +1,6 @@
 export const MOBILE_WIDTH = 700;
 
-export const API_URL = process.env.NEXT_PUBLIC_YALIES_API_URL as string;
+export const API_URL = process.env.NEXT_PUBLIC_YALIES_API_URL || "http://localhost:8000";
 
 export const isMobile = () => typeof window !== "undefined" && window.innerWidth < MOBILE_WIDTH;
 

@@ -6,45 +6,48 @@
 
 .dropdown_button {
 	font-size: 13px;
-	background: none;
-	border: 0;
-	padding: 6px 10px;
+	background: var(--color-select);
+	border: 1px solid var(--color-border);
+	padding: 7px 10px;
 	display: flex;
 	gap: 8px;
 	align-items: center;
 	font-family: inherit;
-	border-radius: shared.$border-radius-standard;
+	border-radius: 4px;
 	cursor: pointer;
-	color: shared.$secondary-color;
-	transition: background-color 0.15s ease, color 0.15s ease;
+	color: var(--color-text-secondary);
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 	svg {
 		height: 10px;
-		color: shared.$secondary-color;
+		color: var(--color-text-secondary);
 		transition: color 0.15s ease;
 	}
 	&.selected {
-		color: shared.$card-background-color;
-		background-color: shared.$accent-color;
+		color: var(--color-primary);
+		background-color: var(--color-primary-subdued);
+		border-color: var(--color-primary);
 		font-weight: 500;
 		svg {
 			height: 9px;
-			color: shared.$card-background-color;
+			color: var(--color-primary);
 		}
 	}
 	&:hover:not(.selected) {
-		background-color: shared.$accent-color-soft;
-		color: shared.$accent-color;
+		background-color: var(--color-primary-subdued);
+		border-color: var(--color-primary);
+		color: var(--color-primary);
 	}
 	&.active:not(.selected) {
-		background-color: shared.$accent-color-soft;
+		background-color: var(--color-primary-subdued);
+		border-color: var(--color-primary);
 	}
 }
 
 .dropdown_popup {
-	background: shared.$card-background-color;
-	border-radius: shared.$border-radius-lg;
-	border: 1px solid shared.$border-color;
-	box-shadow: shared.$shadow-lg;
+	background: var(--color-surface);
+	border-radius: 8px;
+	border: 1px solid var(--color-border);
+	box-shadow: 0 8px 24px var(--color-shadow);
 	margin-top: 6px;
 	position: absolute;
 	z-index: 1000;
@@ -90,7 +93,7 @@
 
 .dropdown_options_container {
 	padding: 4px 0;
-	border-top: 1px solid shared.$border-color;
+	border-top: 1px solid var(--color-border);
 	max-height: 300px;
 	overflow-y: auto;
 }
@@ -100,9 +103,9 @@
 	font-size: 14px;
 	cursor: pointer;
 	transition: background-color 0.1s ease;
-	color: shared.$foreground-color;
+	color: var(--color-text);
 	&:hover {
-		background-color: shared.$accent-color-soft;
+		background-color: var(--color-primary-subdued);
 	}
 }
 
@@ -117,9 +120,9 @@
 	font-size: 12px;
 	border-radius: 6px;
 	font-weight: 600;
-	background-color: shared.$chip-primary-color-bg;
-	color: shared.$chip-primary-color-fg;
-	border: 1px solid shared.$chip-primary-color-border;
+	background-color: var(--color-primary-subdued);
+	color: var(--color-primary);
+	border: 1px solid var(--color-primary);
 	cursor: pointer;
 	transition: background-color 0.15s ease;
 	svg {
@@ -133,6 +136,6 @@
 .no_options {
 	text-align: center;
 	padding: 15px;
-	color: shared.$secondary-color;
+	color: var(--color-text-secondary);
 	font-size: 13px;
 }

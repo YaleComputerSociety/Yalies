@@ -4,6 +4,8 @@ import { API_URL } from "@/consts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./searchbar.module.scss";
 import { API } from "yalies-shared";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 export type Suggestion = {
 	netid: string;
@@ -132,31 +134,31 @@ export default function Searchbar({
 		}
 
 		switch (e.key) {
-			case "ArrowDown":
-				e.preventDefault();
-				setSelectedIndex((prev) =>
-					prev < suggestions.length - 1 ? prev + 1 : 0
-				);
-				break;
-			case "ArrowUp":
-				e.preventDefault();
-				setSelectedIndex((prev) =>
-					prev > 0 ? prev - 1 : suggestions.length - 1
-				);
-				break;
-			case "Enter":
-				e.preventDefault();
-				if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-					handleSelect(suggestions[selectedIndex]);
-				} else {
-					onSubmit();
-					setShowSuggestions(false);
-				}
-				break;
-			case "Escape":
+		case "ArrowDown":
+			e.preventDefault();
+			setSelectedIndex((prev) =>
+				prev < suggestions.length - 1 ? prev + 1 : 0
+			);
+			break;
+		case "ArrowUp":
+			e.preventDefault();
+			setSelectedIndex((prev) =>
+				prev > 0 ? prev - 1 : suggestions.length - 1
+			);
+			break;
+		case "Enter":
+			e.preventDefault();
+			if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+				handleSelect(suggestions[selectedIndex]);
+			} else {
+				onSubmit();
 				setShowSuggestions(false);
-				setSelectedIndex(-1);
-				break;
+			}
+			break;
+		case "Escape":
+			setShowSuggestions(false);
+			setSelectedIndex(-1);
+			break;
 		}
 	};
 
@@ -169,8 +171,9 @@ export default function Searchbar({
 	return (
 		<div id={styles.search_wrapper} ref={wrapperRef}>
 			<div className={styles.search_input_container}>
+				<FontAwesomeIcon className={styles.search_icon} icon={faMagnifyingGlass} />
 				<input
-					className={styles.search_input}
+					className={`${styles.search_input} ${value.length > 0 ? styles.search_input_with_value : ""}`}
 					placeholder="Search Yalies"
 					value={value}
 					onChange={onChange}
@@ -189,7 +192,7 @@ export default function Searchbar({
 						}}
 						aria-label="Clear search"
 					>
-						&times;
+						<FontAwesomeIcon icon={faXmark} />
 					</button>
 				)}
 				{isLoading && value.trim().length >= 2 && (
@@ -207,9 +210,9 @@ export default function Searchbar({
 								handleSelect(suggestion);
 							}}
 							onMouseEnter={() => {
-							setSelectedIndex(index);
-							prefetchPerson(suggestion.netid);
-						}}
+								setSelectedIndex(index);
+								prefetchPerson(suggestion.netid);
+							}}
 						>
 							<img
 								className={styles.suggestion_image}

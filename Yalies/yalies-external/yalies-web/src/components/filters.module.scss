@@ -4,15 +4,15 @@
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	padding: 0 14px;
-	height: 36px;
+	padding: 0 12px;
+	height: 42px;
 	font-size: 13px;
 	font-weight: 500;
 	font-family: inherit;
-	color: shared.$card-background-color;
-	background: shared.$accent-color;
-	border: 1px solid shared.$accent-color;
-	border-radius: shared.$border-radius-full;
+	color: var(--color-text-secondary);
+	background: var(--color-select);
+	border: 2px solid var(--color-border-control);
+	border-radius: 4px;
 	cursor: pointer;
 	transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
 	white-space: nowrap;
@@ -23,23 +23,25 @@
 	}
 
 	&:hover, &.open {
-		background: shared.$accent-color-hover;
-		border-color: shared.$accent-color-hover;
+		color: var(--color-primary);
+		background: var(--color-primary-subdued);
+		border-color: var(--color-primary);
 	}
 
 	&:active {
-		background: shared.$accent-color-hover;
+		background: var(--color-primary-subdued);
 	}
 
 	&.has_filters {
-		background: shared.$accent-color-light;
-		border-color: shared.$accent-color-light;
+		color: var(--color-primary);
+		background: var(--color-primary-subdued);
+		border-color: var(--color-primary);
 	}
 }
 
 .badge {
-	background: shared.$accent-color;
-	color: shared.$card-background-color;
+	background: var(--color-primary);
+	color: var(--color-surface);
 	font-size: 10px;
 	font-weight: 700;
 	min-width: 16px;
@@ -52,14 +54,14 @@
 }
 
 .filters_panel {
-	padding: 8px 0 4px;
+	padding: 6px 0 0;
 
 	@include shared.responsive() {
-		padding: 8px 12px 4px;
+		padding: 6px 0 0;
 	}
 
 	@include shared.small-mobile() {
-		padding: 6px 8px 4px;
+		padding: 6px 0 0;
 	}
 }
 
@@ -67,23 +69,23 @@
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
-	gap: 6px;
+	gap: 8px;
 	flex-wrap: wrap;
 }
 
 .reset {
-	padding: 5px 10px;
-	font-size: 11px;
+	padding: 6px 10px;
+	font-size: 12px;
 	font-weight: 500;
 	font-family: inherit;
-	border: 1px solid shared.$destructive-color;
-	border-radius: 6px;
-	color: shared.$destructive-color;
-	background: rgba(shared.$destructive-color, 0.05);
+	border: 1px solid var(--color-danger);
+	border-radius: 4px;
+	color: var(--color-danger);
+	background: transparent;
 	cursor: pointer;
 	transition: background-color 0.15s ease;
 
 	&:hover {
-		background: rgba(shared.$destructive-color, 0.1);
+		background: rgba(220, 38, 38, 0.1);
 	}
 }

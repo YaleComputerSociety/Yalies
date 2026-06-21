@@ -12,6 +12,6 @@ export declare const VALIDATION_THRESHOLDS: {
     readonly MIN_STUDENTS_PER_YEAR: 500;
     readonly MIN_STUDENTS_PER_COLLEGE: 200;
 };
-export declare const DEFAULT_FILTER_FIELDS: readonly ["school", "year", "college", "major", "address_country"];
+export declare const DEFAULT_FILTER_FIELDS: readonly ["school", "year", "college", "major", "address_country", "address_state", "birth_month"];
 export declare const PERSON_ALLOWED_FILTER_FIELDS: readonly ["netid", "upi", "email", "mailbox", "phone", "title", "first_name", "preferred_name", "middle_name", "last_name", "suffix", "pronouns", "school_code", "school", "year", "curriculum", "college", "college_code", "leave", "birth_day", "birth_month", "major", "access_code", "organization_code", "organization", "unit_class", "unit_code", "unit", "office_building", "office_room", "address_state", "address_country"];
 //# sourceMappingURL=validation.d.ts.map

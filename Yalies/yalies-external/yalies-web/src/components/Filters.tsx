@@ -25,7 +25,9 @@ export default function Filters({
 	const [yearOptions, setYearOptions] = useState<DropdownOption[]>([]);
 	const [collegeOptions, setCollegeOptions] = useState<DropdownOption[]>([]);
 	const [majorOptions, setMajorOptions] = useState<DropdownOption[]>([]);
-	const [locationOptions, setLocationOptions] = useState<DropdownOption[]>([]);
+	const [countryOptions, setCountryOptions] = useState<DropdownOption[]>([]);
+	const [stateOptions, setStateOptions] = useState<DropdownOption[]>([]);
+	const [birthMonthOptions, setBirthMonthOptions] = useState<DropdownOption[]>([]);
 
 	const getFilters = useCallback(async () => {
 		let response;
@@ -72,12 +74,33 @@ export default function Filters({
 			return a.label.localeCompare(b.label);
 		};
 
+		const monthNames = [
+			"January", "February", "March", "April", "May", "June",
+			"July", "August", "September", "October", "November", "December",
+		];
+		const birthMonthToDropdownOption = (options: unknown[]): DropdownOption[] => {
+			return (options as (string | number)[])
+				.map((option) => Number(option))
+				.filter((month) => Number.isInteger(month) && month >= 1 && month <= 12)
+				.sort((a, b) => a - b)
+				.map((month) => ({
+					label: monthNames[month - 1],
+					value: month.toString(),
+				}));
+		};
+
 		setSchoolOptions(filterToDropdownOption(filterOptions["school"], schoolSortFn));
 		setYearOptions(filterToDropdownOption(filterOptions["year"], yearSortFn));
 		setCollegeOptions(filterToDropdownOption(filterOptions["college"]));
 		setMajorOptions(filterToDropdownOption(filterOptions["major"]));
 		if(filterOptions["address_country"]) {
-			setLocationOptions(filterToDropdownOption(filterOptions["address_country"], locationSortFn));
+			setCountryOptions(filterToDropdownOption(filterOptions["address_country"], locationSortFn));
+		}
+		if(filterOptions["address_state"]) {
+			setStateOptions(filterToDropdownOption(filterOptions["address_state"]));
+		}
+		if(filterOptions["birth_month"]) {
+			setBirthMonthOptions(birthMonthToDropdownOption(filterOptions["birth_month"]));
 		}
 	}, []);
 
@@ -115,10 +138,22 @@ export default function Filters({
 					onValueChange={(val) => setFilterValue("major", val)}
 				/>
 				<Dropdown
-					label="Location"
-					options={locationOptions}
+					label="Country"
+					options={countryOptions}
 					value={filters?.address_country || []}
 					onValueChange={(val) => setFilterValue("address_country", val)}
+				/>
+				<Dropdown
+					label="State"
+					options={stateOptions}
+					value={filters?.address_state || []}
+					onValueChange={(val) => setFilterValue("address_state", val)}
+				/>
+				<Dropdown
+					label="Birth month"
+					options={birthMonthOptions}
+					value={filters?.birth_month || []}
+					onValueChange={(val) => setFilterValue("birth_month", val)}
 				/>
 				{!filtersAreDefault && (
 					<button className={styles.reset} onClick={reset}>

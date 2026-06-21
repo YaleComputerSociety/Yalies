@@ -1,0 +1,33 @@
+@use "../shared.scss";
+
+.search_controls {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 4px;
+	width: 100%;
+
+	@include shared.small-mobile() {
+		gap: 6px;
+	}
+}
+
+.search_row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+
+	@include shared.small-mobile() {
+		align-items: stretch;
+	}
+}
+
+.filters_area {
+	width: 100%;
+}
+
+.error {
+	text-align: center;
+	padding: 20px;
+	color: shared.$destructive-color;
+}

@@ -46,7 +46,7 @@
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.5",
-    "yalies-shared": "file:./yalies-shared"
+    "yalies-shared": "file:../../yalies-shared"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin-js": "^2.10.1",
@@ -59,6 +59,6 @@
     "@types/passport-strategy": "^0.2.38",
     "eslint": "^8.57.0",
     "eslint-plugin-github": "^5.0.1",
-    "typescript": "^5.5.4"
+    "typescript": "^5.9.3"
   }
 }

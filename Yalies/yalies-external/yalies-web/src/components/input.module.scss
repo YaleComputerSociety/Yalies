@@ -3,28 +3,28 @@
 .input {
 	font-family: inherit;
 	font-size: 14px;
-	border-radius: shared.$border-radius-standard;
-	background-color: shared.$card-background-color;
-	color: shared.$foreground-color;
-	border: 1px solid shared.$border-color;
+	border-radius: 4px;
+	background-color: var(--color-select);
+	color: var(--color-text);
+	border: 1px solid var(--color-border);
 	padding: 10px 15px;
 	outline: none;
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 	width: 100%;
 	box-sizing: border-box;
 
 	&:focus {
-		border-color: shared.$accent-color;
-		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px var(--color-primary-subdued);
 	}
 
 	&::placeholder {
-		color: shared.$secondary-color;
+		color: var(--color-text-secondary);
 	}
 
 	&.disabled {
-		background-color: shared.$background-color-disabled;
-		color: shared.$secondary-color;
+		background-color: var(--color-surface-active);
+		color: var(--color-text-secondary);
 	}
 }
 

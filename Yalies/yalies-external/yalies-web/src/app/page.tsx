@@ -5,14 +5,13 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
 import Navbar from "@/components/Navbar";
 import Filters from "@/components/Filters";
-import FiltersToggle from "@/components/FiltersToggle";
 import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
 import Searchbar from "@/components/Searchbar";
 import BirthdaySection from "@/components/BirthdaySection";
-import { isMobile } from "@/consts";
 import { sendGAEvent } from "@next/third-parties/google";
 import { getHomeCache, setHomeCache } from "@/hooks/useHomeCache";
+import styles from "./home.module.scss";
 
 export default function HomePage() {
 	const DEFAULT_FILTERS = {
@@ -21,6 +20,8 @@ export default function HomePage() {
 		college: [],
 		major: [],
 		address_country: [],
+		address_state: [],
+		birth_month: [],
 	};
 
 	const homeCache = getHomeCache();
@@ -34,16 +35,10 @@ export default function HomePage() {
 
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
-	const [isClient, setIsClient] = useState(false);
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchError, setSearchError] = useState<string | null>(null);
-	const [filtersOpen, setFiltersOpen] = useState(false);
 	const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const restoredFromCache = useRef(!!homeCache);
-
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
 
 	const getPeople = useCallback(async () => {
 		if(hasReachedEnd) return;
@@ -58,6 +53,8 @@ export default function HomePage() {
 		if(filters.college && filters.college.length > 0) filterObject.college = filters.college;
 		if(filters.major && filters.major.length > 0) filterObject.major = filters.major;
 		if(filters.address_country && filters.address_country.length > 0) filterObject.address_country = filters.address_country;
+		if(filters.address_state && filters.address_state.length > 0) filterObject.address_state = filters.address_state;
+		if(filters.birth_month && filters.birth_month.length > 0) filterObject.birth_month = filters.birth_month;
 
 		if(queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
 
@@ -241,7 +238,9 @@ export default function HomePage() {
 		filters.year && filters.year.length === 0 &&
 		filters.college && filters.college.length === 0 &&
 		filters.major && filters.major.length === 0 &&
-		filters.address_country && filters.address_country.length === 0
+		filters.address_country && filters.address_country.length === 0 &&
+		(!filters.address_state || filters.address_state.length === 0) &&
+		(!filters.birth_month || filters.birth_month.length === 0)
 	);
 
 	const showBirthdays = filtersAreDefault && query.length === 0 && birthdayPeople.length > 0 && people.length !== 1;
@@ -329,54 +328,32 @@ export default function HomePage() {
 		setSearchError(null);
 	};
 
-	const activeFilterCount = (filters?.school?.length || 0) + (filters?.year?.length || 0) + (filters?.college?.length || 0) + (filters?.major?.length || 0) + (filters?.address_country?.length || 0);
-
-	const searchWithFilters = (
-		<div style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minWidth: 0 }}>
-			<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-				{searchbar}
-				<FiltersToggle
-					filtersAreDefault={filtersAreDefault}
-					activeFilterCount={activeFilterCount}
-					open={filtersOpen}
-					onToggle={() => setFiltersOpen(!filtersOpen)}
-				/>
-			</div>
-			<Filters
-				filters={filters || {}}
-				setFilterValue={setFilterValue}
-				reset={reset}
-				filtersAreDefault={filtersAreDefault}
-				open={filtersOpen}
-			/>
-		</div>
-	);
-
-	const mobile = isClient && isMobile();
-
 	return (
 		<>
 			<Topbar>
 				<Navbar
-					middleContent={mobile ? undefined : searchWithFilters}
 					isAuthenticated={true}
 					onLogoClick={reset}
+					middleContent={
+						<div className={styles.search_controls}>
+							<div className={styles.search_row}>
+								{searchbar}
+							</div>
+							<div className={styles.filters_area}>
+								<Filters
+									filters={filters || {}}
+									setFilterValue={setFilterValue}
+									reset={reset}
+									filtersAreDefault={filtersAreDefault}
+									open={true}
+								/>
+							</div>
+						</div>
+					}
 				/>
 			</Topbar>
-			{mobile && (
-				<>
-					{searchbar}
-					<Filters
-						filters={filters || {}}
-						setFilterValue={setFilterValue}
-						reset={reset}
-						filtersAreDefault={filtersAreDefault}
-						open={true}
-					/>
-				</>
-			)}
 			{searchError && (
-				<div style={{ textAlign: "center", padding: "20px", color: "#dc3545" }}>
+				<div className={styles.error}>
 					{searchError}
 				</div>
 			)}

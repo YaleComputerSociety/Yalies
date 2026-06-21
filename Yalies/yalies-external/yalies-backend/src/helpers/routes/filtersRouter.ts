@@ -2,6 +2,7 @@ import express, {Request, Response} from "express";
 import PersonModel from "../models/PersonModel.js";
 import { col, fn } from "sequelize";
 import { DEFAULT_FILTER_FIELDS } from "yalies-shared";
+import { getMockFilters, isMockDirectoryEnabled } from "../mockDirectory.js";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; 
 let filtersCache: { data: Record<string, unknown[]>; timestamp: number } | null = null;
@@ -14,6 +15,10 @@ export default class FiltersRouter {
 	};
 
 	getFilters = async (req: Request, res: Response) => {
+		if (isMockDirectoryEnabled()) {
+			return res.status(200).json(getMockFilters());
+		}
+
 		if (filtersCache && Date.now() - filtersCache.timestamp < CACHE_TTL_MS) {
 			return res.status(200).json(filtersCache.data);
 		}

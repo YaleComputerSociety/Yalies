@@ -1,0 +1,22 @@
+.button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-text-secondary);
+	cursor: pointer;
+	transition: color var(--trans-dur);
+
+	svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	&:hover {
+		color: var(--color-primary);
+	}
+}

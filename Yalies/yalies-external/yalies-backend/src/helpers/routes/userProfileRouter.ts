@@ -124,7 +124,7 @@ export default class UserProfileRouter {
 
 			const canFacecheck = await shouldRunFacecheck();
 			if(canFacecheck) {
-				fs.writeFileSync(newPhotoPath, req.file.buffer);
+				fs.writeFileSync(newPhotoPath, new Uint8Array(req.file.buffer));
 
 				const detectResult = await detectFace(newPhotoPath);
 				if(!detectResult.has_face) {
@@ -140,7 +140,7 @@ export default class UserProfileRouter {
 
 					const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
 					const [existingBuffer] = await bucket.file(existingFilename).download();
-					fs.writeFileSync(existingPhotoPath, existingBuffer);
+					fs.writeFileSync(existingPhotoPath, new Uint8Array(existingBuffer));
 
 					const existingDetect = await detectFace(existingPhotoPath);
 					if(existingDetect.has_face) {

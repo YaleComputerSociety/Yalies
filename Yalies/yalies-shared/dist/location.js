@@ -1,9 +1,3 @@
-/**
- * Parses an address string to extract US state or international country.
- *
- * Address format: multi-line, newline-separated.
- * Last line is typically "City, ST ZIP" (US) or "City, Country" (international).
- */
 export const US_STATES = {
     "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas",
     "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware",
@@ -54,7 +48,6 @@ export const COUNTRY_ALIASES = {
     "holland": "Netherlands",
     "the philippines": "Philippines",
 };
-// Common direction words and US city fragments that are NOT countries
 const NOT_COUNTRIES = new Set([
     "south", "north", "east", "west", "the", "new", "san", "los", "el",
     "brooklyn", "chicago", "hialeah", "latham", "lexington", "pittsburgh",
@@ -93,7 +86,6 @@ export function parseLocation(address) {
         return { address_state: null, address_country: null };
     }
     const lastLine = lines[lines.length - 1];
-    // Try US pattern: "City, ST" or "City, ST ZIP" or "City, ST ZIP-XXXX"
     const usMatch = lastLine.match(/,\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?$/);
     if (usMatch) {
         const stateCode = usMatch[1];
@@ -104,7 +96,6 @@ export function parseLocation(address) {
             };
         }
     }
-    // Try: last segment after final comma as country
     const commaIdx = lastLine.lastIndexOf(",");
     if (commaIdx >= 0) {
         const candidate = lastLine.substring(commaIdx + 1).trim();
@@ -116,12 +107,10 @@ export function parseLocation(address) {
             }
         }
     }
-    // Try: the entire last line might be a country name
     const wholeNormalized = normalizeCountry(lastLine);
     if (wholeNormalized) {
         return { address_state: null, address_country: wholeNormalized };
     }
-    // Check if the entire last line is a US state name
     const stateFromName = Object.entries(US_STATES).find(([, name]) => name.toLowerCase() === lastLine.toLowerCase());
     if (stateFromName) {
         return { address_state: stateFromName[0], address_country: "United States" };

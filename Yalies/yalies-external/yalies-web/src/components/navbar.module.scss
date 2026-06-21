@@ -1,14 +1,21 @@
 @use "../shared.scss";
 
 #navbar {
-	padding: 0 10px;
+	position: relative;
+	width: 100%;
 }
 
 .navbar_top {
 	display: flex;
 	align-items: flex-start;
-	justify-content: stretch;
-	gap: 20px;
+	justify-content: space-between;
+	gap: 18px;
+	min-height: 44px;
+
+	@include shared.responsive() {
+		flex-wrap: wrap;
+		gap: 12px;
+	}
 }
 
 #logo {
@@ -16,153 +23,209 @@
 	align-items: center;
 	justify-content: flex-start;
 	text-decoration: none;
-	color: shared.$accent-color;
+	color: var(--color-primary);
 	gap: 10px;
-	width: 100px;
-	height: 36px;
 	flex-shrink: 0;
+	transition: color var(--trans-dur);
+	padding-top: 2px;
+
 	img {
-		height: 30px;
-		width: 30px;
+		height: 38px;
+		width: 38px;
 	}
+
 	h2 {
-		font-size: 20px;
+		font-size: 25px;
+		font-weight: 800;
+		margin: 0;
+		letter-spacing: 0;
 	}
 
 	@include shared.small-mobile() {
-		gap: 6px;
+		gap: 7px;
+
 		img {
-			height: 26px;
-			width: 26px;
+			height: 30px;
+			width: 30px;
 		}
+
 		h2 {
-			font-size: 17px;
+			font-size: 20px;
 		}
 	}
 }
 
-#links {
-	margin-left: auto;
+.navbar_middle {
+	flex: 0 1 420px;
+	min-width: 280px;
+
+	@include shared.responsive() {
+		order: 3;
+		flex-basis: 100%;
+		min-width: 0;
+	}
+}
+
+.nav_actions {
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: 6px;
-	font-size: 13.5px;
-	font-weight: 600;
-	height: 36px;
-	a {
-		text-decoration: none;
-		color: shared.$accent-color-light;
-		height: 34px;
-		display: flex;
-		align-items: center;
-		padding: 0 14px;
-		border-radius: shared.$border-radius-standard;
-		letter-spacing: 0.01em;
-		transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-		&:hover {
-			color: shared.$accent-color;
-			background-color: shared.$accent-color-soft;
-			box-shadow: 0 0 0 1px rgba(0, 53, 107, 0.1);
-		}
-	}
-
-	@include shared.tablet() {
-		display: none;
-	}
-
-	@include shared.responsive() {
-		display: none;
-	}
-}
-
-.hamburger {
-	display: none;
-	flex-direction: column;
-	justify-content: center;
-	gap: 4px;
-	background: none;
-	border: none;
-	cursor: pointer;
-	padding: 8px;
+	gap: 18px;
 	margin-left: auto;
-	height: 36px;
-	width: 36px;
 
-	@include shared.tablet() {
-		display: flex;
-	}
-
-	@include shared.responsive() {
-		display: flex;
+	@include shared.small-mobile() {
+		gap: 10px;
 	}
 }
 
-.hamburger_line {
+.my_card {
+	color: var(--color-text);
+	text-decoration: none;
+	font-size: 16px;
+	font-weight: 500;
+	white-space: nowrap;
+	transition: color var(--trans-dur);
+
+	&:hover {
+		color: var(--color-primary);
+	}
+
+	@include shared.small-mobile() {
+		font-size: 14px;
+	}
+}
+
+.grid_link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	color: var(--color-text-secondary);
+	text-decoration: none;
+	transition: color 0.15s ease;
+
+	&:hover {
+		color: var(--color-primary);
+	}
+
+	@include shared.small-mobile() {
+		width: 26px;
+		height: 26px;
+
+		svg {
+			width: 22px;
+			height: 22px;
+		}
+	}
+}
+
+.apps_icon {
+	width: 24px;
+	height: 24px;
+	display: grid;
+	grid-template-columns: repeat(3, 4px);
+	grid-template-rows: repeat(3, 4px);
+	gap: 4px;
+	align-content: center;
+	justify-content: center;
+
+	&::before {
+		content: "";
+		width: 4px;
+		height: 4px;
+		background: currentColor;
+		border-radius: 1px;
+		box-shadow:
+			8px 0 currentColor,
+			16px 0 currentColor,
+			0 8px currentColor,
+			8px 8px currentColor,
+			16px 8px currentColor,
+			0 16px currentColor,
+			8px 16px currentColor,
+			16px 16px currentColor;
+	}
+}
+
+.account_menu {
+	position: relative;
+}
+
+.account_button {
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	border: none;
+	background: var(--color-surface-active);
+	cursor: pointer;
 	display: block;
-	width: 20px;
-	height: 2px;
-	background-color: shared.$accent-color;
-	border-radius: 1px;
-	transition: transform 0.2s ease, opacity 0.2s ease;
+	padding: 0;
+	transition: background-color 0.15s ease, box-shadow 0.15s ease;
 
-	&.open {
-		&:first-child {
-			transform: translateY(6px) rotate(45deg);
+	&:hover {
+		background: var(--color-primary-subdued);
+		box-shadow: 0 0 0 3px rgba(0, 53, 107, 0.08);
+	}
+
+	@include shared.small-mobile() {
+		width: 32px;
+		height: 32px;
+	}
+}
+
+.dropdown {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 10px);
+	width: 116px;
+	background: var(--color-surface);
+	z-index: 1000;
+	padding: 8px 0;
+	box-shadow: shared.$shadow-md;
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+	animation: menu-slide-down 180ms ease-out;
+
+	a {
+		display: block;
+		color: var(--color-text);
+		text-decoration: none;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1;
+		padding: 12px 12px;
+		transition: background-color 0.12s ease;
+
+		&:hover {
+			background: var(--color-surface-active);
 		}
-		&:nth-child(2) {
-			opacity: 0;
-		}
-		&:last-child {
-			transform: translateY(-6px) rotate(-45deg);
+	}
+
+	@include shared.small-mobile() {
+		left: 0;
+		width: auto;
+
+		a {
+			font-size: 14px;
+			padding: 11px 12px;
 		}
 	}
 }
 
-.mobile_menu {
-	display: none;
-
-	@include shared.tablet() {
-		display: flex;
-		flex-direction: column;
-		padding: 8px 0 4px;
-		border-top: 1px solid shared.$border-color;
-		margin-top: 8px;
-
-		a {
-			text-decoration: none;
-			color: shared.$accent-color-light;
-			font-size: 15px;
-			font-weight: 600;
-			padding: 12px 10px;
-			border-radius: shared.$border-radius-standard;
-			transition: background-color 0.15s ease;
-
-			&:hover {
-				background-color: shared.$accent-color-soft;
-			}
-		}
+@keyframes menu-slide-down {
+	from {
+		transform: translateY(-12px);
 	}
 
-	@include shared.responsive() {
-		display: flex;
-		flex-direction: column;
-		padding: 8px 0 4px;
-		border-top: 1px solid shared.$border-color;
-		margin-top: 8px;
+	to {
+		transform: translateY(0);
+	}
+}
 
-		a {
-			text-decoration: none;
-			color: shared.$accent-color-light;
-			font-size: 15px;
-			font-weight: 600;
-			padding: 12px 10px;
-			border-radius: shared.$border-radius-standard;
-			transition: background-color 0.15s ease;
-
-			&:hover {
-				background-color: shared.$accent-color-soft;
-			}
-		}
+@media (prefers-reduced-motion: reduce) {
+	.dropdown {
+		animation: none;
 	}
 }
