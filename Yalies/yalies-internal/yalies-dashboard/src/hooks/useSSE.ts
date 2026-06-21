@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { ProgressEvent } from "@/lib/types";
 
 export default function useSSE(url: string, body: Record<string, unknown>) {
@@ -90,6 +90,9 @@ export default function useSSE(url: string, body: Record<string, unknown>) {
 	const stop = useCallback(() => {
 		abortRef.current?.abort();
 	}, []);
+
+	// Abort any in-flight stream when the consuming component unmounts.
+	useEffect(() => () => abortRef.current?.abort(), []);
 
 	return { start, stop, events, latestEvent, isRunning, error };
 }
