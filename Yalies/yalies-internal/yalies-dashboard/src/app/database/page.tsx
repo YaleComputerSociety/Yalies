@@ -1132,8 +1132,8 @@ function EditModal({
 					<fieldset className={styles.formSection}>
 						<legend className={styles.formLegend}>Name</legend>
 						<div className={styles.formRow}>
-							<F label="First Name" value={form.first_name} onChange={(v) => set("first_name", v)} />
-							<F label="Last Name" value={form.last_name} onChange={(v) => set("last_name", v)} />
+							<F label="First Name" value={form.first_name ?? ""} onChange={(v) => set("first_name", v)} />
+							<F label="Last Name" value={form.last_name ?? ""} onChange={(v) => set("last_name", v)} />
 						</div>
 						<div className={styles.formRow}>
 							<F label="Preferred Name" value={form.preferred_name ?? ""} onChange={(v) => set("preferred_name", v || null)} />
@@ -1358,9 +1358,19 @@ function ReviewRequestModal({
 		if (useModified) {
 			const modified: Record<string, string | number | null> = {};
 			for (const [key, value] of Object.entries(modifiedValues)) {
-				if (value.trim() === "") continue;
+				const trimmed = value.trim();
+				if (trimmed === "") {
+					// Admin cleared the field — send null to blank it, don't drop it.
+					modified[key] = null;
+					continue;
+				}
 				const origType = typeof request.requested_changes[key];
-				modified[key] = origType === "number" ? (parseInt(value) || value) : value;
+				if (origType === "number") {
+					const n = parseInt(trimmed, 10);
+					modified[key] = Number.isNaN(n) ? trimmed : n;
+				} else {
+					modified[key] = trimmed;
+				}
 			}
 			await onApprove(adminNotes || undefined, modified);
 		} else {
