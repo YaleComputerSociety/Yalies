@@ -26,7 +26,8 @@ export default function Navbar({
 	const pathname = usePathname();
 	const directoryActive = pathname === "/";
 	const profileActive = pathname === "/profile" || pathname.startsWith("/profile/");
-	const topNavClassName = middleContent ? styles.navbar_top : `${styles.navbar_top} ${styles.navbar_top_compact}`;
+	const useCompactTopNav = !middleContent && pathname !== "/";
+	const topNavClassName = useCompactTopNav ? `${styles.navbar_top} ${styles.navbar_top_compact}` : styles.navbar_top;
 
 	return (
 		<nav id={styles.navbar}>
