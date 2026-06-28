@@ -21,15 +21,15 @@
 }
 
 .modal {
-	background: linear-gradient(180deg, #f0f4f8 0%, #ffffff 15%);
+	background: shared.$card-background-color;
 	border-radius: 16px;
 	padding: 32px;
 	width: 620px;
 	max-width: 90vw;
 	max-height: 85vh;
 	overflow-y: auto;
-	box-shadow: 0 8px 40px rgba(0, 53, 107, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
-	border: 1px solid rgba(0, 53, 107, 0.10);
+	box-shadow: shared.$shadow-xl;
+	border: 1px solid shared.$border-color;
 	border-top: none;
 	position: relative;
 	transform: scale(0.95);
@@ -101,8 +101,8 @@
 	height: 175px;
 	border-radius: shared.$border-radius-lg;
 	object-fit: cover;
-	box-shadow: 0 2px 10px rgba(0, 53, 107, 0.14);
-	border: 2px solid rgba(0, 53, 107, 0.08);
+	box-shadow: shared.$shadow-md;
+	border: 2px solid shared.$border-color;
 
 	@include shared.small-mobile() {
 		width: 100px;
@@ -179,16 +179,16 @@
 	align-items: center;
 	gap: 10px;
 	font-size: 14px;
-	color: #3a4a5c;
+	color: shared.$secondary-color;
 
 	svg {
 		width: 14px;
-		color: #1a6db5;
+		color: shared.$accent-color;
 		opacity: 0.7;
 	}
 
 	a {
-		color: #1a6db5;
+		color: shared.$accent-color;
 		text-decoration: none;
 		&:hover {
 			text-decoration: underline;
@@ -201,95 +201,57 @@
 	height: 14px;
 }
 
-.ids_section {
+.contact_section {
 	padding: 14px 0;
-	border-top: 1px solid rgba(0, 53, 107, 0.08);
+	border-top: 1px solid shared.$border-color;
 	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
 }
 
-.extra_info {
-	border-top: 1px solid rgba(0, 53, 107, 0.08);
-	padding-top: 16px;
-}
-
-.description_section {
-	margin-bottom: 16px;
-}
-
-.description_text {
-	font-size: 14px;
-	color: #3a4a5c;
-	margin: 0;
-	line-height: 1.5;
-	white-space: pre-wrap;
-}
-
-.interests_section {
-	margin-bottom: 16px;
-}
-
-.interests_list {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 5px;
-}
-
-.social_links {
-	display: flex;
-	gap: 15px;
-	margin-bottom: 15px;
-}
-
-.social_link {
+.contact_email {
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	font-size: 14px;
 	color: shared.$accent-color;
+	font-size: 14px;
 	text-decoration: none;
-	font-weight: 500;
-	transition: opacity 0.15s ease;
-
-	svg {
-		height: 16px;
-		opacity: 1;
-	}
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 
 	&:hover {
+		text-decoration: none;
+	}
+
+	svg {
+		width: 14px;
+		flex-shrink: 0;
 		opacity: 0.7;
 	}
 }
 
-.classes_section {
-	h3 {
-		font-size: 12px;
-		font-weight: 600;
-		color: shared.$accent-color;
-		margin: 0 0 8px 0;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-	}
-}
-
-.classes_list {
+.contact_socials {
+	margin-left: auto;
 	display: flex;
-	flex-wrap: wrap;
-	gap: 5px;
-}
+	align-items: center;
+	gap: 10px;
+	flex-shrink: 0;
 
-.section_label {
-	font-size: 12px;
-	font-weight: 600;
-	color: shared.$accent-color;
-	margin: 0 0 10px 0;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
-}
+	a {
+		color: shared.$accent-color;
+		line-height: 1;
+		text-decoration: none;
+		transition: opacity 0.15s ease;
 
-.empty_text {
-	font-size: 13px;
-	color: shared.$border-color;
-	font-style: italic;
+		&:hover {
+			opacity: 0.7;
+		}
+	}
+
+	svg {
+		height: 18px;
+	}
 }

@@ -1,0 +1,63 @@
+@use "../_shared.scss" as shared;
+
+.email_button {
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: shared.$accent-color;
+	font: inherit;
+	font-size: 14px;
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+
+	&:hover,
+	&:focus-visible {
+		text-decoration: none;
+
+		.email_icon {
+			opacity: 0;
+			transform: scale(0.8);
+		}
+
+		.copy_icon {
+			opacity: 0.75;
+			transform: scale(1);
+		}
+	}
+}
+
+.icon_wrap {
+	position: relative;
+	width: 14px;
+	height: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.email_button .email_icon,
+.email_button .copy_icon {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.email_button .email_icon {
+	opacity: 0.7;
+	transform: scale(1);
+}
+
+.email_button .copy_icon {
+	opacity: 0;
+	transform: scale(0.8);
+}

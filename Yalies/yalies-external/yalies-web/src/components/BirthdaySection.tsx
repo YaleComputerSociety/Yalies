@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState } from "react";
 import { Person } from "yalies-shared";
 import styles from "./birthdaysection.module.scss";
 import gridStyles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCake, faBook, faEnvelope, faGraduationCap } from "@fortawesome/free-solid-svg-icons";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
+import { faCake, faBook, faGraduationCap, faHouse } from "@fortawesome/free-solid-svg-icons";
+import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { COLLEGE_SHIELDS } from "@/consts";
+import EmailCopyButton from "./EmailCopyButton";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -15,19 +18,30 @@ function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	return <img src={shield} alt={collegeCode} className={gridStyles.college_shield} />;
 }
 
-function CopyableText({ text, label }: { text: string; label?: string }) {
-	const [copied, setCopied] = useState(false);
-	const handleClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		navigator.clipboard.writeText(text);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1000);
-	};
-	return (
-		<span className={gridStyles.meta_item} onClick={handleClick} title="Click to copy">
-			{copied ? "Copied!" : (label || text)}
-		</span>
-	);
+function formatCollegeYear(person: Person) {
+	const college = person.college?.replace(/\s+College$/i, "");
+	return [college, person.year && `'${String(person.year).slice(-2)}`].filter(Boolean).join(" ");
+}
+
+function formatBirthday(person: Person) {
+	if (!person.birth_month || !person.birth_day) return "";
+	return new Date(2000, person.birth_month - 1, person.birth_day).toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+	});
+}
+
+function formatHometown(person: Person) {
+	if (!person.address) return "";
+	return person.address
+		.replace(/\s+\d{5}(?:-\d{4})?\b/g, "")
+		.replace(/[,\s]+$/, "")
+		.trim();
+}
+
+function isBirthdayToday(person: Person) {
+	const today = new Date();
+	return person.birth_month === today.getMonth() + 1 && person.birth_day === today.getDate();
 }
 
 export default function BirthdaySection({ people }: { people: Person[] }) {
@@ -44,10 +58,10 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 				</div>
 				{people.map(person => {
 					const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
-					const collegeYearParts: string[] = [];
-					if (person.college) collegeYearParts.push(person.college);
-					if (person.year) collegeYearParts.push(`'${String(person.year).slice(-2)}`);
-					const collegeYearText = collegeYearParts.join(" \u00B7 ");
+					const collegeYearText = formatCollegeYear(person);
+					const hometownText = formatHometown(person);
+					const birthdayText = formatBirthday(person);
+					const birthdayToday = isBirthdayToday(person);
 
 					const detailRows = [
 						collegeYearText && (
@@ -66,17 +80,21 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 								<span>{person.major}</span>
 							</div>
 						),
-						person.email && (
-							<div key="email" className={gridStyles.row}>
-								<FontAwesomeIcon icon={faEnvelope} />
-								<a href={`mailto:${person.email}`} onClick={e => e.stopPropagation()}>{person.email}</a>
+						hometownText && (
+							<div key="hometown" className={gridStyles.row}>
+								<FontAwesomeIcon icon={faHouse} />
+								<span>{hometownText}</span>
+							</div>
+						),
+						birthdayText && (
+							<div key="birthday" className={`${gridStyles.row} ${birthdayToday ? gridStyles.birthday_today : ""}`}>
+								<FontAwesomeIcon icon={faCake} />
+								<span>{birthdayText}</span>
 							</div>
 						),
 					];
 
-					const footerItems: React.ReactNode[] = [];
-					if (person.netid) footerItems.push(<CopyableText key="netid" text={person.netid} />);
-					if (person.upi) footerItems.push(<CopyableText key="upi" text={person.upi.toString()} />);
+					const hasFooter = person.email || person.user_profile?.linkedin_url || person.user_profile?.instagram_url;
 
 					return (
 						<div
@@ -95,19 +113,44 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 								/>
 								<div className={gridStyles.details}>
 									<div className={gridStyles.name_row}>
-										<h3 className={gridStyles.name}>{person.last_name}, {person.first_name}</h3>
+										<h3 className={gridStyles.name}>{person.first_name} {person.last_name}</h3>
 									</div>
 									{detailRows}
 								</div>
 							</div>
-							{footerItems.length > 0 && (
+							{hasFooter && (
 								<div className={gridStyles.card_footer}>
-									{footerItems.map((item, i) => (
-										<Fragment key={i}>
-											{i > 0 && <span className={gridStyles.separator}>&middot;</span>}
-											{item}
-										</Fragment>
-									))}
+									{person.email && (
+										<EmailCopyButton
+											className={gridStyles.email_link}
+											email={person.email}
+											stopPropagation
+										/>
+									)}
+									<div className={gridStyles.card_socials}>
+										{person.user_profile?.linkedin_url && (
+											<a
+												href={person.user_profile.linkedin_url}
+												target="_blank"
+												rel="noopener noreferrer"
+												onClick={e => e.stopPropagation()}
+												aria-label="LinkedIn"
+											>
+												<FontAwesomeIcon icon={faLinkedin as IconProp} />
+											</a>
+										)}
+										{person.user_profile?.instagram_url && (
+											<a
+												href={person.user_profile.instagram_url}
+												target="_blank"
+												rel="noopener noreferrer"
+												onClick={e => e.stopPropagation()}
+												aria-label="Instagram"
+											>
+												<FontAwesomeIcon icon={faInstagram as IconProp} />
+											</a>
+										)}
+									</div>
 								</div>
 							)}
 						</div>

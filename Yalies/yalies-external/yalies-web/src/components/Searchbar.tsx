@@ -15,18 +15,31 @@ export type Suggestion = {
 	school?: string;
 };
 
+export type SearchMode = "full_name" | "first_name" | "last_name" | "initials";
+
+function formatSuggestionDetails(suggestion: Suggestion) {
+	if (!suggestion.college || !suggestion.year) return "";
+	return `${suggestion.college} '${String(suggestion.year).slice(-2)}`;
+}
+
 export default function Searchbar({
 	value,
 	onChange,
 	onClear,
 	onSubmit,
 	onSelectPerson,
+	searchMode = "full_name",
+	onSearchModeChange,
+	wrapperClassName,
 }: {
 	value: string;
 	onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 	onClear?: () => void;
 	onSubmit: () => void;
 	onSelectPerson?: (netid: string, school?: string) => void;
+	searchMode?: SearchMode;
+	onSearchModeChange?: (mode: SearchMode) => void;
+	wrapperClassName?: string;
 }) {
 	const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 	const [showSuggestions, setShowSuggestions] = useState(false);
@@ -80,8 +93,8 @@ export default function Searchbar({
 				return;
 			}
 			const data: Suggestion[] = await response.json();
-			setSuggestions(data);
-			setShowSuggestions(data.length > 0);
+			setSuggestions(data.slice(0, 5));
+			setShowSuggestions(true);
 			setSelectedIndex(-1);
 		} catch (e) {
 			if ((e as Error).name !== "AbortError") {
@@ -131,43 +144,54 @@ export default function Searchbar({
 			return;
 		}
 
-		switch (e.key) {
-			case "ArrowDown":
-				e.preventDefault();
-				setSelectedIndex((prev) =>
-					prev < suggestions.length - 1 ? prev + 1 : 0
-				);
-				break;
-			case "ArrowUp":
-				e.preventDefault();
-				setSelectedIndex((prev) =>
-					prev > 0 ? prev - 1 : suggestions.length - 1
-				);
-				break;
-			case "Enter":
-				e.preventDefault();
-				if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-					handleSelect(suggestions[selectedIndex]);
-				} else {
-					onSubmit();
-					setShowSuggestions(false);
-				}
-				break;
-			case "Escape":
+		if (e.key === "ArrowDown") {
+			e.preventDefault();
+			setSelectedIndex((prev) =>
+				prev < suggestions.length - 1 ? prev + 1 : 0
+			);
+			return;
+		}
+
+		if (e.key === "ArrowUp") {
+			e.preventDefault();
+			setSelectedIndex((prev) =>
+				prev > 0 ? prev - 1 : suggestions.length - 1
+			);
+			return;
+		}
+
+		if (e.key === "Enter") {
+			e.preventDefault();
+			if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+				handleSelect(suggestions[selectedIndex]);
+			} else {
+				onSubmit();
 				setShowSuggestions(false);
-				setSelectedIndex(-1);
-				break;
+			}
+			return;
+		}
+
+		if (e.key === "Escape") {
+			setShowSuggestions(false);
+			setSelectedIndex(-1);
 		}
 	};
 
 	const handleFocus = () => {
-		if (suggestions.length > 0 && value.trim().length >= 2) {
+		if (value.trim().length >= 2) {
 			setShowSuggestions(true);
 		}
 	};
 
+	const searchModeOptions: { mode: SearchMode; label: string }[] = [
+		{ mode: "full_name", label: "Search full name" },
+		{ mode: "first_name", label: "Search first name" },
+		{ mode: "last_name", label: "Search last name" },
+		{ mode: "initials", label: "Search initials" },
+	];
+
 	return (
-		<div id={styles.search_wrapper} ref={wrapperRef}>
+		<div className={`${styles.search_wrapper} ${wrapperClassName ?? ""}`} ref={wrapperRef}>
 			<div className={styles.search_input_container}>
 				<input
 					className={styles.search_input}
@@ -196,52 +220,67 @@ export default function Searchbar({
 					<div className={styles.loading_indicator} />
 				)}
 			</div>
-			{showSuggestions && suggestions.length > 0 && (
+			{showSuggestions && value.trim().length >= 2 && (
 				<div className={styles.suggestions_dropdown}>
-					{suggestions.map((suggestion, index) => (
-						<div
-							key={suggestion.netid}
-							className={`${styles.suggestion_item} ${index === selectedIndex ? styles.selected : ""}`}
-							onMouseDown={(e) => {
-								e.preventDefault();
-								handleSelect(suggestion);
-							}}
-							onMouseEnter={() => {
-							setSelectedIndex(index);
-							prefetchPerson(suggestion.netid);
-						}}
-						>
-							<img
-								className={styles.suggestion_image}
-								src={suggestion.image || "/no_image.png"}
-								alt=""
-								loading="lazy"
-								decoding="async"
-							/>
-							<div className={styles.suggestion_info}>
-								<span className={styles.suggestion_name}>
-									{suggestion.first_name} {suggestion.last_name}
-								</span>
-								<span className={styles.suggestion_details}>
-									{[
-										suggestion.college,
-										suggestion.year && `'${String(suggestion.year).slice(-2)}`,
-										!suggestion.college && suggestion.school,
-									].filter(Boolean).join(" · ")}
-								</span>
-							</div>
+					{onSearchModeChange && (
+						<div className={styles.search_mode_options}>
+							{searchModeOptions.map(({ mode, label }) => (
+								<button
+									key={mode}
+									type="button"
+									className={`${styles.search_mode_option} ${searchMode === mode ? styles.active : ""}`}
+									onMouseDown={(e) => {
+										e.preventDefault();
+										onSearchModeChange(mode);
+										setShowSuggestions(false);
+									}}
+								>
+									{label}
+								</button>
+							))}
 						</div>
-					))}
-					<div
-						className={styles.suggestion_footer}
-						onMouseDown={(e) => {
-							e.preventDefault();
-							onSubmit();
-							setShowSuggestions(false);
-						}}
-					>
-						Search for &ldquo;{value.trim()}&rdquo;
-					</div>
+					)}
+					{suggestions.length > 0 && (
+						<>
+							{suggestions.map((suggestion, index) => (
+								<div
+									key={suggestion.netid}
+									className={`${styles.suggestion_item} ${index === selectedIndex ? styles.selected : ""}`}
+									onMouseDown={(e) => {
+										e.preventDefault();
+										handleSelect(suggestion);
+									}}
+									onMouseEnter={() => {
+										setSelectedIndex(index);
+										prefetchPerson(suggestion.netid);
+									}}
+								>
+									<img
+										className={styles.suggestion_image}
+										src={suggestion.image || "/no_image.png"}
+										alt=""
+										loading="lazy"
+										decoding="async"
+									/>
+									<div className={styles.suggestion_info}>
+										<span className={styles.suggestion_name}>
+											{suggestion.first_name} {suggestion.last_name}
+										</span>
+										{formatSuggestionDetails(suggestion) && (
+											<span className={styles.suggestion_details}>
+												{formatSuggestionDetails(suggestion)}
+											</span>
+										)}
+									</div>
+								</div>
+							))}
+						</>
+					)}
+					{!isLoading && suggestions.length === 0 && (
+						<div className={styles.no_suggestions}>
+							No matching suggestions
+						</div>
+					)}
 				</div>
 			)}
 		</div>

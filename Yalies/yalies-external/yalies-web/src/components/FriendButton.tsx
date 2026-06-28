@@ -12,15 +12,13 @@ type FriendStatus = "none" | "pending_sent" | "pending_received" | "accepted";
 export default function FriendButton({
 	netid,
 	initialStatus,
-	initialCount,
 }: {
 	netid: string;
 	initialStatus?: string;
 	initialCount?: number;
 }) {
-	const hasInitialData = initialStatus !== undefined && initialCount !== undefined;
+	const hasInitialData = initialStatus !== undefined;
 	const [status, setStatus] = useState<FriendStatus>((initialStatus as FriendStatus) ?? "none");
-	const [count, setCount] = useState(initialCount ?? 0);
 	const [loading, setLoading] = useState(!hasInitialData);
 
 	useEffect(() => {
@@ -35,7 +33,6 @@ export default function FriendButton({
 				if(response.ok) {
 					const data = await response.json();
 					setStatus(data.status);
-					setCount(data.count);
 				}
 			} catch(e) {
 				console.error(e);
@@ -59,7 +56,6 @@ export default function FriendButton({
 			if(response.ok) {
 				const data = await response.json();
 				setStatus(data.status);
-				setCount(data.count);
 			} else {
 				setStatus("none");
 			}
@@ -72,7 +68,6 @@ export default function FriendButton({
 	const acceptRequest = async () => {
 		if(loading) return;
 		setStatus("accepted");
-		setCount(prev => prev + 1);
 
 		try {
 			const response = await fetch(`${API_URL}${API.friendsAccept(netid)}`, {
@@ -83,15 +78,12 @@ export default function FriendButton({
 			if(response.ok) {
 				const data = await response.json();
 				setStatus(data.status);
-				setCount(data.count);
 			} else {
 				setStatus("pending_received");
-				setCount(prev => prev - 1);
 			}
 		} catch(e) {
 			console.error(e);
 			setStatus("pending_received");
-			setCount(prev => prev - 1);
 		}
 	};
 
@@ -108,7 +100,6 @@ export default function FriendButton({
 			if(response.ok) {
 				const data = await response.json();
 				setStatus(data.status);
-				setCount(data.count);
 			} else {
 				setStatus("pending_received");
 			}
@@ -121,7 +112,6 @@ export default function FriendButton({
 	const removeFriend = async () => {
 		if(loading) return;
 		setStatus("none");
-		setCount(prev => prev - 1);
 
 		try {
 			const response = await fetch(`${API_URL}${API.friendsRemove(netid)}`, {
@@ -132,15 +122,12 @@ export default function FriendButton({
 			if(response.ok) {
 				const data = await response.json();
 				setStatus(data.status);
-				setCount(data.count);
 			} else {
 				setStatus("accepted");
-				setCount(prev => prev + 1);
 			}
 		} catch(e) {
 			console.error(e);
 			setStatus("accepted");
-			setCount(prev => prev + 1);
 		}
 	};
 
@@ -148,16 +135,27 @@ export default function FriendButton({
 		return (
 			<div className={styles.friend_container}>
 				<div className={styles.request_actions}>
-					<button className={`${styles.friend_button} ${styles.accept}`} onClick={acceptRequest} disabled={loading}>
+					<button
+						className={`${styles.friend_button} ${styles.accept}`}
+						onClick={acceptRequest}
+						disabled={loading}
+						aria-label="Accept friend"
+						title="Accept friend"
+					>
 						<FontAwesomeIcon icon={faUserCheck} className={styles.icon} />
-						<span>Accept</span>
+						<span className={styles.tooltip}>Accept friend</span>
 					</button>
-					<button className={`${styles.friend_button} ${styles.decline}`} onClick={declineRequest} disabled={loading}>
+					<button
+						className={`${styles.friend_button} ${styles.decline}`}
+						onClick={declineRequest}
+						disabled={loading}
+						aria-label="Decline friend"
+						title="Decline friend"
+					>
 						<FontAwesomeIcon icon={faUserXmark} className={styles.icon} />
-						<span>Decline</span>
+						<span className={styles.tooltip}>Decline friend</span>
 					</button>
 				</div>
-				<span className={styles.count}>{count} {count === 1 ? "friend" : "friends"}</span>
 			</div>
 		);
 	}
@@ -165,11 +163,11 @@ export default function FriendButton({
 	const getButtonContent = () => {
 		switch(status) {
 			case "none":
-				return { icon: faUserPlus, text: "Add Friend", onClick: sendRequest, className: "" };
+				return { icon: faUserPlus, text: "Add friend", onClick: sendRequest, className: "" };
 			case "pending_sent":
 				return { icon: faUserClock, text: "Requested", onClick: () => {}, className: styles.pending };
 			case "accepted":
-				return { icon: faUserCheck, text: "Friends", onClick: removeFriend, className: styles.accepted };
+				return { icon: faUserCheck, text: "Remove friend", onClick: removeFriend, className: styles.accepted };
 		}
 	};
 
@@ -181,11 +179,12 @@ export default function FriendButton({
 				className={`${styles.friend_button} ${btn.className}`}
 				onClick={btn.onClick}
 				disabled={loading}
+				aria-label={btn.text}
+				title={btn.text}
 			>
 				<FontAwesomeIcon icon={btn.icon} className={styles.icon} />
-				<span>{btn.text}</span>
+				<span className={styles.tooltip}>{btn.text}</span>
 			</button>
-			<span className={styles.count}>{count} {count === 1 ? "friend" : "friends"}</span>
 		</div>
 	);
 }

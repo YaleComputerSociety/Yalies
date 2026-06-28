@@ -40,11 +40,15 @@
 }
 
 #topbar {
-	background: linear-gradient(180deg, #f5f8fb 0%, shared.$card-background-color 100%);
-	border-bottom: 1px solid rgba(0, 53, 107, 0.08);
-	padding: 10px 8px;
+	position: sticky;
+	top: 0;
+	z-index: 2000;
+	width: 100%;
+	background: shared.$card-background-color;
+	border-bottom: 1px solid shared.$border-color;
+	box-shadow: shared.$shadow-sm;
 
 	@include shared.small-mobile() {
-		padding: 8px 4px;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 	}
 }

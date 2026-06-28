@@ -1,39 +1,79 @@
 @use "../_shared.scss" as shared;
 
+:root {
+	color-scheme: light;
+	--color-background: #f3f4f6;
+	--color-background-disabled: #e5e7eb;
+	--color-surface: #ffffff;
+	--color-surface-active: #f8fafc;
+	--color-muted: #eef0f3;
+	--color-text: #1a1a2e;
+	--color-text-secondary: #64748b;
+	--color-primary: #00356b;
+	--color-primary-light: #0d4a8a;
+	--color-primary-hover: #002548;
+	--color-primary-subdued: rgba(0, 53, 107, 0.06);
+	--color-primary-rgb: 0, 53, 107;
+	--color-border: #dde1e7;
+	--color-shadow: rgba(0, 0, 0, 0.08);
+	--color-chip-primary-fg: #00356b;
+	--color-chip-primary-bg: rgba(0, 53, 107, 0.07);
+	--color-chip-primary-border: rgba(0, 53, 107, 0.15);
+	--color-chip-secondary-fg: #64748b;
+	--color-chip-secondary-bg: #64748b12;
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+	--shadow-xl: 0 8px 30px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--color-background: #15181d;
+	--color-background-disabled: #252b33;
+	--color-surface: #1f242b;
+	--color-surface-active: #29313a;
+	--color-muted: #2a3038;
+	--color-text: #edf2f7;
+	--color-text-secondary: #a7b0bd;
+	--color-primary: #78b7ff;
+	--color-primary-light: #a4ccff;
+	--color-primary-hover: #d2e7ff;
+	--color-primary-subdued: rgba(120, 183, 255, 0.14);
+	--color-primary-rgb: 120, 183, 255;
+	--color-border: #39424d;
+	--color-shadow: rgba(0, 0, 0, 0.32);
+	--color-chip-primary-fg: #a4ccff;
+	--color-chip-primary-bg: rgba(120, 183, 255, 0.16);
+	--color-chip-primary-border: rgba(120, 183, 255, 0.28);
+	--color-chip-secondary-fg: #a7b0bd;
+	--color-chip-secondary-bg: rgba(167, 176, 189, 0.12);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.22);
+	--shadow-md: 0 2px 8px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.18);
+	--shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.34), 0 2px 4px rgba(0, 0, 0, 0.20);
+	--shadow-xl: 0 8px 30px rgba(0, 0, 0, 0.44), 0 4px 8px rgba(0, 0, 0, 0.24);
+}
+
 h1, h2, h3, h4, h5, h6, p {
     margin: 0;
     padding: 0;
 }
 
 html {
-	overflow-x: hidden;
+	overflow-x: clip;
+	background-color: shared.$background-color;
 }
 
 body {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     color: shared.$foreground-color;
-    background-color: shared.$background-color;
+	background-color: shared.$background-color;
 	margin: 0;
-	overflow-x: hidden;
-	overflow-y: auto;
+	overflow-x: clip;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	-webkit-text-size-adjust: 100%;
-
-	&::after {
-		content: '';
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-image: url('/logo.png');
-		background-size: 50px 50px;
-		background-repeat: repeat;
-		opacity: 0.028;
-		pointer-events: none;
-		z-index: 0;
-	}
+	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 a {
@@ -41,6 +81,6 @@ a {
 }
 
 ::selection {
-	background-color: rgba(shared.$accent-color, 0.12);
+	background-color: rgba(var(--color-primary-rgb), 0.18);
 	color: shared.$accent-color;
 }

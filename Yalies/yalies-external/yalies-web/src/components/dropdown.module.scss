@@ -2,20 +2,29 @@
 
 .dropdown_container {
 	position: relative;
+
+	@include shared.tablet() {
+		width: 100%;
+	}
+
+	@include shared.responsive() {
+		width: 100%;
+	}
 }
 
 .dropdown_button {
-	font-size: 13px;
-	background: none;
+	font-size: 12px;
+	background: transparent;
 	border: 0;
-	padding: 6px 10px;
+	padding: 5px 0;
 	display: flex;
-	gap: 8px;
+	gap: 7px;
 	align-items: center;
 	font-family: inherit;
-	border-radius: shared.$border-radius-standard;
+	border-radius: 4px;
 	cursor: pointer;
-	color: shared.$secondary-color;
+	color: shared.$foreground-color;
+	font-weight: 400;
 	transition: background-color 0.15s ease, color 0.15s ease;
 	svg {
 		height: 10px;
@@ -23,20 +32,51 @@
 		transition: color 0.15s ease;
 	}
 	&.selected {
-		color: shared.$card-background-color;
-		background-color: shared.$accent-color;
-		font-weight: 500;
+		color: shared.$accent-color;
+		background-color: transparent;
+		font-weight: 400;
 		svg {
 			height: 9px;
-			color: shared.$card-background-color;
+			color: shared.$secondary-color;
 		}
 	}
 	&:hover:not(.selected) {
-		background-color: shared.$accent-color-soft;
 		color: shared.$accent-color;
 	}
 	&.active:not(.selected) {
-		background-color: shared.$accent-color-soft;
+		color: shared.$accent-color;
+	}
+
+	@include shared.tablet() {
+		width: 100%;
+		min-height: 46px;
+		justify-content: space-between;
+		padding: 0 14px;
+		border: 1px solid shared.$border-color;
+		border-radius: 9px;
+		background: shared.$card-background-color;
+		font-size: 15px;
+
+		&.selected {
+			background: shared.$accent-color-soft;
+			border-color: rgba(37, 99, 235, 0.28);
+		}
+	}
+
+	@include shared.responsive() {
+		width: 100%;
+		min-height: 46px;
+		justify-content: space-between;
+		padding: 0 14px;
+		border: 1px solid shared.$border-color;
+		border-radius: 9px;
+		background: shared.$card-background-color;
+		font-size: 15px;
+
+		&.selected {
+			background: shared.$accent-color-soft;
+			border-color: rgba(37, 99, 235, 0.28);
+		}
 	}
 }
 

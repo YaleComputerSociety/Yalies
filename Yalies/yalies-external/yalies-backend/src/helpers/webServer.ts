@@ -15,8 +15,6 @@ import APIKeyRouter from "./routes/apiKeyRouter.js";
 import UserProfileRouter from "./routes/userProfileRouter.js";
 import ProfileLikeRouter from "./routes/profileLikeRouter.js";
 import FriendshipRouter from "./routes/friendshipRouter.js";
-
-import CommunityPostsRouter from "./routes/communityPostsRouter.js";
 import Elasticsearch from "./elasticsearch.js";
 import { API_ROUTES } from "yalies-shared";
 import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
@@ -132,9 +130,6 @@ export default class WebServer {
 
 		const friendshipRouter = new FriendshipRouter();
 		this.#app.use(API_ROUTES.friends, friendshipRouter.getRouter());
-
-		const communityPostsRouter = new CommunityPostsRouter();
-		this.#app.use(API_ROUTES.community, communityPostsRouter.getRouter());
 
 		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthenticationSessionOnly, requireAdmin, (_req, res) => {
 			res.json({ enabled: isFacecheckEnabled() });

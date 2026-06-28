@@ -21,15 +21,15 @@
 }
 
 .modal {
-	background: linear-gradient(180deg, #f0f4f8 0%, #ffffff 15%);
+	background: shared.$card-background-color;
 	border-radius: 16px;
 	padding: 32px;
 	width: 620px;
 	max-width: 90vw;
 	max-height: 85vh;
 	overflow-y: auto;
-	box-shadow: 0 8px 40px rgba(0, 53, 107, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
-	border: 1px solid rgba(0, 53, 107, 0.10);
+	box-shadow: shared.$shadow-xl;
+	border: 1px solid shared.$border-color;
 	position: relative;
 	transform: scale(0.95);
 	opacity: 0;
@@ -107,7 +107,7 @@
 }
 
 .section {
-	border-top: 1px solid rgba(0, 53, 107, 0.08);
+	border-top: 1px solid shared.$border-color;
 	padding-top: 16px;
 
 	&:first-child {
@@ -162,7 +162,7 @@
 	gap: 12px;
 	margin-top: 24px;
 	padding-top: 20px;
-	border-top: 1px solid rgba(0, 53, 107, 0.08);
+	border-top: 1px solid shared.$border-color;
 
 	@include shared.small-mobile() {
 		flex-direction: column;
