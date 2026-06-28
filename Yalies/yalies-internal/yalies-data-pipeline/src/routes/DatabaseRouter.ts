@@ -1,14 +1,14 @@
-import { Router, Request, Response } from "express";
-import { Sequelize, QueryTypes } from "sequelize";
+import { Router, Request, Response, NextFunction } from "express";
+import { Sequelize, QueryTypes, Transaction } from "sequelize";
 import multer from "multer";
 import { Storage } from "@google-cloud/storage";
-import path from "path";
 import { parseLocation } from "../parseLocation.js";
 import { YALE_COLLEGE, YALE_COLLEGE_CODE } from "yalies-shared";
 
 const GCS_BUCKET_NAME = "yalies-photos";
-const GCS_SERVICE_KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS
-	|| path.resolve(process.cwd(), "../../../.config/gcloud/service-key.json");
+// Use an explicit key file only when configured (local dev); otherwise rely on
+// Application Default Credentials (the runtime service account in the cloud).
+const GCS_KEY_FILENAME = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 const upload = multer({
 	storage: multer.memoryStorage(),
@@ -19,17 +19,29 @@ const upload = multer({
 	},
 });
 
+// Translate multer rejections (oversized / non-image) into JSON responses.
+const uploadPhotoMiddleware = (req: Request, res: Response, next: NextFunction) => {
+	upload.single("photo")(req, res, (err: unknown) => {
+		if (err instanceof multer.MulterError) {
+			if (err.code === "LIMIT_FILE_SIZE") return res.status(413).json({ error: "Photo must be under 5MB" });
+			return res.status(400).json({ error: err.message });
+		}
+		if (err instanceof Error) return res.status(415).json({ error: err.message });
+		return next();
+	});
+};
+
 export default class DatabaseRouter {
 	#router: Router;
 	#gcs: Storage;
 
 	constructor() {
-		this.#gcs = new Storage({ keyFilename: GCS_SERVICE_KEY });
+		this.#gcs = new Storage(GCS_KEY_FILENAME ? { keyFilename: GCS_KEY_FILENAME } : {});
 		this.#router = Router();
 		this.#router.get("/overview", this.#overview);
 		this.#router.get("/students", this.#students);
 		this.#router.put("/students/:id", this.#updateStudent);
-		this.#router.post("/students/:id/photo", upload.single("photo"), this.#uploadStudentPhoto);
+		this.#router.post("/students/:id/photo", uploadPhotoMiddleware, this.#uploadStudentPhoto);
 		this.#router.get("/students/:id/photo/download", this.#downloadStudentPhoto);
 		this.#router.delete("/students/:id", this.#deleteStudent);
 		this.#router.post("/compute-locations", this.#computeLocations);
@@ -61,13 +73,13 @@ export default class DatabaseRouter {
 				}>(
 					`SELECT
 						COUNT(*) as total,
-						COUNT(*) FILTER (WHERE school = '${YALE_COLLEGE}' OR school_code = '${YALE_COLLEGE_CODE}') as yc,
+						COUNT(*) FILTER (WHERE school = :yc OR school_code = :ycCode) as yc,
 						COUNT(*) FILTER (WHERE netid IS NOT NULL) as with_netid,
 						COUNT(*) FILTER (WHERE email IS NOT NULL) as with_email,
 						COUNT(*) FILTER (WHERE image IS NOT NULL) as with_image,
 						COUNT(*) FILTER (WHERE address_country IS NOT NULL) as with_location
 					FROM person`,
-					{ type: QueryTypes.SELECT },
+					{ type: QueryTypes.SELECT, replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 				),
 			]);
 
@@ -171,8 +183,11 @@ export default class DatabaseRouter {
 				replacements.college = college;
 			}
 			if (year) {
-				conditions.push("p.year = :year");
-				replacements.year = parseInt(year);
+				const y = parseInt(year, 10);
+				if (!Number.isNaN(y)) {
+					conditions.push("p.year = :year");
+					replacements.year = y;
+				}
 			}
 			if (school) {
 				conditions.push("p.school = :school");
@@ -202,7 +217,7 @@ export default class DatabaseRouter {
 						ELSE 2
 					END,
 					p.last_name, p.first_name`
-				: `ORDER BY p.last_name, p.first_name`;
+				: "ORDER BY p.last_name, p.first_name";
 
 			const students = await sequelize.query<Record<string, unknown>>(
 				`SELECT p.*,
@@ -278,7 +293,7 @@ export default class DatabaseRouter {
 			const hasProfileUpdate = profileFields.some((f) => f in req.body);
 			if (hasProfileUpdate) {
 				const [person] = await sequelize.query<{ netid: string }>(
-					`SELECT netid FROM person WHERE id = :id`,
+					"SELECT netid FROM person WHERE id = :id",
 					{ type: QueryTypes.SELECT, replacements: { id } },
 				);
 				if (person?.netid) {
@@ -307,7 +322,7 @@ export default class DatabaseRouter {
 					}
 
 					const classesPg = classesVal
-						? `{${classesVal.map((s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",")}}`
+						? `{${classesVal.map((s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`).join(",")}}`
 						: null;
 
 					await sequelize.query(
@@ -356,34 +371,30 @@ export default class DatabaseRouter {
 			if (isNaN(id)) { res.status(400).send("Invalid id"); return; }
 
 			const [person] = await sequelize.query<{ image: string | null; netid: string | null }>(
-				`SELECT image, netid FROM person WHERE id = :id`,
+				"SELECT image, netid FROM person WHERE id = :id",
 				{ type: QueryTypes.SELECT, replacements: { id } },
 			);
 			if (!person) { res.status(404).send("Student not found"); return; }
 
-			// Derive GCS filename from existing image URL, or fall back to netid/id
-			let filename: string;
+			// Reuse the existing object name when it's a clean bucket object,
+			// otherwise fall back to a deterministic per-student name.
+			let filename = `${person.netid || id}.jpg`;
 			if (person.image) {
-				const urlParts = person.image.split("/");
-				filename = urlParts[urlParts.length - 1];
-			} else {
-				filename = `${person.netid || id}.jpg`;
+				const candidate = person.image.split("?")[0].split("/").pop() ?? "";
+				if (/^[\w.-]+\.(jpe?g|png|webp)$/i.test(candidate)) filename = candidate;
 			}
 
 			const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
 			const file = bucket.file(filename);
-			await file.save(req.file.buffer, { contentType: req.file.mimetype });
+			await file.save(req.file.buffer, { contentType: req.file.mimetype, metadata: { cacheControl: "no-store" } });
 
-			// Set image URL if it wasn't set
 			const imageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${filename}`;
-			if (!person.image) {
-				await sequelize.query(
-					`UPDATE person SET image = :image WHERE id = :id`,
-					{ type: QueryTypes.UPDATE, replacements: { image: imageUrl, id } },
-				);
-			}
+			await sequelize.query(
+				"UPDATE person SET image = :image WHERE id = :id",
+				{ type: QueryTypes.UPDATE, replacements: { image: imageUrl, id } },
+			);
 
-			res.json({ image: person.image || imageUrl });
+			res.json({ image: `${imageUrl}?v=${Date.now()}` });
 		} catch (e) {
 			console.error("Upload photo error:", e);
 			res.status(500).send(`Failed to upload photo: ${(e as Error).message}`);
@@ -400,7 +411,7 @@ export default class DatabaseRouter {
 			if (isNaN(id)) { res.status(400).send("Invalid id"); return; }
 
 			const [person] = await sequelize.query<{ image: string | null; first_name: string; last_name: string }>(
-				`SELECT image, first_name, last_name FROM person WHERE id = :id`,
+				"SELECT image, first_name, last_name FROM person WHERE id = :id",
 				{ type: QueryTypes.SELECT, replacements: { id } },
 			);
 			if (!person?.image) { res.status(404).send("No photo found"); return; }
@@ -431,7 +442,7 @@ export default class DatabaseRouter {
 			if (isNaN(id)) { res.status(400).send("Invalid id"); return; }
 
 			await sequelize.query(
-				`DELETE FROM person WHERE id = :id`,
+				"DELETE FROM person WHERE id = :id",
 				{ type: QueryTypes.DELETE, replacements: { id } },
 			);
 
@@ -468,7 +479,7 @@ export default class DatabaseRouter {
 			send({ type: "progress", message: "Fetching all addresses..." });
 
 			const rows = await sequelize.query<{ id: number; address: string | null }>(
-				`SELECT id, address FROM person`,
+				"SELECT id, address FROM person",
 				{ type: QueryTypes.SELECT },
 			);
 
@@ -489,7 +500,7 @@ export default class DatabaseRouter {
 					const { address_state, address_country } = parseLocation(row.address);
 
 					await sequelize.query(
-						`UPDATE person SET address_state = :state, address_country = :country WHERE id = :id`,
+						"UPDATE person SET address_state = :state, address_country = :country WHERE id = :id",
 						{
 							type: QueryTypes.UPDATE,
 							replacements: {
@@ -553,7 +564,7 @@ export default class DatabaseRouter {
 
 			const [[countResult]] = await Promise.all([
 				sequelize.query<{ count: string }>(
-					`SELECT COUNT(*) as count FROM data_change_request WHERE status = :status`,
+					"SELECT COUNT(*) as count FROM data_change_request WHERE status = :status",
 					{ type: QueryTypes.SELECT, replacements: { status } },
 				),
 			]);
@@ -572,7 +583,7 @@ export default class DatabaseRouter {
 			// Also return total pending count for badge display
 			const [[pendingCount]] = await Promise.all([
 				sequelize.query<{ count: string }>(
-					`SELECT COUNT(*) as count FROM data_change_request WHERE status = 'pending'`,
+					"SELECT COUNT(*) as count FROM data_change_request WHERE status = 'pending'",
 					{ type: QueryTypes.SELECT },
 				),
 			]);
@@ -594,6 +605,7 @@ export default class DatabaseRouter {
 
 	#resolveChangeRequest = async (req: Request, res: Response): Promise<void> => {
 		let sequelize: Sequelize | undefined;
+		let transaction: Transaction | undefined;
 		try {
 			sequelize = this.#getSequelize();
 			const id = parseInt(req.params.id as string);
@@ -619,8 +631,12 @@ export default class DatabaseRouter {
 			if (!request) { res.status(404).send("Request not found"); return; }
 			if (request.status !== "pending") { res.status(409).send("Request already resolved"); return; }
 
+			transaction = await sequelize.transaction();
+
 			if (status === "approved") {
-				const changes = modified_changes || request.requested_changes;
+				const changes = (modified_changes && Object.keys(modified_changes).length > 0)
+					? modified_changes
+					: request.requested_changes;
 
 				const ALLOWED_FIELDS = [
 					"netid", "upi", "email", "mailbox", "phone", "fax",
@@ -650,12 +666,12 @@ export default class DatabaseRouter {
 				if (sets.length > 0) {
 					await sequelize.query(
 						`UPDATE person SET ${sets.join(", ")} WHERE netid = :target_netid`,
-						{ type: QueryTypes.UPDATE, replacements },
+						{ type: QueryTypes.UPDATE, replacements, transaction },
 					);
 				}
 			}
 
-			// Update the request status
+			// Update the request status (atomic with the person update above)
 			await sequelize.query(
 				`UPDATE data_change_request
 				SET status = :status, admin_notes = :admin_notes,
@@ -667,18 +683,24 @@ export default class DatabaseRouter {
 						id,
 						status,
 						admin_notes: admin_notes || null,
-						resolved_by: (req as any).netid || "admin",
+						resolved_by: req.netid || "admin",
 					},
+					transaction,
 				},
 			);
 
+			await transaction.commit();
+
 			const [updated] = await sequelize.query<Record<string, unknown>>(
-				`SELECT * FROM data_change_request WHERE id = :id`,
+				"SELECT * FROM data_change_request WHERE id = :id",
 				{ type: QueryTypes.SELECT, replacements: { id } },
 			);
 
 			res.json(updated);
 		} catch (e) {
+			if (transaction) {
+				try { await transaction.rollback(); } catch { /* already committed or connection closed */ }
+			}
 			console.error("Resolve change request error:", e);
 			res.status(500).send(`Failed to resolve change request: ${(e as Error).message}`);
 		} finally {

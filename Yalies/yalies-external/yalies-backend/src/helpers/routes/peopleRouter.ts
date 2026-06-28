@@ -12,8 +12,58 @@ const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
 const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
 
-function getCacheKey(query: string, filters: Record<string, unknown>, page: number, pageSize: number): string {
-	return JSON.stringify({ query, filters, page, pageSize });
+function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, page: number, pageSize: number): string {
+	// netid is part of the key because the cached payload embeds per-user state
+	// (liked_by_me, directional friend status) — sharing it across users leaks data.
+	return JSON.stringify({ netid, query, filters, page, pageSize });
+}
+
+type SearchMode = "default" | "full_name" | "first_name" | "last_name" | "initials";
+type SyntheticFilterField = "is_friend" | "birthday";
+
+const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_friend", "birthday"]);
+const BIRTHDAY_FILTER_DAYS: Record<string, number> = {
+	today: 0,
+	next_3_days: 3,
+	next_1_week: 7,
+	next_2_weeks: 14,
+};
+
+function isSearchMode(value: unknown): value is SearchMode {
+	return value === "default" || value === "full_name" || value === "first_name" || value === "last_name" || value === "initials";
+}
+
+function getFilterValues(filters: Record<string, unknown>, field: string): string[] {
+	const value = filters[field];
+	if(value == null) return [];
+	return (Array.isArray(value) ? value : [value])
+		.map((v) => String(v))
+		.filter(Boolean);
+}
+
+function andWhere(where: WhereOptions<PersonModel>, condition: WhereOptions<PersonModel>): WhereOptions<PersonModel> {
+	if(Object.keys(where).length === 0) return condition;
+	return { [Op.and]: [where, condition] };
+}
+
+function buildBirthdayWhere(values: string[]): WhereOptions<PersonModel> | null {
+	const maxDays = Math.max(...values.map(value => BIRTHDAY_FILTER_DAYS[value] ?? -1));
+	if(maxDays < 0) return null;
+
+	const dates = new Map<string, { birth_month: number; birth_day: number }>();
+	for(let offset = 0; offset <= maxDays; offset++) {
+		const date = new Date();
+		date.setDate(date.getDate() + offset);
+		const birthday = {
+			birth_month: date.getMonth() + 1,
+			birth_day: date.getDate(),
+		};
+		dates.set(`${birthday.birth_month}-${birthday.birth_day}`, birthday);
+	}
+
+	return {
+		[Op.or]: [...dates.values()],
+	};
 }
 
 function pruneCache() {
@@ -176,6 +226,7 @@ export default class PeopleRouter {
 
 	getPeople = async (req: Request, res: Response) => {
 		const query = req.body.query || "";
+		const searchMode: SearchMode = isSearchMode(req.body.searchMode) ? req.body.searchMode : "default";
 		const filtersRaw = req.body.filters || {};
 		const page = req.body.page || 0;
 		const pageSize = req.body.page_size || 100;
@@ -185,7 +236,7 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const cacheKey = getCacheKey(query, filtersRaw, page, pageSize);
+		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, page, pageSize);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
 			return res.status(200).json(cached.data);
@@ -193,6 +244,7 @@ export default class PeopleRouter {
 
 		let where: WhereOptions<PersonModel> = {};
 		for(const field of Object.keys(filtersRaw)) {
+			if(SYNTHETIC_FILTER_FIELDS.has(field as SyntheticFilterField)) continue;
 			if(!(PERSON_ALLOWED_FILTER_FIELDS as readonly string[]).includes(field)) {
 				res.status(400).send(`Cannot filter by field ${field}`);
 				return;
@@ -228,9 +280,32 @@ export default class PeopleRouter {
 		let exactNetids: string[] = [];
 		let fuzzyNetids: string[] = [];
 
-		if(query) { 
+		if(query) {
+			if(searchMode === "first_name") {
+				where = {
+					...where,
+					[Op.or]: [
+						{ first_name: { [Op.iLike]: `%${query}%` } },
+						{ preferred_name: { [Op.iLike]: `%${query}%` } },
+					],
+				};
+			} else if(searchMode === "last_name") {
+				where = {
+					...where,
+					last_name: { [Op.iLike]: `%${query}%` },
+				};
+			} else if(searchMode === "initials") {
+				if(query.match(/^[a-z]{2}$/i)) {
+					where = {
+						...where,
+						...this.constructInitialsQuery(query),
+					};
+				} else {
+					res.status(200).json([]);
+					return;
+				}
 
-			if(query.match(/^[a-z]{2}$/i)) {
+			} else if(query.match(/^[a-z]{2}$/i)) {
 				where = {
 					...where,
 					...this.constructInitialsQuery(query),
@@ -258,6 +333,24 @@ export default class PeopleRouter {
 					};
 				}
 			}
+		}
+
+		const birthdayWhere = buildBirthdayWhere(getFilterValues(filtersRaw, "birthday"));
+		if(birthdayWhere) {
+			where = andWhere(where, birthdayWhere);
+		}
+
+		if(getFilterValues(filtersRaw, "is_friend").includes("true")) {
+			if(!req.netid) {
+				res.status(200).json([]);
+				return;
+			}
+			const friendNetids = await FriendshipModel.getFriends(req.netid);
+			if(friendNetids.length === 0) {
+				res.status(200).json([]);
+				return;
+			}
+			where = andWhere(where, { netid: { [Op.in]: friendNetids } });
 		}
 
 		let people: PersonModel[];
@@ -338,7 +431,7 @@ export default class PeopleRouter {
 		for (const netid of netids) {
 			const friendship = friendships.find(f =>
 				(f.requester_netid === currentUserNetid && f.requested_netid === netid) ||
-				(f.requester_netid === netid && f.requested_netid === currentUserNetid)
+				(f.requester_netid === netid && f.requested_netid === currentUserNetid),
 			);
 			let status: string = "none";
 			if (friendship) {

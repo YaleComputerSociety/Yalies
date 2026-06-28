@@ -1,6 +1,6 @@
 @use "../shared.scss";
 
-#search_wrapper {
+.search_wrapper {
 	position: relative;
 	flex: 0 1 auto;
 	min-width: 200px;
@@ -26,19 +26,21 @@
 
 .search_input {
 	font-family: inherit;
-	font-size: 14px;
-	border-radius: shared.$border-radius-full;
-	background-color: shared.$background-color;
+	font-size: 12px;
+	border-radius: 4px;
+	background-color: shared.$card-background-color;
 	color: shared.$foreground-color;
-	border: 1px solid shared.$border-color;
-	padding: 10px 38px 10px 18px;
-	width: 380px;
+	border: 2px solid shared.$border-color;
+	padding: 0 38px 0 14px;
+	width: 32vw;
+	max-width: 460px;
+	height: 38px;
 	outline: none;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 
 	&:focus {
-		border-color: #1a6db5;
-		box-shadow: 0 0 0 3px rgba(26, 109, 181, 0.15);
+		border-color: shared.$accent-color;
+		box-shadow: none;
 		background-color: shared.$card-background-color;
 	}
 
@@ -53,6 +55,10 @@
 
 	@include shared.responsive() {
 		width: 100%;
+		height: auto;
+		border-radius: shared.$border-radius-full;
+		border-width: 1px;
+		padding: 10px 38px 10px 18px;
 		box-sizing: border-box;
 	}
 
@@ -71,7 +77,7 @@
 	width: 22px;
 	height: 22px;
 	border: none;
-	background: shared.$border-color;
+	background: transparent;
 	color: shared.$secondary-color;
 	border-radius: 50%;
 	font-size: 14px;
@@ -81,8 +87,7 @@
 	transition: background-color 0.15s ease, color 0.15s ease;
 
 	&:hover {
-		background: shared.$secondary-color;
-		color: shared.$card-background-color;
+		color: shared.$accent-color;
 	}
 }
 
@@ -123,6 +128,36 @@
 	@include shared.small-mobile() {
 		left: 0;
 		right: 0;
+	}
+}
+
+.search_mode_options {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	border-bottom: 1px solid shared.$border-color;
+	background: rgba(0, 53, 107, 0.02);
+}
+
+.search_mode_option {
+	border: 1px solid transparent;
+	border-radius: 5px;
+	background: transparent;
+	color: shared.$foreground-color;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.2;
+	padding: 7px 8px;
+	text-align: left;
+	transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+
+	&:hover, &.active {
+		background: shared.$accent-color-soft;
+		border-color: rgba(0, 53, 107, 0.10);
+		color: shared.$accent-color;
 	}
 }
 
@@ -171,17 +206,8 @@
 	text-overflow: ellipsis;
 }
 
-.suggestion_footer {
+.no_suggestions {
 	padding: 10px 16px;
-	font-size: 13px;
-	color: shared.$accent-color;
-	border-top: 1px solid shared.$border-color;
-	cursor: pointer;
-	text-align: center;
-	font-weight: 500;
-	transition: background-color 0.1s ease;
-
-	&:hover {
-		background-color: shared.$accent-color-soft;
-	}
+	color: shared.$secondary-color;
+	font-size: 12px;
 }

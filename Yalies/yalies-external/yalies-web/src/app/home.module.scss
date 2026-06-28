@@ -1,0 +1,126 @@
+@use "../_shared.scss";
+
+.compact_search_panel {
+	display: none;
+
+	@include shared.tablet() {
+		display: block;
+	}
+
+	@include shared.responsive() {
+		display: block;
+	}
+}
+
+.compact_card {
+	margin: 14px 16px 18px;
+	padding: 18px;
+	background: shared.$card-background-color;
+	border: 1px solid shared.$border-color;
+	border-radius: 16px;
+	box-shadow: shared.$shadow-lg;
+
+	@include shared.small-mobile() {
+		margin: 10px 10px 14px;
+		padding: 14px;
+		border-radius: 14px;
+	}
+}
+
+.compact_header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.compact_actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.compact_reset {
+	border: 0;
+	background: transparent;
+	color: shared.$destructive-color;
+	font-family: inherit;
+	font-size: 18px;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 0;
+
+	&:disabled {
+		color: shared.$secondary-color;
+		cursor: default;
+		opacity: 0.55;
+	}
+
+	@include shared.small-mobile() {
+		font-size: 15px;
+	}
+}
+
+.compact_toggle {
+	width: 34px;
+	height: 34px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: shared.$secondary-color;
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	transition: color 0.15s ease, background-color 0.15s ease;
+
+	&:hover {
+		color: shared.$accent-color;
+		background: shared.$accent-color-soft;
+	}
+
+	svg {
+		width: 14px;
+		transition: transform 0.18s ease;
+	}
+
+	&.open svg {
+		transform: rotate(180deg);
+	}
+}
+
+.compact_results {
+	color: shared.$secondary-color;
+	font-size: 16px;
+	font-weight: 600;
+	white-space: nowrap;
+
+	@include shared.small-mobile() {
+		font-size: 13px;
+	}
+}
+
+.compact_search {
+	margin-bottom: 12px;
+}
+
+.compact_search .compact_searchbar {
+	margin: 0;
+	min-width: 0;
+	width: 100%;
+}
+
+.compact_filters {
+	overflow: hidden;
+	max-height: 0;
+	opacity: 0;
+	border-top: 1px solid shared.$border-color;
+	transition: max-height 0.22s ease, opacity 0.18s ease, padding-top 0.22s ease;
+}
+
+.compact_filters_open {
+	max-height: 560px;
+	opacity: 1;
+	padding-top: 14px;
+}

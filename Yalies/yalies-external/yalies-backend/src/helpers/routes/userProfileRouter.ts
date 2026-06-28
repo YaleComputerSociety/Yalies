@@ -12,8 +12,11 @@ import { detectFace, compareFaces, shouldRunFacecheck } from "../facecheck.js";
 import { CHANGE_REQUEST_ALLOWED_FIELDS } from "yalies-shared";
 
 const GCS_BUCKET_NAME = "yalies-photos";
-const GCS_SERVICE_KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS
-	|| path.resolve(process.cwd(), "../../../.config/gcloud/service-key.json");
+// On Cloud Run we authenticate via the attached runtime service account
+// (Application Default Credentials). Only use an explicit key file when one is
+// actually configured (e.g. local dev with GOOGLE_APPLICATION_CREDENTIALS set);
+// never fall back to a hardcoded path that doesn't exist in the container.
+const GCS_KEY_FILENAME = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 const upload = multer({
 	storage: multer.memoryStorage(),
@@ -24,11 +27,25 @@ const upload = multer({
 	},
 });
 
+// Run multer and turn its rejections into JSON responses. Without this, multer
+// errors (file too large, non-image) fall through to Express's default handler,
+// which returns an HTML 500 the frontend can't parse.
+const uploadPhotoMiddleware = (req: Request, res: Response, next: express.NextFunction) => {
+	upload.single("photo")(req, res, (err: unknown) => {
+		if(err instanceof multer.MulterError) {
+			if(err.code === "LIMIT_FILE_SIZE") return res.status(413).json({ error: "Photo must be under 5MB" });
+			return res.status(400).json({ error: err.message });
+		}
+		if(err instanceof Error) return res.status(415).json({ error: err.message });
+		return next();
+	});
+};
+
 export default class UserProfileRouter {
 	#gcs: Storage;
 
 	constructor() {
-		this.#gcs = new Storage({ keyFilename: GCS_SERVICE_KEY });
+		this.#gcs = new Storage(GCS_KEY_FILENAME ? { keyFilename: GCS_KEY_FILENAME } : {});
 	}
 
 	getRouter = () => {
@@ -36,7 +53,7 @@ export default class UserProfileRouter {
 		router.get("/me/full", CAS.requireAuthenticationSessionOnly, this.getMyFullProfile);
 		router.get("/me", CAS.requireAuthenticationSessionOnly, this.getMyProfile);
 		router.put("/me", CAS.requireAuthenticationSessionOnly, this.updateMyProfile);
-		router.post("/me/photo", CAS.requireAuthenticationSessionOnly, upload.single("photo"), this.uploadPhoto);
+		router.post("/me/photo", CAS.requireAuthenticationSessionOnly, uploadPhotoMiddleware, this.uploadPhoto);
 		router.get("/me/photo/download", CAS.requireAuthenticationSessionOnly, this.downloadMyPhoto);
 		router.post("/me/change-request", CAS.requireAuthenticationSessionOnly, this.submitChangeRequest);
 		router.delete("/me", CAS.requireAuthenticationSessionOnly, this.deleteMyProfile);
@@ -134,33 +151,40 @@ export default class UserProfileRouter {
 				}
 
 				if(person.image) {
-					const existingPhotoPath = path.join(tmpDir, "existing.jpg");
-					const urlParts = person.image.split("/");
-					const existingFilename = urlParts[urlParts.length - 1];
+					try {
+						const existingPhotoPath = path.join(tmpDir, "existing.jpg");
+						const urlParts = person.image.split("/");
+						const existingFilename = urlParts[urlParts.length - 1];
 
-					const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
-					const [existingBuffer] = await bucket.file(existingFilename).download();
-					fs.writeFileSync(existingPhotoPath, existingBuffer);
+						const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
+						const [existingBuffer] = await bucket.file(existingFilename).download();
+						fs.writeFileSync(existingPhotoPath, existingBuffer);
 
-					const existingDetect = await detectFace(existingPhotoPath);
-					if(existingDetect.has_face) {
-						const compareResult = await compareFaces(existingPhotoPath, newPhotoPath);
-						if(!compareResult.is_match) {
-							return res.status(400).json({
-								error: "The uploaded photo does not appear to be the same person as your current photo.",
-								similarity: compareResult.similarity,
-							});
+						const existingDetect = await detectFace(existingPhotoPath);
+						if(existingDetect.has_face) {
+							const compareResult = await compareFaces(existingPhotoPath, newPhotoPath);
+							if(!compareResult.is_match) {
+								return res.status(400).json({
+									error: "The uploaded photo does not appear to be the same person as your current photo.",
+									similarity: compareResult.similarity,
+								});
+							}
 						}
+					} catch(compareErr) {
+						// Couldn't read/verify the existing photo — skip the
+						// same-person check rather than blocking a valid upload.
+						console.warn("[photo upload] Skipping comparison to existing photo:", compareErr);
 					}
 				}
 			}
 
-			let filename: string;
+			// Reuse the existing object name when it's a clean bucket object,
+			// otherwise fall back to a deterministic per-user name so a malformed
+			// or non-GCS existing URL can't send the upload to a bogus object.
+			let filename = `${req.netid}.jpg`;
 			if(person.image) {
-				const urlParts = person.image.split("/");
-				filename = urlParts[urlParts.length - 1];
-			} else {
-				filename = `${req.netid}.jpg`;
+				const candidate = person.image.split("?")[0].split("/").pop() ?? "";
+				if(/^[\w.-]+\.(jpe?g|png|webp)$/i.test(candidate)) filename = candidate;
 			}
 
 			const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
@@ -171,12 +195,10 @@ export default class UserProfileRouter {
 				contentType: req.file.mimetype,
 				metadata: { cacheControl: "no-store" },
 			});
-			console.log(`[photo upload] Saved successfully`);
+			console.log("[photo upload] Saved successfully");
 
 			const imageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${filename}`;
-			if(!person.image) {
-				await PersonModel.update({ image: imageUrl }, { where: { netid: req.netid } });
-			}
+			await PersonModel.update({ image: imageUrl }, { where: { netid: req.netid } });
 
 			return res.status(200).json({ image: imageUrl });
 		} catch(e) {

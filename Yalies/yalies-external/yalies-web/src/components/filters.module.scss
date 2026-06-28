@@ -52,14 +52,19 @@
 }
 
 .filters_panel {
-	padding: 8px 0 4px;
+	padding: 0;
+	height: 50%;
+	display: flex;
+	align-items: center;
 
 	@include shared.responsive() {
-		padding: 8px 12px 4px;
+		padding: 0;
+		height: auto;
+		display: block;
 	}
 
 	@include shared.small-mobile() {
-		padding: 6px 8px 4px;
+		padding: 0;
 	}
 }
 
@@ -67,23 +72,56 @@
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
-	gap: 6px;
+	gap: 14px;
 	flex-wrap: wrap;
+
+	@include shared.tablet() {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+		align-items: stretch;
+	}
+
+	@include shared.responsive() {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
 }
 
 .reset {
-	padding: 5px 10px;
-	font-size: 11px;
+	padding: 4px 7px;
+	font-size: 10px;
 	font-weight: 500;
 	font-family: inherit;
-	border: 1px solid shared.$destructive-color;
-	border-radius: 6px;
-	color: shared.$destructive-color;
-	background: rgba(shared.$destructive-color, 0.05);
+	border: 1px solid rgba(shared.$destructive-color, 0.28);
+	border-radius: 4px;
+	color: rgba(shared.$destructive-color, 0.55);
+	background: rgba(shared.$destructive-color, 0.08);
 	cursor: pointer;
-	transition: background-color 0.15s ease;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 
-	&:hover {
-		background: rgba(shared.$destructive-color, 0.1);
+	&:disabled {
+		cursor: default;
+	}
+
+	&.active {
+		border-color: darken(shared.$destructive-color, 12%);
+		color: shared.$card-background-color;
+		background: darken(shared.$destructive-color, 12%);
+
+		&:hover {
+			background: darken(shared.$destructive-color, 18%);
+			border-color: darken(shared.$destructive-color, 18%);
+		}
+	}
+
+	@include shared.tablet() {
+		display: none;
+	}
+
+	@include shared.responsive() {
+		display: none;
 	}
 }

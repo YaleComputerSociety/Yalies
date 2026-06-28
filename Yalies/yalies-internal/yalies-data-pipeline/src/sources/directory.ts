@@ -85,6 +85,9 @@ export default class DirectorySource {
 				const data = JSON.parse(response.body) as DirectoryApiResponse;
 				return extractRecords(data);
 			} catch (e) {
+				// Don't retry client errors (e.g. 422 = not found) — only network/5xx.
+				const status = (e as { status?: number }).status;
+				if (status && status >= 400 && status < 500) throw e;
 				if (attempt === MAX_RETRIES - 1) throw e;
 				const wait = Math.pow(2, attempt) * 1000;
 				console.log(`  Retry for ${firstName} ${lastName} (${attempt + 1}/${MAX_RETRIES}) after ${wait}ms`);
@@ -137,8 +140,8 @@ export default class DirectorySource {
 
 			try {
 
-				let cleanFirst = first.replace(/\s*\(.*?\)\s*/g, "").trim();
-				let cleanLast = last;
+				const cleanFirst = first.replace(/\s*\(.*?\)\s*/g, "").trim();
+				const cleanLast = last;
 
 				const stripAccents = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 				const searchFirst = stripAccents(cleanFirst);
@@ -226,7 +229,7 @@ export default class DirectorySource {
 			await sleep(delay);
 		}
 
-		console.log(`\nEnrichment complete:`);
+		console.log("\nEnrichment complete:");
 		console.log(`  Enriched: ${enrichedCount}`);
 		console.log(`  Not found: ${notFound}`);
 		console.log(`  Multiple matches: ${multiMatch}`);
@@ -246,7 +249,7 @@ function extractRecords(response: DirectoryApiResponse): DirectoryRecord[] {
 	return [];
 }
 
-function enrichStudent(student: EnrichedStudent, record: DirectoryRecord): void {
+export function enrichStudent(student: EnrichedStudent, record: DirectoryRecord): void {
 	const mapping: Record<string, keyof DirectoryRecord> = {
 		netid: "NetId",
 		email: "EmailAddress",
@@ -281,7 +284,7 @@ function enrichStudent(student: EnrichedStudent, record: DirectoryRecord): void 
 	}
 }
 
-function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): DirectoryRecord | null {
+export function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): DirectoryRecord | null {
 	const studentCollege = student.college?.toLowerCase() || "";
 	const studentFirst = student.first_name.toLowerCase().replace(/\s*\(.*?\)\s*/g, "").trim();
 	const studentLast = student.last_name.toLowerCase();

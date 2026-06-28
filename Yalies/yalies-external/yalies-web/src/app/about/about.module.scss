@@ -1,7 +1,7 @@
 @use "../../shared.scss";
 
 #about_page {
-	max-width: 720px;
+	max-width: 900px;
 	margin: 0 auto;
 	padding: 40px 24px 80px;
 
@@ -31,18 +31,18 @@
 	h1 {
 		font-size: 20px;
 		font-weight: 700;
-		color: shared.$accent-color;
+		color: var(--color-primary);
 		margin-bottom: 12px;
 	}
 
 	h2 {
 		font-size: 20px;
 		font-weight: 700;
-		color: shared.$accent-color;
+		color: var(--color-primary);
 		margin-top: 48px;
 		margin-bottom: 12px;
 		padding-top: 32px;
-		border-top: 1px solid shared.$border-color;
+		border-top: 1px solid var(--color-border);
 	}
 
 	h3 {
@@ -50,17 +50,17 @@
 		font-size: 16px;
 		margin-top: 24px;
 		margin-bottom: 10px;
-		color: shared.$foreground-color;
+		color: var(--color-text);
 	}
 
 	p {
 		line-height: 1.7;
 		font-size: 15px;
-		color: shared.$secondary-color;
+		color: var(--color-text-secondary);
 		margin-bottom: 10px;
 
 		a {
-			color: shared.$accent-color;
+			color: var(--color-primary);
 			text-decoration: underline;
 			text-underline-offset: 2px;
 
@@ -81,7 +81,7 @@
 .intro {
 	font-size: 16px !important;
 	line-height: 1.75 !important;
-	color: shared.$foreground-color !important;
+	color: var(--color-text) !important;
 }
 
 .section {
@@ -95,12 +95,12 @@
 .quote {
 	margin: 16px 0 24px;
 	padding: 14px 20px;
-	border-left: 3px solid shared.$accent-color;
+	border-left: 3px solid var(--color-primary);
 	font-size: 15px;
 	font-style: italic;
-	color: shared.$secondary-color;
+	color: var(--color-text-secondary);
 	line-height: 1.6;
-	background: rgba(0, 53, 107, 0.045);
+	background: var(--color-primary-subdued);
 	border-radius: 0 shared.$border-radius-standard shared.$border-radius-standard 0;
 
 	cite {
@@ -109,7 +109,7 @@
 		font-size: 12px;
 		font-style: normal;
 		font-weight: 600;
-		color: shared.$accent-color;
+		color: var(--color-primary);
 		opacity: 0.5;
 
 		&::before {
@@ -123,7 +123,7 @@
 .api_section {
 	margin-top: 12px;
 	padding: 20px;
-	background: rgba(0, 53, 107, 0.045);
+	background: shared.$accent-color-soft;
 	border-radius: shared.$border-radius-lg;
 
 	h3 {
@@ -137,9 +137,9 @@
 	gap: 6px;
 	margin-top: 12px;
 	padding: 8px 20px;
-	background: rgba(0, 53, 107, 0.045);
+	background: shared.$accent-color-soft;
 	color: shared.$accent-color;
-	border: 1px solid rgba(0, 53, 107, 0.2);
+	border: 1px solid shared.$border-color;
 	border-radius: shared.$border-radius-full;
 	font: inherit;
 	font-size: 13px;
@@ -153,7 +153,7 @@
 	}
 
 	&:hover {
-		background: rgba(0, 53, 107, 0.08);
+		background: shared.$accent-color-soft;
 		border-color: shared.$accent-color;
 	}
 }
@@ -237,82 +237,57 @@
 
 // Team section
 
-.team_timeline {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 24px;
-	margin-top: 24px;
-
-	@include shared.responsive() {
-		flex-direction: column;
-		gap: 20px;
-	}
-}
-
-.team_arrow {
-	height: 16px;
-	color: shared.$accent-color;
-	opacity: 0.3;
-	flex-shrink: 0;
-	margin-bottom: 40px; // align with photos, not the text below
-
-	@include shared.responsive() {
-		height: 12px;
-		margin-bottom: 0;
-		transform: rotate(-90deg);
-	}
-}
-
 .team_grid {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 36px;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
 	margin-top: 24px;
 
-	@include shared.responsive() {
-		gap: 24px;
+	@include shared.tablet() {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
+
+	@include shared.responsive() {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	}
+
+	@include shared.small-mobile() {
+		grid-template-columns: 1fr;
+	}
+}
+
+.alumni_grid {
+	margin-bottom: 28px;
+}
+
+.team_note {
+	margin-top: 4px;
 }
 
 .team_card {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	width: 170px;
+	height: 100%;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 2px 6px 0 var(--color-shadow);
+	transition: background-color var(--trans-dur), border-color var(--trans-dur), box-shadow var(--trans-dur), transform 0.15s ease;
 
-	@include shared.responsive() {
-		width: 130px;
-	}
-
-	@include shared.small-mobile() {
-		width: 100px;
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 24px var(--color-shadow);
 	}
 }
 
 .team_photo_wrapper {
-	width: 140px;
-	height: 140px;
-	border-radius: 50%;
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	border-radius: 0;
 	overflow: hidden;
-	box-shadow: 0 2px 12px rgba(0, 53, 107, 0.1);
-	transition: box-shadow 0.3s ease, transform 0.3s ease;
-
-	&:hover {
-		box-shadow: 0 4px 20px rgba(0, 53, 107, 0.16);
-		transform: translateY(-2px);
-	}
-
-	@include shared.responsive() {
-		width: 110px;
-		height: 110px;
-	}
-
-	@include shared.small-mobile() {
-		width: 80px;
-		height: 80px;
-	}
+	background: var(--color-surface-active);
 }
 
 .team_photo {
@@ -324,10 +299,10 @@
 }
 
 .team_photo_placeholder {
-	width: 140px;
-	height: 140px;
-	border-radius: 50%;
-	background: shared.$accent-color;
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	border-radius: 0;
+	background: var(--color-primary);
 	color: #ffffff;
 	display: flex;
 	align-items: center;
@@ -335,53 +310,44 @@
 	font-size: 38px;
 	font-weight: 700;
 	font-family: Georgia, "Times New Roman", serif;
-	box-shadow: 0 2px 12px rgba(0, 53, 107, 0.1);
-
-	@include shared.responsive() {
-		width: 110px;
-		height: 110px;
-		font-size: 30px;
-	}
-
-	@include shared.small-mobile() {
-		width: 80px;
-		height: 80px;
-		font-size: 24px;
-	}
 }
 
 .team_info {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	margin-top: 14px;
+	align-items: flex-start;
+	text-align: left;
+	padding: 14px;
+	flex: 1;
 }
 
 .team_name {
 	font-size: 15px;
 	font-weight: 700;
-	color: shared.$foreground-color;
+	color: var(--color-text);
+	line-height: 1.25;
 
 	@include shared.small-mobile() {
-		font-size: 13px;
+		font-size: 15px;
 	}
 }
 
 .team_role {
-	font-size: 12px;
-	color: shared.$secondary-color;
-	font-style: italic;
-	margin-top: 1px;
+	font-size: 13px;
+	color: var(--color-text-secondary);
+	font-weight: 500;
+	margin-top: 4px;
+	line-height: 1.35;
 }
 
 .team_links {
 	display: flex;
-	gap: 14px;
-	margin-top: 8px;
+	gap: 10px;
+	margin-top: auto;
+	padding-top: 12px;
 
 	a {
-		color: rgba(0, 53, 107, 0.25);
+		color: var(--color-text-secondary);
 		transition: color 0.2s ease;
 		display: flex;
 
@@ -390,7 +356,7 @@
 		}
 
 		&:hover {
-			color: shared.$accent-color;
+			color: var(--color-primary);
 		}
 	}
 }
@@ -457,34 +423,5 @@
 
 	p {
 		margin: 0;
-	}
-}
-
-// Sponsors section
-
-.sponsors {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 48px;
-	margin-top: 20px;
-	padding: 24px;
-	background: rgba(0, 53, 107, 0.045);
-	border-radius: shared.$border-radius-lg;
-
-	@include shared.responsive() {
-		gap: 20px;
-		padding: 16px;
-		flex-wrap: wrap;
-	}
-}
-
-.sponsor_logo {
-	height: 36px;
-	opacity: 0.5;
-	transition: opacity 0.2s ease;
-
-	&:hover {
-		opacity: 0.9;
 	}
 }

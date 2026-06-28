@@ -1,11 +1,10 @@
 import { Router, Request, Response } from "express";
 import { writeFileSync, mkdirSync } from "fs";
 import FacebookSource from "../sources/facebook.js";
-import DirectorySource from "../sources/directory.js";
-import { EnrichedStudent, DirectoryRecord, FacebookStudent } from "../types.js";
+import DirectorySource, { matchRecord, enrichStudent } from "../sources/directory.js";
+import { EnrichedStudent, DirectoryRecord } from "../types.js";
 import { validateFacebook, validateEnriched } from "../validate.js";
 import { sleep } from "../util.js";
-import { YALE_COLLEGE_CODE } from "yalies-shared";
 import {
 	getFacebookData,
 	setFacebookData,
@@ -38,6 +37,8 @@ const setupSSE = (res: Response): void => {
 	res.setHeader("Cache-Control", "no-cache");
 	res.setHeader("Connection", "keep-alive");
 	res.flushHeaders();
+	// Swallow write-after-close errors if the client disconnects mid-stream.
+	res.on("error", () => {});
 };
 
 const CSRF_REFRESH_INTERVAL = 500;
@@ -98,6 +99,9 @@ export default class ScrapeRouter {
 	#scrapeDirectory = async (req: Request, res: Response): Promise<void> => {
 		setupSSE(res);
 
+		let aborted = false;
+		req.on("close", () => { aborted = true; });
+
 		try {
 			const { cookie, delay = 300 } = req.body as { cookie: string; delay?: number };
 
@@ -128,6 +132,7 @@ export default class ScrapeRouter {
 			let requestsSinceCsrf = 0;
 
 			for (let i = 0; i < enriched.length; i++) {
+				if (aborted) break;
 				const student = enriched[i];
 				const first = student.first_name;
 				const last = student.last_name;
@@ -178,7 +183,7 @@ export default class ScrapeRouter {
 							sendSSE(res, { type: "error", message: `Session expired at student ${i}. Could not refresh.` });
 
 							setEnrichedData(enriched);
-			saveJson("students_enriched.json", enriched);
+							saveJson("students_enriched.json", enriched);
 							sendSSE(res, {
 								type: "complete",
 								message: `Enrichment stopped at ${i}/${enriched.length}. Partial results saved.`,
@@ -208,19 +213,21 @@ export default class ScrapeRouter {
 			setEnrichedData(enriched);
 			saveJson("students_enriched.json", enriched);
 
-			const validation = validateEnriched(enriched);
-			sendSSE(res, {
-				type: "validation",
-				message: `Validation: ${validation.passes.length} passed, ${validation.warnings.length} warnings, ${validation.failures.length} failures`,
-				data: validation,
-			});
+			if (!aborted) {
+				const validation = validateEnriched(enriched);
+				sendSSE(res, {
+					type: "validation",
+					message: `Validation: ${validation.passes.length} passed, ${validation.warnings.length} warnings, ${validation.failures.length} failures`,
+					data: validation,
+				});
 
-			sendSSE(res, {
-				type: "complete",
-				message: `Directory enrichment complete: ${enrichedCount} enriched, ${notFound} not found, ${errors} errors`,
-				count: enriched.length,
-				total: enriched.length,
-			});
+				sendSSE(res, {
+					type: "complete",
+					message: `Directory enrichment complete: ${enrichedCount} enriched, ${notFound} not found, ${errors} errors`,
+					count: enriched.length,
+					total: enriched.length,
+				});
+			}
 		} catch (e) {
 			console.error("Directory scrape error:", e);
 			sendSSE(res, { type: "error", message: `Fatal error: ${(e as Error).message}` });
@@ -228,68 +235,4 @@ export default class ScrapeRouter {
 
 		res.end();
 	};
-}
-
-function enrichStudent(student: EnrichedStudent, record: DirectoryRecord): void {
-	const mapping: Record<string, keyof DirectoryRecord> = {
-		netid: "NetId",
-		email: "EmailAddress",
-		upi: "UPI",
-		mailbox: "MailBox",
-		phone_directory: "PhoneNumber",
-		first_name_directory: "FirstName",
-		preferred_name: "KnownAs",
-		middle_name: "MiddleName",
-		suffix: "Suffix",
-		school: "PrimarySchoolName",
-		school_code: "PrimarySchoolCode",
-		year_directory: "StudentExpectedGraduationYear",
-		curriculum: "StudentCurriculum",
-		college_code: "ResidentialCollegeCode",
-		college_directory: "ResidentialCollegeName",
-		organization: "OrganizationName",
-		organization_code: "PrimaryOrganizationCode",
-		unit: "OrganizationUnitName",
-		title: "DirectoryTitle",
-		postal_address: "PostalAddress",
-		student_address: "StudentAddress",
-		registered_address: "RegisteredAddress",
-	};
-
-	for (const [ourField, apiField] of Object.entries(mapping)) {
-		const value = record[apiField];
-		if (value && String(value).trim()) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(student as any)[ourField] = value;
-		}
-	}
-}
-
-function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): DirectoryRecord | null {
-	const studentCollege = student.college?.toLowerCase() || "";
-	let studentYearInt: number | null = null;
-	if (student.year?.startsWith("'")) {
-		const parsed = parseInt(student.year.slice(1));
-		if (!isNaN(parsed)) studentYearInt = 2000 + parsed;
-	}
-
-	let bestRecord: DirectoryRecord | null = null;
-	let bestScore = -1;
-
-	for (const rec of records) {
-		let score = 0;
-		const recCollege = (rec.ResidentialCollegeName || "").toLowerCase();
-		const recYear = rec.StudentExpectedGraduationYear;
-
-		if (recCollege && recCollege === studentCollege) score += 2;
-		if (studentYearInt && recYear && Number(recYear) === studentYearInt) score += 1;
-		if (rec.PrimarySchoolCode === YALE_COLLEGE_CODE) score += 1;
-
-		if (score > bestScore) {
-			bestScore = score;
-			bestRecord = rec;
-		}
-	}
-
-	return bestRecord;
 }

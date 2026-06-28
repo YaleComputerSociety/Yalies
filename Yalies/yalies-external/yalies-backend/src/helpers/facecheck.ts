@@ -2,7 +2,7 @@ import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 
-const FACECHECK_SCRIPT = path.resolve(
+const FACECHECK_SCRIPT = process.env.FACECHECK_SCRIPT || path.resolve(
 	process.cwd(),
 	"../../yalies-internal/yalies-data-pipeline/python/facecheck/facecheck.py",
 );
@@ -12,7 +12,7 @@ const VENV_PYTHON = path.resolve(
 	"../../yalies-internal/yalies-data-pipeline/python/venv/bin/python",
 );
 
-const PYTHON = fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3";
+const PYTHON = process.env.FACECHECK_PYTHON || (fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3");
 
 let _enabled = process.env.FACECHECK_ENABLED !== "false";
 
@@ -63,25 +63,30 @@ function runFacecheck(args: string[]): Promise<string> {
 			timeout: 60000,
 		}, (error, stdout, stderr) => {
 			if (stderr) console.error("[facecheck stderr]", stderr);
-			if (stdout.trim()) {
-				resolve(stdout.trim());
+			const out = stdout.trim();
+			if (out) {
+				resolve(out);
 				return;
 			}
-			if (error) {
-				reject(new Error(`facecheck failed: ${error.message}`));
-				return;
-			}
-			resolve(stdout.trim());
+			reject(new Error(`facecheck failed: ${error ? error.message : "no output"}`));
 		});
 	});
 }
 
 export async function detectFace(imagePath: string): Promise<DetectResult> {
 	const output = await runFacecheck(["detect", imagePath]);
-	return JSON.parse(output);
+	try {
+		return JSON.parse(output);
+	} catch {
+		throw new Error(`facecheck detect returned invalid JSON: ${output.slice(0, 200)}`);
+	}
 }
 
 export async function compareFaces(imagePath1: string, imagePath2: string): Promise<CompareResult> {
 	const output = await runFacecheck(["compare", imagePath1, imagePath2]);
-	return JSON.parse(output);
+	try {
+		return JSON.parse(output);
+	} catch {
+		throw new Error(`facecheck compare returned invalid JSON: ${output.slice(0, 200)}`);
+	}
 }

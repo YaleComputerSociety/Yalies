@@ -3,7 +3,7 @@
 .friend_container {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 6px;
 }
 
 .request_actions {
@@ -12,10 +12,13 @@
 }
 
 .friend_button {
-	display: flex;
+	position: relative;
+	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding: 6px 12px;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
 	border-radius: shared.$border-radius-standard;
 	border: 1px solid shared.$border-color;
 	background: shared.$card-background-color;
@@ -58,13 +61,6 @@
 			.icon {
 				color: shared.$destructive-color;
 			}
-
-			span {
-				&::after {
-					content: " (remove)";
-					font-size: 11px;
-				}
-			}
 		}
 	}
 
@@ -93,7 +89,27 @@
 	transition: color 0.15s ease;
 }
 
-.count {
-	font-size: 13px;
-	color: shared.$secondary-color;
+.tooltip {
+	position: absolute;
+	left: 50%;
+	bottom: calc(100% + 8px);
+	z-index: 10;
+	padding: 5px 8px;
+	border-radius: 5px;
+	background: shared.$foreground-color;
+	color: shared.$card-background-color;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateX(-50%) translateY(3px);
+	transition: opacity 0.12s ease, transform 0.12s ease;
+
+	.friend_button:hover &,
+	.friend_button:focus-visible & {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
 }

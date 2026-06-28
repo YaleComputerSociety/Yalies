@@ -30,12 +30,6 @@ export const API = {
 	friendsDecline: (netid: string) => `${API_PREFIX}/friends/decline/${netid}`,
 	friendsRemove: (netid: string) => `${API_PREFIX}/friends/${netid}`,
 
-	community: `${API_PREFIX}/community`,
-	communitySearch: `${API_PREFIX}/community/search`,
-	communityMine: `${API_PREFIX}/community/mine`,
-	communityPost: (id: number) => `${API_PREFIX}/community/${id}`,
-	communityInterest: (id: number) => `${API_PREFIX}/community/${id}/interest`,
-
 	apiKeysList: `${API_PREFIX}/api-keys/list`,
 	apiKeysCreate: `${API_PREFIX}/api-keys/create`,
 	apiKeysRevoke: `${API_PREFIX}/api-keys/revoke`,
@@ -52,7 +46,6 @@ export const API_ROUTES = {
 	profile: `${API_PREFIX}/profile`,
 	likes: `${API_PREFIX}/likes`,
 	friends: `${API_PREFIX}/friends`,
-	community: `${API_PREFIX}/community`,
 	admin: `${API_PREFIX}/admin`,
 };
 

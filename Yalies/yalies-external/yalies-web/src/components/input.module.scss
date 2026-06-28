@@ -15,7 +15,7 @@
 
 	&:focus {
 		border-color: shared.$accent-color;
-		box-shadow: 0 0 0 3px rgba(shared.$accent-color, 0.08);
+		box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.12);
 	}
 
 	&::placeholder {

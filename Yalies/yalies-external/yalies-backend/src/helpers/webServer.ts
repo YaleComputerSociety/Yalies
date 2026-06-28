@@ -15,13 +15,21 @@ import APIKeyRouter from "./routes/apiKeyRouter.js";
 import UserProfileRouter from "./routes/userProfileRouter.js";
 import ProfileLikeRouter from "./routes/profileLikeRouter.js";
 import FriendshipRouter from "./routes/friendshipRouter.js";
-
-import CommunityPostsRouter from "./routes/communityPostsRouter.js";
 import Elasticsearch from "./elasticsearch.js";
 import { API_ROUTES } from "yalies-shared";
 import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
 const SequelizeStore = ConnectSessionSequelize(session.Store);
+
+// Admin allow-list for /v3/admin/* routes (comma-separated netids in env).
+const ADMIN_NETIDS = (process.env.ADMIN_NETIDS || "").split(",").map((s) => s.trim()).filter(Boolean);
+if (ADMIN_NETIDS.length === 0) {
+	console.warn("[admin] ADMIN_NETIDS is empty — /v3/admin/* routes will reject everyone. Set ADMIN_NETIDS=netid1,netid2 in the backend env.");
+}
+const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+	if (req.netid && ADMIN_NETIDS.includes(req.netid)) return next();
+	return res.status(403).json({ error: "Admin access required" });
+};
 
 export default class WebServer {
 	#app: Express;
@@ -104,7 +112,7 @@ export default class WebServer {
 		}
 
 		const filtersRouter = new FiltersRouter();
-		const filtersCacheMiddleware = (req: any, res: any, next: any) => {
+		const filtersCacheMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
 			res.set("Cache-Control", "public, max-age=300");
 			next();
 		};
@@ -123,13 +131,10 @@ export default class WebServer {
 		const friendshipRouter = new FriendshipRouter();
 		this.#app.use(API_ROUTES.friends, friendshipRouter.getRouter());
 
-		const communityPostsRouter = new CommunityPostsRouter();
-		this.#app.use(API_ROUTES.community, communityPostsRouter.getRouter());
-
-		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthentication, (_req, res) => {
+		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthenticationSessionOnly, requireAdmin, (_req, res) => {
 			res.json({ enabled: isFacecheckEnabled() });
 		});
-		this.#app.put(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthentication, (req, res) => {
+		this.#app.put(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthenticationSessionOnly, requireAdmin, (req, res) => {
 			const { enabled } = req.body;
 			if (typeof enabled !== "boolean") {
 				return res.status(400).json({ error: "enabled must be a boolean" });
@@ -149,6 +154,14 @@ export default class WebServer {
 				"								    <br />" +
 				"</pre></body></html>",
 			);
+		});
+
+		// Catch-all JSON error handler (must be registered last). Ensures clients
+		// that expect JSON never receive Express's default HTML error page.
+		this.#app.use((err: Error, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+			console.error("[unhandled error]", err);
+			if(res.headersSent) return next(err);
+			res.status(500).json({ error: "Internal server error" });
 		});
 	};
 

@@ -21,6 +21,13 @@ import { PIPELINE_ROUTES } from "yalies-shared";
 import SessionModel from "./models/SessionModel.js";
 import AdminModel from "./models/AdminModel.js";
 
+const REQUIRED_ENV = ["DATABASE_URL", "SESSION_SECRET"];
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missingEnv.length > 0) {
+	console.error(`FATAL: missing required env vars: ${missingEnv.join(", ")}. See yalies-internal/README.md.`);
+	process.exit(1);
+}
+
 const sequelize = new Sequelize(process.env.DATABASE_URL!, { logging: false });
 SessionModel.initModel(sequelize);
 AdminModel.initModel(sequelize);
@@ -39,7 +46,20 @@ const app = express();
 const PORT = parseInt(process.env.PORT || "8080", 10);
 
 app.set("trust proxy", 1);
-app.use(cors({ credentials: true, origin: true }));
+
+// Restrict cross-origin credentialed requests to the known dashboard origin(s)
+// rather than reflecting any origin (the API has full write access to prod data).
+const allowedOrigins = [process.env.DASHBOARD_URL, "http://localhost:3001"]
+	.filter(Boolean)
+	.map((o) => (o as string).replace(/\/$/, ""));
+app.use(cors({
+	credentials: true,
+	origin: (origin, callback) => {
+		// Allow same-origin / tools with no Origin header, and whitelisted origins.
+		if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+		return callback(new Error(`Origin not allowed: ${origin}`));
+	},
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
@@ -101,6 +121,13 @@ app.use(PIPELINE_ROUTES.scrape, CAS.requireAdmin, scrapeRouter.getRouter());
 app.use(PIPELINE_ROUTES.sync, CAS.requireAdmin, syncRouter.getRouter());
 app.use(PIPELINE_ROUTES.database, CAS.requireAdmin, databaseRouter.getRouter());
 
+// Global error handler — always return JSON, never leak stack traces to clients.
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+	console.error("[unhandled error]", err);
+	if (res.headersSent) return next(err);
+	res.status(500).json({ error: "Internal server error" });
+});
+
 async function initDb() {
 	try {
 		await sequelize.authenticate();
@@ -125,6 +152,10 @@ async function initDb() {
 		console.error("Database initialization error:", error);
 	}
 }
+
+process.on("unhandledRejection", (reason) => {
+	console.error("[unhandledRejection]", reason);
+});
 
 const start = async () => {
 	await initDb();

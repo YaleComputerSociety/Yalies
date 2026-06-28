@@ -1,13 +1,235 @@
 @use "../shared.scss";
 
-.profile_link {
-	font-size: 14px;
-	font-weight: 500;
-	color: shared.$foreground-color;
+.profile_wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.profile_button {
+	width: 38px;
+	height: 38px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	border-radius: 9px;
+	color: #ffffff;
+	background: shared.$accent-color;
+	font-size: 1rem;
+	font-weight: 700;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background-color 0.12s ease, color 0.12s ease;
+
+	&:hover,
+	&[aria-expanded="true"] {
+		background: shared.$accent-color-hover;
+	}
+
+	span {
+		transform: scaleX(0.8);
+	}
+}
+
+.dropdown {
+	position: absolute;
+	top: 56px;
+	right: 0;
+	z-index: 1100;
+	width: 220px;
+	overflow: hidden;
+	background: shared.$card-background-color;
+	border: 1px solid shared.$border-color;
+	border-radius: 18px;
+	box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.16);
+	transform: translate(0, -10px);
+	transform-origin: top;
+	animation: profile_dropdown_expand 0.18s ease-out;
+}
+
+@keyframes profile_dropdown_expand {
+	from {
+		max-height: 0;
+		opacity: 0;
+	}
+
+	to {
+		max-height: 330px;
+		opacity: 1;
+	}
+}
+
+.identity_header {
+	position: relative;
+	min-height: 108px;
+	padding: 0.7rem 1rem 0.8rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	color: #ffffff;
+	background: shared.$accent-color;
+}
+
+.theme_toggle,
+.header_edit {
+	position: absolute;
+	top: 0.85rem;
+	width: 30px;
+	height: 30px;
+	display: grid;
+	place-items: center;
+	border: 0;
+	background: transparent;
+	color: #ffffff;
 	text-decoration: none;
-	transition: color 0.15s ease;
+	transition: opacity 0.1s ease;
+
+	&:hover {
+		color: #ffffff;
+		opacity: 0.75;
+	}
+}
+
+.theme_toggle {
+	left: 0.85rem;
+	cursor: pointer;
+
+	&.dark {
+		.moon_icon {
+			display: block;
+		}
+
+		svg:first-child {
+			display: none;
+		}
+	}
+}
+
+.header_edit {
+	right: 0.85rem;
+}
+
+.moon_icon {
+	display: none;
+}
+
+.header_initials {
+	min-height: 42px;
+	display: grid;
+	place-items: center;
+	font-size: 2.2rem;
+	line-height: 1;
+	font-weight: 700;
+	transform: scaleX(0.8);
+}
+
+.greeting {
+	margin-top: 0.4rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+}
+
+.menu_items {
+	padding: 0.4rem 1.25rem 0.55rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.compact_nav_items {
+	display: none;
+	flex-direction: column;
+	margin-bottom: 0.35rem;
+	padding-bottom: 0.35rem;
+	border-bottom: 1px solid shared.$border-color;
+
+	@include shared.tablet() {
+		display: flex;
+	}
+
+	@include shared.responsive() {
+		display: flex;
+	}
+}
+
+.dropdown_item {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0;
+	margin: 0;
+	padding: 0.42rem 0;
+	border: 0;
+	color: shared.$secondary-color;
+	background: transparent;
+	font: inherit;
+	font-size: 1rem;
+	font-weight: 500;
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition: color 0.12s ease;
 
 	&:hover {
 		color: shared.$accent-color;
+	}
+}
+
+.item_icon {
+	width: 20px;
+	margin-right: 0.75rem;
+	color: #2d8ee8;
+}
+
+.icon_purple {
+	color: #8b5cf6;
+}
+
+.icon_orange {
+	color: #f97316;
+}
+
+.icon_red {
+	color: #ef4444;
+}
+
+.login_button {
+	min-height: 38px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 14px;
+	border-radius: 8px;
+	color: shared.$accent-color;
+	background: shared.$accent-color-soft;
+	font-size: 15px;
+	font-weight: 700;
+	text-decoration: none;
+
+	&:hover {
+		color: shared.$accent-color-hover;
+	}
+}
+
+@include shared.responsive() {
+	.dropdown {
+		position: fixed;
+		top: 66px;
+		left: 10px;
+		right: 10px;
+		width: auto;
+	}
+
+	.profile_button {
+		width: 38px;
+		height: 38px;
+		font-size: 1rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dropdown {
+		animation: none;
 	}
 }

@@ -22,11 +22,6 @@ export declare const API: {
     friendsAccept: (netid: string) => string;
     friendsDecline: (netid: string) => string;
     friendsRemove: (netid: string) => string;
-    community: string;
-    communitySearch: string;
-    communityMine: string;
-    communityPost: (id: number) => string;
-    communityInterest: (id: number) => string;
     apiKeysList: string;
     apiKeysCreate: string;
     apiKeysRevoke: string;
@@ -41,7 +36,6 @@ export declare const API_ROUTES: {
     profile: string;
     likes: string;
     friends: string;
-    community: string;
     admin: string;
 };
 export declare const PIPELINE_API: {
