@@ -13,7 +13,7 @@ export default function Splash() {
 				<h1>The Yale search engine! ✨</h1>
 				<p>🌎 Aggregates public information from Yale&#39;s <a href="https://students.yale.edu/facebook">existing</a> <a href="https://directory.yale.edu">websites</a></p>
 				<p>🔒 Censors things Yale shouldn&#39;t be divulging (<a href="/about">hide your info</a>)</p>
-				<p>💞 Our <a href="/about?tab=api">API</a> supports student projects serving 30,000+ users</p>
+				<p>💞 Our <a href="/api">API</a> supports student projects serving 30,000+ users</p>
 				<p>💻 Maintained by the <a href="http://yalecomputersociety.org">Yale Computer Society</a></p>
 				<a href={API_URL + API.login}>
 					<Button>Log in with CAS</Button>

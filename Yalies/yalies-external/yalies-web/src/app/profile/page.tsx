@@ -10,12 +10,13 @@ import { Lexend_Deca } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faGraduationCap, faBook, faHouse, faBuilding, faUser, faArrowLeft, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus, faBullhorn, faCamera, faDownload, faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
+import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus, faCamera, faDownload } from "@fortawesome/free-solid-svg-icons";
+import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
-import { Post } from "@/lib/communityTypes";
-import PostCard from "@/components/PostCard";
 import ChangeRequestModal from "@/components/ChangeRequestModal";
+import EmailCopyButton from "@/components/EmailCopyButton";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
@@ -24,24 +25,18 @@ export default function ProfilePage() {
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
 	const [profile, setProfile] = useState<UserProfile | null>(null);
 	const [person, setPerson] = useState<Person | null>(null);
-	const [description, setDescription] = useState("");
-	const [interestsInput, setInterestsInput] = useState("");
 	const [linkedinUrl, setLinkedinUrl] = useState("");
 	const [instagramUrl, setInstagramUrl] = useState("");
-	const [classesInput, setClassesInput] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveMessage, setSaveMessage] = useState("");
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [deleteStep, setDeleteStep] = useState(0);
 	const [showDataChangeBanner, setShowDataChangeBanner] = useState(false);
 	const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
-	const [activeTab, setActiveTab] = useState<"about" | "friends" | "posts">("about");
+	const [activeTab, setActiveTab] = useState<"profile" | "friends">("profile");
 	const [friends, setFriends] = useState<Person[]>([]);
 	const [friendRequests, setFriendRequests] = useState<Person[]>([]);
 	const [friendsLoading, setFriendsLoading] = useState(false);
-	const [friendCount, setFriendCount] = useState<number>(0);
-	const [myPosts, setMyPosts] = useState<Post[]>([]);
-	const [postsLoading, setPostsLoading] = useState(false);
 	const [photoUploading, setPhotoUploading] = useState(false);
 	const [photoError, setPhotoError] = useState("");
 	const [imgKey, setImgKey] = useState("");
@@ -50,28 +45,10 @@ export default function ProfilePage() {
 
 	const applyProfileData = (data: UserProfile, personData: Person | null) => {
 		setProfile(data);
-		setDescription(data.description ?? "");
-		setInterestsInput(data.interests?.join(", ") ?? "");
 		setLinkedinUrl(data.linkedin_url ?? "");
 		setInstagramUrl(data.instagram_url ?? "");
-		setClassesInput(data.classes?.join(", ") ?? "");
 		if(personData) {
 			setPerson(personData);
-		}
-	};
-
-	const fetchStats = async (netid: string) => {
-		try {
-			const friendsRes = await fetch(`${API_URL}${API.friendsCount(netid)}`, {
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-			});
-			if(friendsRes.ok) {
-				const data = await friendsRes.json();
-				setFriendCount(data.count);
-			}
-		} catch(e) {
-			console.error(e);
 		}
 	};
 
@@ -80,7 +57,6 @@ export default function ProfilePage() {
 			const cached = await getProfile();
 			if(cached) {
 				applyProfileData(cached.profile, cached.person);
-				fetchStats(cached.profile.netid);
 				return;
 			}
 
@@ -94,16 +70,6 @@ export default function ProfilePage() {
 		setIsSaving(true);
 		setSaveMessage("");
 
-		const interests = interestsInput
-			.split(",")
-			.map(i => i.trim())
-			.filter(i => i.length > 0);
-
-		const classes = classesInput
-			.split(",")
-			.map(c => c.trim())
-			.filter(c => c.length > 0);
-
 		let response;
 		try {
 			response = await fetch(`${API_URL}${API.profileMe}`, {
@@ -113,11 +79,8 @@ export default function ProfilePage() {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					description: description || null,
-					interests: interests.length > 0 ? interests : null,
 					linkedin_url: linkedinUrl || null,
 					instagram_url: instagramUrl || null,
-					classes: classes.length > 0 ? classes : null,
 				}),
 			});
 		} catch(e) {
@@ -195,24 +158,6 @@ export default function ProfilePage() {
 		}
 	};
 
-	const fetchMyPosts = async () => {
-		setPostsLoading(true);
-		try {
-			const response = await fetch(`${API_URL}${API.communityMine}`, {
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-			});
-			if(response.ok) {
-				const data = await response.json();
-				setMyPosts(data);
-			}
-		} catch(e) {
-			console.error(e);
-		} finally {
-			setPostsLoading(false);
-		}
-	};
-
 	const handleAcceptRequest = async (netid: string) => {
 		try {
 			const response = await fetch(`${API_URL}${API.friendsAccept(netid)}`, {
@@ -268,8 +213,6 @@ export default function ProfilePage() {
 	useEffect(() => {
 		if(activeTab === "friends") {
 			fetchFriends();
-		} else if(activeTab === "posts") {
-			fetchMyPosts();
 		}
 	}, [activeTab]);
 
@@ -414,7 +357,6 @@ export default function ProfilePage() {
 					<Navbar />
 				</Topbar>
 				<div id={styles.profile_page} className={logoFont.className}>
-					<h1>Profile</h1>
 					<p>Please sign in to view your profile.</p>
 				</div>
 			</>
@@ -424,6 +366,7 @@ export default function ProfilePage() {
 	const displayName = person
 		? `${person.preferred_name || person.first_name} ${person.last_name}`
 		: profile?.netid ?? "";
+	const hasContactRow = person?.email || linkedinUrl || instagramUrl;
 
 	return (
 		<>
@@ -431,11 +374,17 @@ export default function ProfilePage() {
 				<Navbar isAuthenticated={true} />
 			</Topbar>
 			<div id={styles.profile_page} className={logoFont.className}>
-				<div className={styles.top_bar}>
-					<button className={styles.back_button} onClick={() => router.back()}>
-						<FontAwesomeIcon icon={faArrowLeft} />
-						<span>Back</span>
-					</button>
+				{showDataChangeBanner && (
+					<div className={styles.banner}>Your change request has been submitted!</div>
+				)}
+				{showChangeRequestModal && (
+					<ChangeRequestModal
+						onSubmit={handleSubmitChangeRequest}
+						onCancel={() => setShowChangeRequestModal(false)}
+					/>
+				)}
+
+				<div className={styles.person_card}>
 					<div className={styles.settings_container} ref={settingsRef}>
 						<button
 							className={styles.settings_button}
@@ -464,154 +413,130 @@ export default function ProfilePage() {
 							</div>
 						)}
 					</div>
-				</div>
-				{showDataChangeBanner && (
-					<div className={styles.banner}>Your change request has been submitted!</div>
-				)}
-				{showChangeRequestModal && (
-					<ChangeRequestModal
-						onSubmit={handleSubmitChangeRequest}
-						onCancel={() => setShowChangeRequestModal(false)}
-					/>
-				)}
-				<h1>Profile</h1>
 
-				<div className={styles.person_card}>
-					<div className={styles.photo_section}>
-						{photoUploading ? (
-							<div className={styles.photo_placeholder}>
-								<span className={styles.photo_spinner} />
-							</div>
-						) : person?.image ? (
-							<img
-								className={styles.profile_image}
-								src={person.image.includes("?") ? person.image : imgKey ? `${person.image}?v=${imgKey}` : person.image}
-								alt={displayName}
-							/>
-						) : (
-							<div className={styles.photo_placeholder}>
-								<FontAwesomeIcon icon={faUser} />
-							</div>
-						)}
-						{photoError && (
-							<div className={styles.photo_error}>{photoError}</div>
-						)}
-						<div className={styles.photo_actions}>
-							<button
-								className={styles.photo_action_btn}
-								onClick={() => fileInputRef.current?.click()}
-								title="Change photo"
-								disabled={photoUploading}
-							>
-								<FontAwesomeIcon icon={faCamera} />
-							</button>
-							{person?.image && (
+					<div className={styles.card_header}>
+						<div className={styles.photo_section}>
+							{photoUploading ? (
+								<div className={styles.photo_placeholder}>
+									<span className={styles.photo_spinner} />
+								</div>
+							) : person?.image ? (
+								<img
+									className={styles.profile_image}
+									src={person.image.includes("?") ? person.image : imgKey ? `${person.image}?v=${imgKey}` : person.image}
+									alt={displayName}
+								/>
+							) : (
+								<div className={styles.photo_placeholder}>
+									<FontAwesomeIcon icon={faUser} />
+								</div>
+							)}
+							{photoError && (
+								<div className={styles.photo_error}>{photoError}</div>
+							)}
+							<div className={styles.photo_actions}>
 								<button
 									className={styles.photo_action_btn}
-									onClick={handlePhotoDownload}
-									title="Download photo"
+									onClick={() => fileInputRef.current?.click()}
+									title="Change photo"
+									disabled={photoUploading}
 								>
-									<FontAwesomeIcon icon={faDownload} />
+									<FontAwesomeIcon icon={faCamera} />
 								</button>
-							)}
+								{person?.image && (
+									<button
+										className={styles.photo_action_btn}
+										onClick={handlePhotoDownload}
+										title="Download photo"
+									>
+										<FontAwesomeIcon icon={faDownload} />
+									</button>
+								)}
+							</div>
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept="image/*"
+								onChange={handlePhotoUpload}
+								style={{ display: "none" }}
+							/>
 						</div>
-						<input
-							ref={fileInputRef}
-							type="file"
-							accept="image/*"
-							onChange={handlePhotoUpload}
-							style={{ display: "none" }}
-						/>
-					</div>
-					<div className={styles.person_details}>
-						<div className={styles.name_block}>
-							<h2 className={styles.person_name}>{displayName}</h2>
-							{person?.pronouns && (
-								<span className={styles.pronouns}>{person.pronouns}</span>
-							)}
-						</div>
-						<div className={styles.info_rows}>
-							{person?.college && (
-								<div className={styles.info_row}>
-									{person.college_code && COLLEGE_SHIELDS[person.college_code] ? (
-										<img
-											src={COLLEGE_SHIELDS[person.college_code]}
-											alt={person.college_code}
-											className={styles.college_shield}
-										/>
-									) : (
+						<div className={styles.person_details}>
+							<div className={styles.name_block}>
+								<span className={styles.person_name}>{displayName}</span>
+								{person?.pronouns && (
+									<span className={styles.pronouns}>{person.pronouns}</span>
+								)}
+							</div>
+							<div className={styles.info_rows}>
+								{person?.college && (
+									<div className={styles.info_row}>
+										{person.college_code && COLLEGE_SHIELDS[person.college_code] ? (
+											<img
+												src={COLLEGE_SHIELDS[person.college_code]}
+												alt={person.college_code}
+												className={styles.college_shield}
+											/>
+										) : (
+											<FontAwesomeIcon icon={faBuilding} />
+										)}
+										<span>{person.college}</span>
+									</div>
+								)}
+								{person?.year && (
+									<div className={styles.info_row}>
+										<FontAwesomeIcon icon={faGraduationCap} />
+										<span>Class of {person.year}</span>
+									</div>
+								)}
+								{person?.school && (
+									<div className={styles.info_row}>
 										<FontAwesomeIcon icon={faBuilding} />
-									)}
-									<span>
-										{person.college}
-										{person.year ? ` \u00B7 '${String(person.year).slice(-2)}` : ""}
-									</span>
-								</div>
-							)}
-							{!person?.college && person?.year && (
-								<div className={styles.info_row}>
-									<FontAwesomeIcon icon={faGraduationCap} />
-									<span>Class of {person.year}</span>
-								</div>
-							)}
-							{person?.major && (
-								<div className={styles.info_row}>
-									<FontAwesomeIcon icon={faBook} />
-									<span>{person.major}</span>
-								</div>
-							)}
-							{person?.school && (
-								<div className={styles.info_row}>
-									<FontAwesomeIcon icon={faBuilding} />
-									<span>{person.school}</span>
-								</div>
-							)}
-							{person?.email && (
-								<div className={styles.info_row}>
-									<FontAwesomeIcon icon={faEnvelope} />
-									<a href={`mailto:${person.email}`}>{person.email}</a>
-								</div>
-							)}
-							{person?.address && (
-								<div className={styles.info_row}>
-									<FontAwesomeIcon icon={faHouse} />
-									<span>{person.address}</span>
-								</div>
-							)}
-						</div>
-						{(person?.netid || person?.upi) && (
-							<div className={styles.id_badges}>
-								{person?.netid && (
-									<span className={styles.id_badge}>{person.netid}</span>
+										<span>{person.school}</span>
+									</div>
 								)}
-								{person?.upi && (
-									<span className={styles.id_badge}>{person.upi}</span>
+								{person?.major && (
+									<div className={styles.info_row}>
+										<FontAwesomeIcon icon={faBook} />
+										<span>{person.major}</span>
+									</div>
 								)}
-							</div>
-						)}
-						<div className={styles.profile_stats}>
-							<div className={styles.stat}>
-								<FontAwesomeIcon icon={faUserGroup} />
-								<span className={styles.stat_count}>{friendCount}</span>
-								<span className={styles.stat_label}>{friendCount === 1 ? "Friend" : "Friends"}</span>
+								{person?.address && (
+									<div className={styles.info_row}>
+										<FontAwesomeIcon icon={faHouse} />
+										<span>{person.address}</span>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>
-					<a
-						className={styles.card_logout}
-						href={API_URL + API.logout}
-					>
-						<FontAwesomeIcon icon={faRightFromBracket} />
-						<span>Log Out</span>
-					</a>
+					{hasContactRow && (
+						<div className={styles.contact_section}>
+							{person?.email && (
+								<EmailCopyButton className={styles.contact_email} email={person.email} />
+							)}
+							<div className={styles.contact_socials}>
+								{linkedinUrl && (
+									<a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+										<FontAwesomeIcon icon={faLinkedin as IconProp} />
+									</a>
+								)}
+								{instagramUrl && (
+									<a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+										<FontAwesomeIcon icon={faInstagram as IconProp} />
+									</a>
+								)}
+							</div>
+						</div>
+					)}
 				</div>
 
 				<div className={styles.tabs}>
 					<button
-						className={`${styles.tab} ${activeTab === "about" ? styles.active : ""}`}
-						onClick={() => setActiveTab("about")}
+						className={`${styles.tab} ${activeTab === "profile" ? styles.active : ""}`}
+						onClick={() => setActiveTab("profile")}
 					>
-						About
+						Profile
 					</button>
 					<button
 						className={`${styles.tab} ${activeTab === "friends" ? styles.active : ""}`}
@@ -623,38 +548,10 @@ export default function ProfilePage() {
 							<span className={styles.badge}>{friendRequests.length}</span>
 						)}
 					</button>
-					<button
-						className={`${styles.tab} ${activeTab === "posts" ? styles.active : ""}`}
-						onClick={() => setActiveTab("posts")}
-					>
-						<FontAwesomeIcon icon={faBullhorn} />
-						Posts
-					</button>
 				</div>
 
-				{activeTab === "about" && (
+				{activeTab === "profile" && (
 					<>
-						<h2>About</h2>
-						<div className={styles.field}>
-							<label>Description</label>
-							<textarea
-								className={styles.textarea}
-								placeholder="Tell people a bit about yourself..."
-								value={description}
-								onChange={e => setDescription(e.target.value)}
-								rows={3}
-							/>
-						</div>
-						<div className={styles.field}>
-							<label>Interests</label>
-							<Input
-								placeholder="Photography, hiking, chess, ..."
-								value={interestsInput}
-								onChange={e => setInterestsInput(e.target.value)}
-							/>
-							<span className={styles.field_hint}>Separate interests with commas</span>
-						</div>
-
 						<h2>Social Links</h2>
 						<div className={styles.field}>
 							<label>LinkedIn URL</label>
@@ -670,17 +567,6 @@ export default function ProfilePage() {
 								placeholder="https://instagram.com/yourhandle"
 								value={instagramUrl}
 								onChange={e => setInstagramUrl(e.target.value)}
-							/>
-						</div>
-
-						<h2>Classes</h2>
-						<p>Enter your classes separated by commas.</p>
-						<div className={styles.field}>
-							<label>Classes</label>
-							<Input
-								placeholder="CPSC 201, MATH 225, ECON 115"
-								value={classesInput}
-								onChange={e => setClassesInput(e.target.value)}
 							/>
 						</div>
 
@@ -778,26 +664,6 @@ export default function ProfilePage() {
 					</div>
 				)}
 
-				{activeTab === "posts" && (
-					<div className={styles.posts_tab}>
-						<h2>My Posts{myPosts.length > 0 && ` (${myPosts.length})`}</h2>
-						{postsLoading ? (
-							<p>Loading...</p>
-						) : myPosts.length > 0 ? (
-							<div className={styles.posts_grid}>
-								{myPosts.map(post => (
-									<PostCard
-										key={post.id}
-										post={post}
-										onClick={() => router.push(`/community?post=${post.id}`)}
-									/>
-								))}
-							</div>
-						) : (
-							<p>You haven&apos;t created any posts yet. Head to the Community page to create one!</p>
-						)}
-					</div>
-				)}
 			</div>
 		</>
 	);

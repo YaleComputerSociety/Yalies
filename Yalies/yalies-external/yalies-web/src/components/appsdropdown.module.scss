@@ -1,0 +1,164 @@
+@use "../shared.scss";
+
+.wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.toggle {
+	width: 30px;
+	height: 30px;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	box-sizing: border-box;
+	border: 0;
+	border-radius: 7px;
+	color: shared.$secondary-color;
+	background: transparent;
+	cursor: pointer;
+	transition: color 0.1s, background-color 0.1s;
+
+	&:hover,
+	&[aria-expanded="true"] {
+		background: shared.$muted-color;
+		color: shared.$secondary-color;
+	}
+}
+
+.waffle {
+	display: grid;
+	grid-template-columns: repeat(3, 5px);
+	gap: 3px;
+
+	span {
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+}
+
+.dropdown {
+	position: absolute;
+	top: 42px;
+	right: -50px;
+	z-index: 1100;
+	width: 270px;
+	overflow: hidden;
+	background: shared.$card-background-color;
+	border: 1px solid shared.$border-color;
+	border-radius: 16px;
+	box-shadow: shared.$shadow-lg;
+	transform-origin: top;
+	animation: app_dropdown_expand 0.18s ease-out;
+}
+
+@keyframes app_dropdown_expand {
+	from {
+		max-height: 0;
+		opacity: 0;
+	}
+
+	to {
+		max-height: 380px;
+		opacity: 1;
+	}
+}
+
+.app_grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 0.15rem;
+	padding: 0.9rem 0.55rem 0.6rem;
+}
+
+.app_tile {
+	min-width: 0;
+	padding: 0.55rem 0.1rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.55rem;
+	border-radius: 10px;
+	color: shared.$secondary-color;
+	font-size: 0.75rem;
+	text-align: center;
+	text-decoration: none;
+
+	&:hover {
+		color: shared.$secondary-color;
+		text-decoration: none;
+	}
+}
+
+.app_icon {
+	width: 46px;
+	height: 46px;
+	display: grid;
+	place-items: center;
+	overflow: visible;
+
+	img {
+		width: 34px;
+		height: 34px;
+		object-fit: contain;
+	}
+}
+
+.app_icon_img_up {
+	transform: translateY(-2px);
+}
+
+.app_icon_img_up_more {
+	transform: translateY(-5px);
+}
+
+.app_icon_img_large {
+	width: 40px;
+	height: 40px;
+}
+
+.app_icon_img_xlarge {
+	width: 52px;
+	height: 52px;
+	max-width: none;
+}
+
+.app_icon_img_rounded {
+	border-radius: 8px;
+}
+
+.attribution {
+	margin: 0;
+	padding: 0.7rem 1rem 0.8rem;
+	color: shared.$secondary-color;
+	background: shared.$muted-color;
+	font-size: 0.72rem;
+	font-weight: 500;
+	text-align: center;
+
+	a {
+		color: shared.$accent-color;
+		font-weight: 700;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+}
+
+@include shared.responsive() {
+	.dropdown {
+		position: fixed;
+		top: 66px;
+		left: 10px;
+		right: 10px;
+		width: auto;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dropdown {
+		animation: none;
+	}
+}

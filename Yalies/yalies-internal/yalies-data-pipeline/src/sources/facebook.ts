@@ -16,7 +16,7 @@ const PHONE_PATTERN = /^\d+-\d+/;
 const ADDRESS_PATTERN = /[\d,]/;
 
 // Known countries/locations that get misidentified as majors because they lack digits/commas
-import { COUNTRY_ALIASES, US_STATES } from "yalies-shared";
+import { COUNTRY_ALIASES, US_STATES, YALE_COLLEGE } from "yalies-shared";
 const KNOWN_LOCATIONS = new Set([
 	...Object.values(COUNTRY_ALIASES).map(c => c.toLowerCase()),
 	...Object.values(US_STATES).map(s => s.toLowerCase()),
@@ -90,7 +90,7 @@ function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseStudentCard($: cheerio.CheerioAPI, card: any): FacebookStudent {
+function parseStudentCard($: cheerio.CheerioAPI, card: any, selectedOrganization?: string): FacebookStudent {
 	const data: Partial<FacebookStudent> = {};
 
 	const nameTag = $(card).find("h5.yalehead");
@@ -133,9 +133,26 @@ function parseStudentCard($: cheerio.CheerioAPI, card: any): FacebookStudent {
 		const parts = raw.split(/<br\s*\/?>/i).map((p) => p.trim()).filter((p) => p.length > 0);
 		data.details_raw = parts.join(" | ");
 		parseDetails(parts, data);
+	} else if (infoDivs.length === 1) {
+		// A residential-college-filtered view omits the otherwise redundant
+		// college block. Recover it from the selected organization and treat the
+		// sole block as the normal details block.
+		if (selectedOrganization && selectedOrganization !== YALE_COLLEGE) {
+			data.college = selectedOrganization;
+		}
+		const raw = $(infoDivs[0]).html() || "";
+		const parts = raw.split(/<br\s*\/?>/i).map((p) => p.trim()).filter((p) => p.length > 0);
+		data.details_raw = parts.join(" | ");
+		parseDetails(parts, data);
 	}
 
 	return data as FacebookStudent;
+}
+
+export function parseFacebookPage(html: string): FacebookStudent[] {
+	const $ = cheerio.load(html);
+	const selectedOrganization = $("select[name=orgSelect] option:selected").attr("value");
+	return $(".student_container").toArray().map((card) => parseStudentCard($, card, selectedOrganization));
 }
 
 export default class FacebookSource {
@@ -146,8 +163,11 @@ export default class FacebookSource {
 	}
 
 	#buildHeaders = (): Record<string, string> => ({
-		"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-		"Cookie": `JSESSIONID=${this.#cookie}`,
+		"User-Agent": process.env.FACEBOOK_USER_AGENT
+			|| "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+		// A bare value is the normal JSESSIONID input. Cloudflare-protected sessions
+		// may require the caller to provide the complete Cookie header instead.
+		"Cookie": this.#cookie.includes("=") ? this.#cookie : `JSESSIONID=${this.#cookie}`,
 		"Referer": BASE_URL,
 		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 		"Accept-Language": "en-US,en;q=0.9",
@@ -181,7 +201,11 @@ export default class FacebookSource {
 		return followRedirects(`${PHOTO_URL}?id=${photoId}`, maxRedirects);
 	};
 
-	fetchPage = async (currentIndex: number, numberToGet?: number): Promise<{ students: FacebookStudent[]; html: string }> => {
+	fetchPage = async (
+		currentIndex: number,
+		numberToGet?: number,
+		referer = BASE_URL,
+	): Promise<{ students: FacebookStudent[]; html: string }> => {
 
 		const params = new URLSearchParams({ currentIndex: String(currentIndex) });
 		if (numberToGet !== undefined) {
@@ -189,7 +213,7 @@ export default class FacebookSource {
 		}
 
 		const url = `${PHOTO_PAGE_URL}?${params.toString()}`;
-		const response = await httpGet(url, this.#buildHeaders());
+		const response = await httpGet(url, { ...this.#buildHeaders(), Referer: referer });
 
 		if (response.status >= 300 && response.status < 400) {
 			throw new Error("Session expired. Update JSESSIONID cookie and try again.");
@@ -201,9 +225,7 @@ export default class FacebookSource {
 			throw new Error("Session expired. Update JSESSIONID cookie and try again.");
 		}
 
-		const $ = cheerio.load(html);
-		const cards = $(".student_container").toArray();
-		const students = cards.map((card) => parseStudentCard($, card));
+		const students = parseFacebookPage(html);
 		return { students, html };
 	};
 

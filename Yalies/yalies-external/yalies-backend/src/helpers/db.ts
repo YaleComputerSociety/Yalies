@@ -5,9 +5,6 @@ import APIKeyModel from "./models/APIKeyModel.js";
 import UserProfileModel from "./models/UserProfileModel.js";
 import ProfileLikeModel from "./models/ProfileLikeModel.js";
 import FriendshipModel from "./models/FriendshipModel.js";
-import CommunityPostModel from "./models/CommunityPostModel.js";
-import CommunityPostMemberModel from "./models/CommunityPostMemberModel.js";
-import CommunityPostInterestModel from "./models/CommunityPostInterestModel.js";
 import DataChangeRequestModel from "./models/DataChangeRequestModel.js";
 
 export const SEQUELIZE_DEFINITION_OPTIONS = {
@@ -100,49 +97,6 @@ export default class DB {
 				ON friendship (requested_netid);
 			`);
 			await this.#sql.query(`
-				CREATE TABLE IF NOT EXISTS community_post (
-					id SERIAL PRIMARY KEY,
-					author_netid VARCHAR(255) NOT NULL,
-					type VARCHAR(50) NOT NULL,
-					title VARCHAR(500) NOT NULL,
-					description TEXT,
-					tags TEXT[] DEFAULT '{}',
-					category VARCHAR(100) NOT NULL,
-					competition_name VARCHAR(500),
-					competition_date DATE,
-					competition_url VARCHAR(1000),
-					spots_total INTEGER,
-					status VARCHAR(20) DEFAULT 'open',
-					created_at TIMESTAMP DEFAULT NOW(),
-					updated_at TIMESTAMP DEFAULT NOW()
-				);
-			`);
-			await this.#sql.query(`
-				CREATE TABLE IF NOT EXISTS community_post_member (
-					post_id INTEGER NOT NULL REFERENCES community_post(id) ON DELETE CASCADE,
-					netid VARCHAR(255) NOT NULL,
-					role VARCHAR(20) NOT NULL DEFAULT 'member',
-					joined_at TIMESTAMP DEFAULT NOW(),
-					PRIMARY KEY (post_id, netid)
-				);
-			`);
-			await this.#sql.query(`
-				CREATE TABLE IF NOT EXISTS community_post_interest (
-					post_id INTEGER NOT NULL REFERENCES community_post(id) ON DELETE CASCADE,
-					netid VARCHAR(255) NOT NULL,
-					message TEXT,
-					created_at TIMESTAMP DEFAULT NOW(),
-					PRIMARY KEY (post_id, netid)
-				);
-			`);
-			await this.#sql.query(`
-				CREATE INDEX IF NOT EXISTS idx_community_post_author ON community_post (author_netid);
-				CREATE INDEX IF NOT EXISTS idx_community_post_type ON community_post (type);
-				CREATE INDEX IF NOT EXISTS idx_community_post_category ON community_post (category);
-				CREATE INDEX IF NOT EXISTS idx_community_post_status ON community_post (status);
-				CREATE INDEX IF NOT EXISTS idx_community_post_created ON community_post (created_at DESC);
-			`);
-			await this.#sql.query(`
 				CREATE TABLE IF NOT EXISTS data_change_request (
 					id SERIAL PRIMARY KEY,
 					requester_netid VARCHAR(255) NOT NULL,
@@ -183,9 +137,6 @@ export default class DB {
 		UserProfileModel.initModel(this.#sql);
 		ProfileLikeModel.initModel(this.#sql);
 		FriendshipModel.initModel(this.#sql);
-		CommunityPostModel.initModel(this.#sql);
-		CommunityPostMemberModel.initModel(this.#sql);
-		CommunityPostInterestModel.initModel(this.#sql);
 		DataChangeRequestModel.initModel(this.#sql);
 	};
 };

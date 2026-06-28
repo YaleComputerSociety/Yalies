@@ -7,14 +7,14 @@
 	font-size: 11px;
 	border-radius: 6px;
 	font-weight: 600;
-	background-color: rgba(0, 53, 107, 0.05);
-	color: #4a6a8a;
-	border: 1px solid rgba(0, 53, 107, 0.10);
+	background-color: shared.$chip-primary-color-bg;
+	color: shared.$chip-primary-color-fg;
+	border: 1px solid shared.$chip-primary-color-border;
 	letter-spacing: 0.01em;
 	font-family: inherit;
 	svg {
 		margin-right: 6px;
-		color: #1a6db5;
+		color: shared.$accent-color;
 		opacity: 0.6;
 	}
 	&.primary {
@@ -50,8 +50,8 @@
 		cursor: pointer;
 		transition: background-color 0.15s ease, border-color 0.15s ease;
 		&:hover {
-			background-color: rgba(0, 53, 107, 0.12);
-			border-color: rgba(0, 53, 107, 0.25);
+			background-color: shared.$accent-color-soft;
+			border-color: shared.$accent-color;
 			color: shared.$accent-color;
 		}
 	}

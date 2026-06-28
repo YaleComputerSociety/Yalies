@@ -26,6 +26,13 @@ export default function Filters({
 	const [collegeOptions, setCollegeOptions] = useState<DropdownOption[]>([]);
 	const [majorOptions, setMajorOptions] = useState<DropdownOption[]>([]);
 	const [locationOptions, setLocationOptions] = useState<DropdownOption[]>([]);
+	const friendOptions: DropdownOption[] = [{ label: "Is Friend", value: "true" }];
+	const birthdayOptions: DropdownOption[] = [
+		{ label: "Today", value: "today" },
+		{ label: "In next 3 days", value: "next_3_days" },
+		{ label: "In next 1 week", value: "next_1_week" },
+		{ label: "In next 2 weeks", value: "next_2_weeks" },
+	];
 
 	const getFilters = useCallback(async () => {
 		let response;
@@ -55,6 +62,20 @@ export default function Filters({
 				.sort(sort || ((a, b) => a.label.localeCompare(b.label)));
 		};
 
+		const collegeToDropdownOption = (options: unknown[]): DropdownOption[] => {
+			const collegeOrderOverrides: Record<string, string> = {
+				"Benjamin Franklin": "Davenport~Benjamin Franklin",
+				"Ezra Stiles": "Silliman~Ezra Stiles",
+			};
+			const collegeSortKey = (option: DropdownOption) => collegeOrderOverrides[option.label] || option.label;
+			return (options as string[])
+				.map((option) => ({
+					label: option.toString().replace(/\s+College$/i, ""),
+					value: option.toString(),
+				}))
+				.sort((a, b) => collegeSortKey(a).localeCompare(collegeSortKey(b)));
+		};
+
 		const schoolSortFn = (a: DropdownOption, b: DropdownOption) => {
 			if(a.label === YALE_COLLEGE) return -1;
 			if(b.label === YALE_COLLEGE) return 1;
@@ -74,7 +95,7 @@ export default function Filters({
 
 		setSchoolOptions(filterToDropdownOption(filterOptions["school"], schoolSortFn));
 		setYearOptions(filterToDropdownOption(filterOptions["year"], yearSortFn));
-		setCollegeOptions(filterToDropdownOption(filterOptions["college"]));
+		setCollegeOptions(collegeToDropdownOption(filterOptions["college"]));
 		setMajorOptions(filterToDropdownOption(filterOptions["major"]));
 		if(filterOptions["address_country"]) {
 			setLocationOptions(filterToDropdownOption(filterOptions["address_country"], locationSortFn));
@@ -120,11 +141,25 @@ export default function Filters({
 					value={filters?.address_country || []}
 					onValueChange={(val) => setFilterValue("address_country", val)}
 				/>
-				{!filtersAreDefault && (
-					<button className={styles.reset} onClick={reset}>
-						Reset
-					</button>
-				)}
+				<Dropdown
+					label="Friend"
+					options={friendOptions}
+					value={filters?.is_friend || []}
+					onValueChange={(val) => setFilterValue("is_friend", val.slice(-1))}
+				/>
+				<Dropdown
+					label="Birthday"
+					options={birthdayOptions}
+					value={filters?.birthday || []}
+					onValueChange={(val) => setFilterValue("birthday", val.slice(-1))}
+				/>
+				<button
+					className={`${styles.reset} ${!filtersAreDefault ? styles.active : ""}`}
+					onClick={reset}
+					disabled={filtersAreDefault}
+				>
+					Reset
+				</button>
 			</div>
 		</div>
 	);

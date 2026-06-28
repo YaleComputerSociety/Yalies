@@ -24,19 +24,19 @@
         width: 380px;
 		box-sizing: border-box;
         text-align: left;
-		background: #ffffff;
-		border: none;
+		background: shared.$card-background-color;
+		border: 1px solid shared.$border-color;
 		border-radius: shared.$border-radius-lg;
 		padding: 20px;
 		color: shared.$foreground-color;
 		cursor: pointer;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		box-shadow: shared.$shadow-sm;
+		transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
 		position: relative;
 
 		&:hover {
 			transform: translateY(-2px);
-			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+			box-shadow: shared.$shadow-lg;
 		}
 
         .info_box {
@@ -53,7 +53,7 @@
                 margin-right: 16px;
 				object-fit: cover;
 				box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-				border: 1px solid rgba(0, 53, 107, 0.06);
+				border: 1px solid shared.$border-color;
             }
             .details {
                 white-space: nowrap;
@@ -81,7 +81,7 @@
                 }
                 .row {
 					font-size: 13px;
-					color: #5a7a94;
+					color: shared.$secondary-color;
 					display: flex;
 					justify-content: flex-start;
 					align-items: center;
@@ -92,11 +92,11 @@
 					svg {
 						width: 12px;
 						flex-shrink: 0;
-						color: #1a6db5;
+						color: shared.$accent-color;
 						opacity: 0.5;
 					}
 					a {
-						color: #1a6db5;
+						color: shared.$accent-color;
 						text-decoration: none;
 						overflow: hidden;
 						text-overflow: ellipsis;
@@ -111,10 +111,25 @@
 					}
 
 					&:first-child {
-						color: #3a5a7a;
+						color: shared.$foreground-color;
 						font-weight: 500;
 						svg {
 							opacity: 0.7;
+						}
+					}
+					&.birthday_today {
+						align-self: flex-start;
+						max-width: 100%;
+						width: fit-content;
+						border-radius: 4px;
+						padding: 2px 6px;
+						background: linear-gradient(90deg, rgba(45, 142, 232, 0.18), rgba(255, 198, 61, 0.22), rgba(238, 94, 132, 0.16));
+						color: shared.$foreground-color;
+						font-weight: 400;
+
+						svg {
+							color: shared.$accent-color;
+							opacity: 1;
 						}
 					}
                 }
@@ -123,14 +138,15 @@
 
 		.card_footer {
 			display: flex;
-			flex-wrap: wrap;
 			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
 			padding-top: 12px;
 			margin-top: 12px;
-			border-top: 1px solid rgba(0, 53, 107, 0.06);
+			border-top: 1px solid shared.$border-color;
 			font-size: 12px;
 			color: shared.$secondary-color;
-			line-height: 1;
+			line-height: 1.2;
 		}
     }
 	@include shared.tablet() {
@@ -205,26 +221,48 @@
 	}
 }
 
-.separator {
-	color: rgba(0, 53, 107, 0.15);
-	margin: 0 4px;
-	user-select: none;
-}
-
-.meta_item {
-	cursor: pointer;
-	font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
-	font-size: 11px;
-	letter-spacing: 0.02em;
-	padding: 3px 8px;
-	border-radius: 5px;
-	background: rgba(0, 53, 107, 0.04);
-	transition: background-color 0.15s ease, color 0.15s ease;
-	color: #5a7a94;
+.email_link {
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: shared.$accent-color;
+	text-decoration: none;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 
 	&:hover {
-		background-color: rgba(0, 53, 107, 0.10);
+		text-decoration: none;
+	}
+
+	svg {
+		width: 12px;
+		flex-shrink: 0;
+		opacity: 0.65;
+	}
+}
+
+.card_socials {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+
+	a {
 		color: shared.$accent-color;
+		text-decoration: none;
+		line-height: 1;
+		transition: opacity 0.15s ease;
+
+		&:hover {
+			opacity: 0.7;
+		}
+	}
+
+	svg {
+		height: 15px;
 	}
 }
 

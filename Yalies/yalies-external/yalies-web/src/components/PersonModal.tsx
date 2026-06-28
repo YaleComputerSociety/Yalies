@@ -4,22 +4,20 @@ import { API_URL, COLLEGE_SHIELDS } from "@/consts";
 import { useEffect, useState, useRef } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import styles from "./personmodal.module.scss";
-import ClickableChip from "./ClickableChip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import {
 	faBook,
 	faCake,
-	faEnvelope,
 	faGraduationCap,
 	faHouse,
 	faBuilding,
 	faUser,
 	faXmark,
-	faHeart,
 } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faInstagram } from "@fortawesome/free-brands-svg-icons";
 import FriendButton from "./FriendButton";
-import Chip from "./Chip";
+import EmailCopyButton from "./EmailCopyButton";
 
 export default function PersonModal({
 	person,
@@ -92,7 +90,7 @@ export default function PersonModal({
 		});
 	}
 	const todayIsBirthday = person.birth_month === new Date().getMonth() + 1 && person.birth_day === new Date().getDate();
-	const copyText = (text: string | undefined) => text && navigator.clipboard.writeText(text);
+	const hasContactRow = person.email || userProfile?.linkedin_url || userProfile?.instagram_url;
 
 	return (
 		<div
@@ -131,25 +129,19 @@ export default function PersonModal({
 					</div>
 					<div className={styles.header_info}>
 						<div className={styles.name_row}>
-						<h2 className={styles.name}>{displayName}</h2>
-					</div>
-					{person.pronouns && (
-						<span className={styles.pronouns}>{person.pronouns}</span>
-					)}
-					{person.netid && (
-						<FriendButton
-							netid={person.netid}
-							initialStatus={person.friend_data?.status}
-							initialCount={person.friend_data?.count}
-						/>
-					)}
-						<div className={styles.info_rows}>
-							{person.email && (
-								<div className={styles.info_row}>
-									<FontAwesomeIcon icon={faEnvelope} />
-									<a href={`mailto:${person.email}`}>{person.email}</a>
-								</div>
+							<h2 className={styles.name}>{displayName}</h2>
+							{person.netid && (
+								<FriendButton
+									netid={person.netid}
+									initialStatus={person.friend_data?.status}
+									initialCount={person.friend_data?.count}
+								/>
 							)}
+						</div>
+						{person.pronouns && (
+							<span className={styles.pronouns}>{person.pronouns}</span>
+						)}
+						<div className={styles.info_rows}>
 							{person.college && (
 								<div className={styles.info_row}>
 									{person.college_code && COLLEGE_SHIELDS[person.college_code] ? (
@@ -198,89 +190,36 @@ export default function PersonModal({
 					</div>
 				</div>
 
-				{(person.netid || person.upi) && (
-					<div className={styles.ids_section}>
-						{person.netid && (
-							<ClickableChip
-								defaultText={`NetID ${person.netid}`}
-								clickedText="Copied!"
-								onClick={() => copyText(person.netid)}
-							/>
+				{hasContactRow && (
+					<div className={styles.contact_section}>
+						{person.email && (
+							<EmailCopyButton className={styles.contact_email} email={person.email} />
 						)}
-						{person.upi && (
-							<ClickableChip
-								defaultText={`UPI ${person.upi}`}
-								clickedText="Copied!"
-								onClick={() => copyText(person.upi?.toString())}
-							/>
-						)}
+						<div className={styles.contact_socials}>
+							{userProfile?.linkedin_url && (
+								<a
+									href={userProfile.linkedin_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									aria-label="LinkedIn"
+								>
+									<FontAwesomeIcon icon={faLinkedin as IconProp} />
+								</a>
+							)}
+							{userProfile?.instagram_url && (
+								<a
+									href={userProfile.instagram_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									aria-label="Instagram"
+								>
+									<FontAwesomeIcon icon={faInstagram as IconProp} />
+								</a>
+							)}
+						</div>
 					</div>
 				)}
 
-				<div className={styles.extra_info}>
-					<div className={styles.description_section}>
-						<h3 className={styles.section_label}>About</h3>
-						{userProfile?.description ? (
-							<p className={styles.description_text}>{userProfile.description}</p>
-						) : (
-							<span className={styles.empty_text}>No description added</span>
-						)}
-					</div>
-
-					<div className={styles.interests_section}>
-						<h3 className={styles.section_label}>Interests</h3>
-						{userProfile?.interests && userProfile.interests.length > 0 ? (
-							<div className={styles.interests_list}>
-								{userProfile.interests.map(i => (
-									<Chip key={i} icon={faHeart} primary>{i}</Chip>
-								))}
-							</div>
-						) : (
-							<span className={styles.empty_text}>No interests added</span>
-						)}
-					</div>
-
-					<h3 className={styles.section_label}>Social</h3>
-					<div className={styles.social_links}>
-						{userProfile?.linkedin_url ? (
-							<a
-								href={userProfile.linkedin_url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={styles.social_link}
-							>
-								<FontAwesomeIcon icon={faLinkedin as import("@fortawesome/fontawesome-svg-core").IconProp} />
-								<span>LinkedIn</span>
-							</a>
-						) : (
-							<span className={styles.empty_text}>No LinkedIn added</span>
-						)}
-						{userProfile?.instagram_url && (
-							<a
-								href={userProfile.instagram_url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={styles.social_link}
-							>
-								<FontAwesomeIcon icon={faInstagram as import("@fortawesome/fontawesome-svg-core").IconProp} />
-								<span>Instagram</span>
-							</a>
-						)}
-					</div>
-
-					<div className={styles.classes_section}>
-						<h3 className={styles.section_label}>Classes</h3>
-						{userProfile?.classes && userProfile.classes.length > 0 ? (
-							<div className={styles.classes_list}>
-								{userProfile.classes.map(c => (
-									<Chip key={c} icon={faBook} primary>{c}</Chip>
-								))}
-							</div>
-						) : (
-							<span className={styles.empty_text}>No classes added</span>
-						)}
-					</div>
-				</div>
 			</div>
 		</div>
 	);
