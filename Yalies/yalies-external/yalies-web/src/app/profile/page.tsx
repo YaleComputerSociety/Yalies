@@ -202,7 +202,6 @@ export default function ProfilePage() {
 	};
 
 	useEffect(() => {
-		setImgKey(String(Date.now()));
 		fetchProfile();
 	}, []);
 

@@ -15,10 +15,48 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const YALEMOJI_URL = "https://yalemoji.com?ref=yalies";
 const THEME_STORAGE_KEY = "yalies-theme";
+const PROFILE_IDENTITY_STORAGE_KEY = "yalies-profile-identity";
 type Theme = "light" | "dark";
+type CachedProfileIdentity = {
+	initials: string;
+	firstName: string;
+};
 
 function getFirstName(person: Person | null) {
 	return person?.preferred_name?.trim() || person?.first_name?.trim() || "";
+}
+
+function getInitials(person: Person | null) {
+	const first = getFirstName(person);
+	const last = person?.last_name?.trim() || "";
+	if(first && last) return `${first[0]}${last[0]}`.toUpperCase();
+	if(first) return first.slice(0, 2).toUpperCase();
+	return "";
+}
+
+function getProfileIdentity(person: Person): CachedProfileIdentity | null {
+	const initials = getInitials(person);
+	if(!initials) return null;
+	return {
+		initials,
+		firstName: getFirstName(person),
+	};
+}
+
+function getCachedProfileIdentity(): CachedProfileIdentity | null {
+	if(typeof window === "undefined") return null;
+	try {
+		const raw = window.localStorage.getItem(PROFILE_IDENTITY_STORAGE_KEY);
+		if(!raw) return null;
+		const parsed = JSON.parse(raw) as Partial<CachedProfileIdentity>;
+		if(typeof parsed.initials !== "string" || parsed.initials.trim().length === 0) return null;
+		return {
+			initials: parsed.initials,
+			firstName: typeof parsed.firstName === "string" ? parsed.firstName : "",
+		};
+	} catch {
+		return null;
+	}
 }
 
 function DropdownItem({
@@ -71,6 +109,7 @@ export default function ProfileButton({
 }) {
 	const [open, setOpen] = useState(false);
 	const [person, setPerson] = useState<Person | null>(null);
+	const [cachedIdentity, setCachedIdentity] = useState<CachedProfileIdentity | null>(() => getCachedProfileIdentity());
 	const [theme, setTheme] = useState<Theme>("light");
 	const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -99,19 +138,25 @@ export default function ProfileButton({
 	useEffect(() => {
 		if(!isAuthenticated) return;
 		getProfile().then((result) => {
-			if(result?.person) setPerson(result.person);
+			if(result?.person) {
+				setPerson(result.person);
+				const identity = getProfileIdentity(result.person);
+				if(identity) {
+					setCachedIdentity(identity);
+					window.localStorage.setItem(PROFILE_IDENTITY_STORAGE_KEY, JSON.stringify(identity));
+				}
+			}
 		});
 	}, [isAuthenticated]);
 
 	const initials = useMemo(() => {
-		const first = getFirstName(person);
-		const last = person?.last_name?.trim() || "";
-		if(first && last) return `${first[0]}${last[0]}`.toUpperCase();
-		if(first) return first.slice(0, 2).toUpperCase();
+		const personInitials = getInitials(person);
+		if(personInitials) return personInitials;
+		if(cachedIdentity?.initials) return cachedIdentity.initials;
 		return "ME";
-	}, [person]);
+	}, [cachedIdentity, person]);
 
-	const firstName = getFirstName(person);
+	const firstName = getFirstName(person) || cachedIdentity?.firstName || "";
 
 	if (isAuthenticated) {
 		return (
@@ -124,7 +169,7 @@ export default function ProfileButton({
 					aria-label="Profile menu"
 					aria-expanded={open}
 				>
-					<span>{initials}</span>
+					<span suppressHydrationWarning>{initials}</span>
 				</button>
 				{open && (
 					<div className={styles.dropdown}>
@@ -149,7 +194,7 @@ export default function ProfileButton({
 							>
 								<FiSmile size={17} strokeWidth={1.7} />
 							</a>
-							<div className={styles.header_initials}>{initials}</div>
+							<div className={styles.header_initials} suppressHydrationWarning>{initials}</div>
 							{firstName && <span className={styles.greeting}>Hello, {firstName}</span>}
 						</div>
 						<div className={styles.menu_items}>
