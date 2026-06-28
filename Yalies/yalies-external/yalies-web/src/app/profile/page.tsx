@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus, faCamera, faDownload } from "@fortawesome/free-solid-svg-icons";
+import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus } from "@fortawesome/free-solid-svg-icons";
 import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
@@ -37,11 +37,7 @@ export default function ProfilePage() {
 	const [friends, setFriends] = useState<Person[]>([]);
 	const [friendRequests, setFriendRequests] = useState<Person[]>([]);
 	const [friendsLoading, setFriendsLoading] = useState(false);
-	const [photoUploading, setPhotoUploading] = useState(false);
-	const [photoError, setPhotoError] = useState("");
-	const [imgKey, setImgKey] = useState("");
 	const settingsRef = useRef<HTMLDivElement>(null);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const applyProfileData = (data: UserProfile, personData: Person | null) => {
 		setProfile(data);
@@ -274,82 +270,6 @@ export default function ProfilePage() {
 		}
 	};
 
-	const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if(!file) return;
-
-		// Mirror the backend limits (images only, 5MB) so users get an
-		// immediate, clear message instead of an opaque server error.
-		if(!file.type.startsWith("image/")) {
-			setPhotoError("Please choose an image file.");
-			if(fileInputRef.current) fileInputRef.current.value = "";
-			return;
-		}
-		if(file.size > 5 * 1024 * 1024) {
-			setPhotoError("Image must be under 5MB.");
-			if(fileInputRef.current) fileInputRef.current.value = "";
-			return;
-		}
-
-		setPhotoError("");
-		setPhotoUploading(true);
-
-		const formData = new FormData();
-		formData.append("photo", file);
-
-		try {
-			const response = await fetch(`${API_URL}${API.profileMePhoto}`, {
-				method: "POST",
-				credentials: "include",
-				body: formData,
-			});
-			if(response.ok) {
-				const data = await response.json();
-				const freshUrl = `${data.image}?t=${Date.now()}`;
-				setPerson(prev => prev ? { ...prev, image: freshUrl } : prev);
-				invalidateProfileCache();
-			} else {
-				let msg = "Failed to upload photo";
-				const text = await response.text();
-				try {
-					msg = JSON.parse(text).error || msg;
-				} catch {
-					if(text) msg = text;
-				}
-				setPhotoError(msg);
-				console.error("[photo upload]", response.status, msg);
-			}
-		} catch(e) {
-			console.error("[photo upload]", e);
-			setPhotoError("Failed to upload photo");
-		} finally {
-			setPhotoUploading(false);
-			if(fileInputRef.current) fileInputRef.current.value = "";
-		}
-	};
-
-	const handlePhotoDownload = async () => {
-		if(!person?.image) return;
-		try {
-			const response = await fetch(
-				`${API_URL}${API.profileMePhotoDownload}`,
-				{ credentials: "include" },
-			);
-			if(!response.ok) return;
-			const blob = await response.blob();
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = `${person.first_name || "photo"}_${person.last_name || ""}.jpg`;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
-		} catch(e) {
-			console.error(e);
-		}
-	};
-
 	if(isUnauthenticated) {
 		return (
 			<>
@@ -416,14 +336,10 @@ export default function ProfilePage() {
 
 					<div className={styles.card_header}>
 						<div className={styles.photo_section}>
-							{photoUploading ? (
-								<div className={styles.photo_placeholder}>
-									<span className={styles.photo_spinner} />
-								</div>
-							) : person?.image ? (
+							{person?.image ? (
 								<img
 									className={styles.profile_image}
-									src={person.image.includes("?") ? person.image : imgKey ? `${person.image}?v=${imgKey}` : person.image}
+									src={person.image}
 									alt={displayName}
 								/>
 							) : (
@@ -431,35 +347,6 @@ export default function ProfilePage() {
 									<FontAwesomeIcon icon={faUser} />
 								</div>
 							)}
-							{photoError && (
-								<div className={styles.photo_error}>{photoError}</div>
-							)}
-							<div className={styles.photo_actions}>
-								<button
-									className={styles.photo_action_btn}
-									onClick={() => fileInputRef.current?.click()}
-									title="Change photo"
-									disabled={photoUploading}
-								>
-									<FontAwesomeIcon icon={faCamera} />
-								</button>
-								{person?.image && (
-									<button
-										className={styles.photo_action_btn}
-										onClick={handlePhotoDownload}
-										title="Download photo"
-									>
-										<FontAwesomeIcon icon={faDownload} />
-									</button>
-								)}
-							</div>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/*"
-								onChange={handlePhotoUpload}
-								style={{ display: "none" }}
-							/>
 						</div>
 						<div className={styles.person_details}>
 							<div className={styles.name_block}>
