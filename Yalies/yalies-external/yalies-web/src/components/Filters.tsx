@@ -25,14 +25,6 @@ export default function Filters({
 	const [yearOptions, setYearOptions] = useState<DropdownOption[]>([]);
 	const [collegeOptions, setCollegeOptions] = useState<DropdownOption[]>([]);
 	const [majorOptions, setMajorOptions] = useState<DropdownOption[]>([]);
-	const [locationOptions, setLocationOptions] = useState<DropdownOption[]>([]);
-	const friendOptions: DropdownOption[] = [{ label: "Is Friend", value: "true" }];
-	const birthdayOptions: DropdownOption[] = [
-		{ label: "Today", value: "today" },
-		{ label: "In next 3 days", value: "next_3_days" },
-		{ label: "In next 1 week", value: "next_1_week" },
-		{ label: "In next 2 weeks", value: "next_2_weeks" },
-	];
 
 	const getFilters = useCallback(async () => {
 		let response;
@@ -87,19 +79,10 @@ export default function Filters({
 			return -1 * stringA.localeCompare(stringB);
 		}
 
-		const locationSortFn = (a: DropdownOption, b: DropdownOption) => {
-			if(a.label === "United States") return -1;
-			if(b.label === "United States") return 1;
-			return a.label.localeCompare(b.label);
-		};
-
 		setSchoolOptions(filterToDropdownOption(filterOptions["school"], schoolSortFn));
 		setYearOptions(filterToDropdownOption(filterOptions["year"], yearSortFn));
 		setCollegeOptions(collegeToDropdownOption(filterOptions["college"]));
 		setMajorOptions(filterToDropdownOption(filterOptions["major"]));
-		if(filterOptions["address_country"]) {
-			setLocationOptions(filterToDropdownOption(filterOptions["address_country"], locationSortFn));
-		}
 	}, []);
 
 	useEffect(() => {
@@ -134,24 +117,6 @@ export default function Filters({
 					options={majorOptions}
 					value={filters?.major || []}
 					onValueChange={(val) => setFilterValue("major", val)}
-				/>
-				<Dropdown
-					label="Location"
-					options={locationOptions}
-					value={filters?.address_country || []}
-					onValueChange={(val) => setFilterValue("address_country", val)}
-				/>
-				<Dropdown
-					label="Friend"
-					options={friendOptions}
-					value={filters?.is_friend || []}
-					onValueChange={(val) => setFilterValue("is_friend", val.slice(-1))}
-				/>
-				<Dropdown
-					label="Birthday"
-					options={birthdayOptions}
-					value={filters?.birthday || []}
-					onValueChange={(val) => setFilterValue("birthday", val.slice(-1))}
 				/>
 				<button
 					className={`${styles.reset} ${!filtersAreDefault ? styles.active : ""}`}
