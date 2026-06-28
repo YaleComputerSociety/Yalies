@@ -1,5 +1,6 @@
 src/yalies-shared
 yalies-shared/
+.npm-cache/
 
 
 .env.production

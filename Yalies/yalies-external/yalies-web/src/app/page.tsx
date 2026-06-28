@@ -50,10 +50,9 @@ export default function HomePage() {
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [luckyPerson, setLuckyPerson] = useState<Person | null>(null);
-	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 	const [resultsLabel, setResultsLabel] = useState(getResultsLabel(homeCache?.people.length ?? 0));
 	const [isCompact, setIsCompact] = useState(false);
-	const [compactFiltersOpen, setCompactFiltersOpen] = useState(true);
+	const [compactFiltersOpen, setCompactFiltersOpen] = useState(false);
 	const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const restoredFromCache = useRef(!!homeCache);
 
@@ -293,33 +292,6 @@ export default function HomePage() {
 		sendGAEvent("event", "search", { query: searchboxText });
 	}
 
-	const onSelectPerson = async (netid: string) => {
-
-		setIsSearching(true);
-		setSearchError(null);
-
-		try {
-			const response = await fetch(`${API_URL}${API.people}`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					filters: { netid: [netid] },
-					page: 0,
-					page_size: 1,
-				}),
-			});
-			if (response.ok) {
-				const results: Person[] = await response.json();
-				setSelectedPerson(results[0] ?? null);
-			}
-		} catch (e) {
-			console.error(e);
-		} finally {
-			setIsSearching(false);
-		}
-	};
-
 	const onFeelingLucky = () => {
 		const candidates = people.length > 0 ? people : birthdayPeople;
 		if(candidates.length === 0) return;
@@ -355,7 +327,6 @@ export default function HomePage() {
 				setCurrentPage(0);
 			}}
 			onSubmit={onSubmit}
-			onSelectPerson={onSelectPerson}
 			searchMode={searchMode}
 			onSearchModeChange={setSearchModeValue}
 			wrapperClassName={wrapperClassName}
@@ -461,12 +432,6 @@ export default function HomePage() {
 				<PersonModal
 					person={luckyPerson}
 					onClose={() => setLuckyPerson(null)}
-				/>
-			)}
-			{selectedPerson && (
-				<PersonModal
-					person={selectedPerson}
-					onClose={() => setSelectedPerson(null)}
 				/>
 			)}
 		</>

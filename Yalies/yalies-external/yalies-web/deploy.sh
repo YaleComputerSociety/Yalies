@@ -6,6 +6,19 @@ PACKAGE_JSON_BACKUP=""
 PACKAGE_LOCK_BACKUP=""
 ENV_LOCAL_BACKUP=""
 
+if [ -f "$SCRIPT_DIR/.nvmrc" ] && [ -s "$HOME/.nvm/nvm.sh" ]; then
+  unset npm_config_prefix
+  unset NPM_CONFIG_PREFIX
+  export NVM_DIR="$HOME/.nvm"
+  # shellcheck source=/dev/null
+  source "$NVM_DIR/nvm.sh"
+  nvm install "$(cat "$SCRIPT_DIR/.nvmrc")"
+  nvm use "$(cat "$SCRIPT_DIR/.nvmrc")"
+fi
+
+export npm_config_cache="$SCRIPT_DIR/.npm-cache"
+mkdir -p "$npm_config_cache"
+
 cleanup() {
   if [ -n "$ENV_LOCAL_BACKUP" ] && [ -f "$ENV_LOCAL_BACKUP" ]; then
     mv "$ENV_LOCAL_BACKUP" "$SCRIPT_DIR/.env.local"
