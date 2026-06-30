@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import Filters from "@/components/Filters";
 import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
-import Searchbar, { SearchMode } from "@/components/Searchbar";
+import Searchbar from "@/components/Searchbar";
 import BirthdaySection from "@/components/BirthdaySection";
 import PersonModal from "@/components/PersonModal";
 import styles from "./home.module.scss";
@@ -16,7 +16,8 @@ import { getHomeCache, setHomeCache } from "@/hooks/useHomeCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
 
-const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs", "Elis"];
+const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
+const SEARCH_MODE = "full_name";
 
 function getResultsLabel(count: number, label = "Yalies") {
 	if (count === 1) return "Showing 1 Yalie";
@@ -29,9 +30,6 @@ export default function HomePage() {
 		year: [],
 		college: [],
 		major: [],
-		address_country: [],
-		is_friend: [],
-		birthday: [],
 	};
 
 	const homeCache = getHomeCache();
@@ -45,15 +43,13 @@ export default function HomePage() {
 
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
-	const [searchMode, setSearchMode] = useState<SearchMode>("full_name");
 	const [isClient, setIsClient] = useState(false);
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [luckyPerson, setLuckyPerson] = useState<Person | null>(null);
-	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 	const [resultsLabel, setResultsLabel] = useState(getResultsLabel(homeCache?.people.length ?? 0));
 	const [isCompact, setIsCompact] = useState(false);
-	const [compactFiltersOpen, setCompactFiltersOpen] = useState(true);
+	const [compactFiltersOpen, setCompactFiltersOpen] = useState(false);
 	const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const restoredFromCache = useRef(!!homeCache);
 
@@ -85,9 +81,6 @@ export default function HomePage() {
 		if(filters.school && filters.school.length > 0) filterObject.school = filters.school;
 		if(filters.college && filters.college.length > 0) filterObject.college = filters.college;
 		if(filters.major && filters.major.length > 0) filterObject.major = filters.major;
-		if(filters.address_country && filters.address_country.length > 0) filterObject.address_country = filters.address_country;
-		if(filters.is_friend && filters.is_friend.length > 0) filterObject.is_friend = filters.is_friend;
-		if(filters.birthday && filters.birthday.length > 0) filterObject.birthday = filters.birthday;
 
 		if(queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
 
@@ -119,7 +112,7 @@ export default function HomePage() {
 				},
 				body: JSON.stringify({
 					query: queryActual.length > 0 ? queryActual : null,
-					searchMode,
+					searchMode: SEARCH_MODE,
 					filters: filterObject,
 					page: currentPage,
 					page_size: 20,
@@ -169,7 +162,7 @@ export default function HomePage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					query: queryActual.length > 0 ? queryActual : null,
-					searchMode,
+					searchMode: SEARCH_MODE,
 					filters: filterObject,
 					page: currentPage + 1,
 					page_size: 20,
@@ -177,7 +170,7 @@ export default function HomePage() {
 			}).catch(() => {});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hasReachedEnd, filters, query, searchMode, currentPage]);
+	}, [hasReachedEnd, filters, query, currentPage]);
 
 	const getTodaysBirthdays = async () => {
 		let response;
@@ -240,7 +233,7 @@ export default function HomePage() {
 			if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters, query, searchMode]);
+	}, [filters, query]);
 
 	useEffect(() => {
 		if (people.length > 0 && filters) {
@@ -272,10 +265,7 @@ export default function HomePage() {
 		filters.school[0] === YALE_COLLEGE &&
 		filters.year && filters.year.length === 0 &&
 		filters.college && filters.college.length === 0 &&
-		filters.major && filters.major.length === 0 &&
-		filters.address_country && filters.address_country.length === 0 &&
-		(filters.is_friend?.length ?? 0) === 0 &&
-		(filters.birthday?.length ?? 0) === 0
+		filters.major && filters.major.length === 0
 	);
 
 	const showBirthdays = filtersAreDefault && query.length === 0 && birthdayPeople.length > 0 && people.length !== 1;
@@ -293,33 +283,6 @@ export default function HomePage() {
 		sendGAEvent("event", "search", { query: searchboxText });
 	}
 
-	const onSelectPerson = async (netid: string) => {
-
-		setIsSearching(true);
-		setSearchError(null);
-
-		try {
-			const response = await fetch(`${API_URL}${API.people}`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					filters: { netid: [netid] },
-					page: 0,
-					page_size: 1,
-				}),
-			});
-			if (response.ok) {
-				const results: Person[] = await response.json();
-				setSelectedPerson(results[0] ?? null);
-			}
-		} catch (e) {
-			console.error(e);
-		} finally {
-			setIsSearching(false);
-		}
-	};
-
 	const onFeelingLucky = () => {
 		const candidates = people.length > 0 ? people : birthdayPeople;
 		if(candidates.length === 0) return;
@@ -334,15 +297,6 @@ export default function HomePage() {
 		setFilters({ ...filters, [key]: newValue });
 	};
 
-	const setSearchModeValue = (mode: SearchMode) => {
-		setPeople([]);
-		setHasReachedEnd(false);
-		setCurrentPage(0);
-		setSearchMode(mode);
-		setQuery(searchboxText);
-		sendGAEvent("event", "search", { query: searchboxText, searchMode: mode });
-	};
-
 	const renderSearchbar = (wrapperClassName?: string) => (
 		<Searchbar
 			value={searchboxText}
@@ -355,9 +309,6 @@ export default function HomePage() {
 				setCurrentPage(0);
 			}}
 			onSubmit={onSubmit}
-			onSelectPerson={onSelectPerson}
-			searchMode={searchMode}
-			onSearchModeChange={setSearchModeValue}
 			wrapperClassName={wrapperClassName}
 		/>
 	);
@@ -461,12 +412,6 @@ export default function HomePage() {
 				<PersonModal
 					person={luckyPerson}
 					onClose={() => setLuckyPerson(null)}
-				/>
-			)}
-			{selectedPerson && (
-				<PersonModal
-					person={selectedPerson}
-					onClose={() => setSelectedPerson(null)}
 				/>
 			)}
 		</>

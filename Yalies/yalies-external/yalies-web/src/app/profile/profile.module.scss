@@ -142,44 +142,6 @@
 .photo_section {
 	flex-shrink: 0;
 	position: relative;
-
-	&:hover .photo_actions {
-		opacity: 1;
-	}
-}
-
-.photo_actions {
-	position: absolute;
-	bottom: 6px;
-	left: 0;
-	right: 0;
-	display: flex;
-	justify-content: center;
-	gap: 6px;
-	opacity: 0;
-	transition: opacity 0.2s ease;
-}
-
-.photo_action_btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 32px;
-	height: 32px;
-	border-radius: 50%;
-	border: none;
-	background: rgba(0, 0, 0, 0.55);
-	color: #ffffff;
-	cursor: pointer;
-	transition: background-color 0.15s ease;
-
-	svg {
-		height: 13px;
-	}
-
-	&:hover {
-		background: rgba(0, 0, 0, 0.8);
-	}
 }
 
 .profile_image {

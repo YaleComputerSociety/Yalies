@@ -47,10 +47,10 @@
 	background: transparent;
 	color: shared.$destructive-color;
 	font-family: inherit;
-	font-size: 18px;
+	font-size: 13px;
 	font-weight: 600;
 	cursor: pointer;
-	padding: 0;
+	padding: 2px 0;
 
 	&:disabled {
 		color: shared.$secondary-color;
@@ -59,7 +59,7 @@
 	}
 
 	@include shared.small-mobile() {
-		font-size: 15px;
+		font-size: 12px;
 	}
 }
 
