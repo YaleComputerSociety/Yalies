@@ -39,9 +39,17 @@ export default class DB {
 				$$ LANGUAGE SQL IMMUTABLE;
 			`);
 			await this.#sql.query(`
-				CREATE INDEX IF NOT EXISTS first_last_fuzzy
-				ON person
-				USING gin (first_last_name(first_name, last_name) gin_trgm_ops);
+				DO $$
+				BEGIN
+					IF to_regclass('first_last_search_trgm') IS NULL
+						AND to_regclass('first_last_fuzzy') IS NOT NULL THEN
+						ALTER INDEX first_last_fuzzy RENAME TO first_last_search_trgm;
+					END IF;
+				END $$;
+
+				CREATE INDEX IF NOT EXISTS first_last_search_trgm
+					ON person
+					USING gin (first_last_name(first_name, last_name) gin_trgm_ops);
 			`);
 			await this.#sql.query(`
 				CREATE TABLE IF NOT EXISTS user_profile (

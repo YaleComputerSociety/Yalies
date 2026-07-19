@@ -15,7 +15,6 @@ import APIKeyRouter from "./routes/apiKeyRouter.js";
 import UserProfileRouter from "./routes/userProfileRouter.js";
 import ProfileLikeRouter from "./routes/profileLikeRouter.js";
 import FriendshipRouter from "./routes/friendshipRouter.js";
-import Elasticsearch from "./elasticsearch.js";
 import { API_ROUTES } from "yalies-shared";
 import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
@@ -24,11 +23,9 @@ const SequelizeStore = ConnectSessionSequelize(session.Store);
 export default class WebServer {
 	#app: Express;
 	#db: DB;
-	#elasticsearch: Elasticsearch;
 
-	constructor(db: DB, elasticsearch: Elasticsearch) {
+	constructor(db: DB) {
 		this.#db = db;
-		this.#elasticsearch = elasticsearch;
 		this.initializeExpress();
 		this.initializeSubRouters();
 		this.serve();
@@ -97,7 +94,7 @@ export default class WebServer {
 		const pingPongRouter = new PingPongRouter();
 		this.#app.use(API_ROUTES.ping, pingPongRouter.getRouter());
 
-		const peopleRouter = new PeopleRouter(this.#elasticsearch);
+		const peopleRouter = new PeopleRouter();
 		this.#app.use(API_ROUTES.people, peopleRouter.getRouter());
 		this.#app.use("/v2/people", peopleRouter.getRouter());
 

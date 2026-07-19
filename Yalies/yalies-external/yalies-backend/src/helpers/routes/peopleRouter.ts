@@ -4,9 +4,8 @@ import { NETID_REGEX } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
 import ProfileLikeModel from "../models/ProfileLikeModel.js";
 import FriendshipModel from "../models/FriendshipModel.js";
-import { Op, Sequelize, WhereOptions } from "sequelize";
+import { Op, Sequelize, WhereOptions, type Order } from "sequelize";
 import CAS from "../cas.js";
-import Elasticsearch from "../elasticsearch.js";
 
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
@@ -55,6 +54,51 @@ function getPeopleOrder(randomSeed: number | null) {
 	] as [ReturnType<typeof Sequelize.literal>, string][];
 }
 
+function getSearchOrder(query: string): Order {
+	const sequelize = PersonModel.sequelize;
+	if(!sequelize) throw new Error("Person model must be initialized before searching");
+
+	const normalizedQuery = query.trim().toLowerCase();
+	const exact = sequelize.escape(normalizedQuery);
+	const prefix = sequelize.escape(`${normalizedQuery}%`);
+
+	return [
+		[
+			Sequelize.literal(`
+				CASE
+					WHEN LOWER(first_last_name(first_name, last_name)) = ${exact}
+						OR LOWER(first_last_name(COALESCE(NULLIF(preferred_name, ''), first_name), last_name)) = ${exact}
+						THEN 0
+					WHEN LOWER(first_name) = ${exact}
+						OR LOWER(preferred_name) = ${exact}
+						OR LOWER(last_name) = ${exact}
+						THEN 1
+					WHEN LOWER(first_last_name(first_name, last_name)) LIKE ${prefix}
+						OR LOWER(first_last_name(COALESCE(NULLIF(preferred_name, ''), first_name), last_name)) LIKE ${prefix}
+						THEN 2
+					WHEN LOWER(first_name) LIKE ${prefix}
+						OR LOWER(preferred_name) LIKE ${prefix}
+						OR LOWER(last_name) LIKE ${prefix}
+						THEN 3
+					ELSE 4
+				END
+			`),
+			"ASC",
+		],
+		["last_name", "ASC"],
+		["first_name", "ASC"],
+		["id", "ASC"],
+	];
+}
+
+function getInitialsOrder(): Order {
+	return [
+		["last_name", "ASC"],
+		["first_name", "ASC"],
+		["id", "ASC"],
+	];
+}
+
 function getFilterValues(filters: Record<string, unknown>, field: string): string[] {
 	const value = filters[field];
 	if(value == null) return [];
@@ -99,12 +143,6 @@ function pruneCache() {
 }
 
 export default class PeopleRouter {
-	#elasticsearch: Elasticsearch;
-
-	constructor(elasticsearch: Elasticsearch) {
-		this.#elasticsearch = elasticsearch;
-	}
-
 	getRouter = () => {
 		const router = express.Router();
 		router.post("/", CAS.requireAuthentication, this.getPeople);
@@ -128,7 +166,7 @@ export default class PeopleRouter {
 		};
 	};
 
-	buildNameFallbackWhere = (query: string) => {
+	buildNameSearchWhere = (query: string): WhereOptions<PersonModel> => {
 		const terms = query.trim().split(/\s+/).filter(Boolean);
 		return {
 			[Op.and]: terms.map((term) => ({
@@ -148,27 +186,12 @@ export default class PeopleRouter {
 		};
 	};
 
-	searchPersonByNameFallback = async (query: string, limit: number = 200): Promise<string[]> => {
-		if (!query.trim()) return [];
-
+	getSuggestionsFromDatabase = async (query: string, limit: number = 8) => {
 		try {
 			const people = await PersonModel.findAll({
-				where: this.buildNameFallbackWhere(query),
-				attributes: ["netid"],
-				limit,
-			});
-			return people.map((person) => person.netid).filter(Boolean);
-		} catch (e) {
-			console.error("Error searching people via database fallback:", e);
-			return [];
-		}
-	};
-
-	getSuggestionsFallback = async (query: string, limit: number = 8) => {
-		try {
-			const people = await PersonModel.findAll({
-				where: this.buildNameFallbackWhere(query),
+				where: this.buildNameSearchWhere(query),
 				attributes: ["netid", "first_name", "last_name", "image", "college", "year", "school"],
+				order: getSearchOrder(query),
 				limit,
 			});
 			return people.map((p) => ({
@@ -181,7 +204,7 @@ export default class PeopleRouter {
 				school: p.school,
 			}));
 		} catch (e) {
-			console.error("Error fetching suggestions via database fallback:", e);
+			console.error("Error fetching suggestions from database:", e);
 			return [];
 		}
 	};
@@ -215,35 +238,8 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const suggestions = await this.#elasticsearch.suggestPerson(query, 8);
-
-		if (suggestions.length === 0) {
-			const fallbackSuggestions = await this.getSuggestionsFallback(query, 8);
-			res.status(200).json(fallbackSuggestions);
-			return;
-		}
-		const netids = suggestions.map((s) => s.netid);
-		const validPeople = await PersonModel.findAll({
-			where: { netid: { [Op.in]: netids } },
-			attributes: ["netid", "first_name", "last_name", "image", "college", "year", "school"],
-		});
-		const validMap = new Map(validPeople.map((p) => [p.netid, p]));
-
-		const verified = netids
-			.filter((id) => validMap.has(id))
-			.map((id) => {
-				const p = validMap.get(id)!;
-				return {
-					netid: p.netid,
-					first_name: p.first_name,
-					last_name: p.last_name,
-					image: p.image,
-					college: p.college,
-					year: p.year,
-					school: p.school,
-				};
-			});
-		res.status(200).json(verified);
+		const suggestions = await this.getSuggestionsFromDatabase(query, 8);
+		res.status(200).json(suggestions);
 	};
 
 	getPeople = async (req: Request, res: Response) => {
@@ -300,61 +296,37 @@ export default class PeopleRouter {
 			}
 		}
 
-		let exactNetids: string[] = [];
-		let fuzzyNetids: string[] = [];
+		let searchOrder: Order | null = null;
 
 		if(query) {
 			if(searchMode === "first_name") {
-				where = {
-					...where,
+				where = andWhere(where, {
 					[Op.or]: [
 						{ first_name: { [Op.iLike]: `%${query}%` } },
 						{ preferred_name: { [Op.iLike]: `%${query}%` } },
 					],
-				};
+				});
+				searchOrder = getSearchOrder(query);
 			} else if(searchMode === "last_name") {
-				where = {
-					...where,
+				where = andWhere(where, {
 					last_name: { [Op.iLike]: `%${query}%` },
-				};
+				});
+				searchOrder = getSearchOrder(query);
 			} else if(searchMode === "initials") {
 				if(query.match(/^[a-z]{2}$/i)) {
-					where = {
-						...where,
-						...this.constructInitialsQuery(query),
-					};
+					where = andWhere(where, this.constructInitialsQuery(query));
+					searchOrder = getInitialsOrder();
 				} else {
 					res.status(200).json([]);
 					return;
 				}
 
 			} else if(query.match(/^[a-z]{2}$/i)) {
-				where = {
-					...where,
-					...this.constructInitialsQuery(query),
-				};
+				where = andWhere(where, this.constructInitialsQuery(query));
+				searchOrder = getInitialsOrder();
 			} else {
-				[exactNetids, fuzzyNetids] = await Promise.all([
-					this.#elasticsearch.searchPersonByNameFuzzy(query, false),
-					this.#elasticsearch.searchPersonByNameFuzzy(query, true),
-				]);
-				const allNetids = [...new Set([...exactNetids, ...fuzzyNetids])];
-				if (allNetids.length === 0) {
-					const fallbackNetids = await this.searchPersonByNameFallback(query);
-					if (fallbackNetids.length === 0) {
-						res.status(200).json([]);
-						return;
-					}
-					where = {
-						...where,
-						netid: { [Op.in]: fallbackNetids },
-					};
-				} else {
-					where = {
-						...where,
-						netid: { [Op.in]: allNetids },
-					};
-				}
+				where = andWhere(where, this.buildNameSearchWhere(query));
+				searchOrder = getSearchOrder(query);
 			}
 		}
 
@@ -380,7 +352,7 @@ export default class PeopleRouter {
 		try {
 			people = await PersonModel.findAll({
 				where,
-				order: getPeopleOrder(randomSeed),
+				order: searchOrder ?? getPeopleOrder(randomSeed),
 				limit: pageSize,
 				offset: page * pageSize,
 			});
@@ -477,16 +449,6 @@ export default class PeopleRouter {
 				...(friendData && { friend_data: friendData }),
 			};
 		});
-
-		if(fuzzyNetids.length > 0) {
-			json.sort((a, b) => {
-				const aIsInExact = exactNetids.includes(a.netid);
-				const bIsInExact = exactNetids.includes(b.netid);
-				if(aIsInExact === bIsInExact) return 0;
-				if(aIsInExact) return -1;
-				if(bIsInExact) return 1;
-			});
-		}
 
 		searchCache.set(cacheKey, { data: json, timestamp: Date.now() });
 		pruneCache();

@@ -27,7 +27,9 @@ Yale Directory ──(_people_search…)────┘            │          
 3. **Validate** (`src/validate.ts`) — sanity thresholds from `yalies-shared/validation.ts` (≈6000–8000 students, 14 colleges, years 2026–2029).
 4. **Sync** (`src/loadDb.ts`) — ⚠️ **destructive**: in one transaction it `DELETE`s every `school='Yale College'` row in the shared `person` table and re-inserts the scraped set. See "Known issues."
 
-The pipeline only touches Postgres + GCS. **Nothing here reindexes Elasticsearch** — the public search index is the external backend's job, so it can drift after a sync (open question below).
+The pipeline only touches Postgres + GCS. The public backend searches the shared
+Postgres `person` table directly, so newly synced records are immediately
+searchable without maintaining a separate search index.
 
 ## Run it locally (3 terminals, from the repo root)
 
@@ -77,7 +79,6 @@ It shares **infrastructure, not code**: the same Cloud SQL `person` table (synce
 
 **Major (correctness / safety):**
 - **Destructive sync, no guardrail.** `loadDb.ts` deletes+reinserts all Yale College rows with no pre-snapshot and no abort-if-too-small check; a partial scrape (expired cookie mid-run) can shrink the live roster. Enrichment-validation failure only warns and loads anyway (`index.ts`). → add a row-count guard, snapshot before delete, and gate the load on validation.
-- **No Elasticsearch reindex after sync** — public search can desync from Postgres.
 - **Brittle scraping** — every Face Book field depends on exact Yale HTML/classes and the undocumented whole-roster trick; template drift silently yields blank fields, guarded only by a <100-students throw.
 - **`fetchMissingPhotos.ts`** crashes when nothing's missing (`missing[0]` deref) and keys photos by UPI while the main pipeline keys by Face Book `photo_id` — two conventions that disagree.
 - **CORS `origin:true` + credentials** on the pipeline (`server.ts`) lets any origin make authenticated requests (limited only by `requireAdmin`), with a ~400-day session cookie and full write/delete access. → lock to the dashboard origin.
@@ -89,8 +90,7 @@ It shares **infrastructure, not code**: the same Cloud SQL `person` table (synce
 
 1. Where does `.config` live and how does a new teammate get it (DB URL, `SESSION_SECRET`, service key, Cloud SQL instance names)?
 2. Is the pipeline server meant to be deployed, or run locally on-demand? If deployed, where, and what sets its prod env?
-3. After a sync, what reindexes Elasticsearch — manual or missing?
-4. Has the password leaked in `index.ts:17` been rotated? Is it the live Cloud SQL credential?
-5. Is `Photo?id=` keyed by `photo_id` or UPI? (the pipeline and `fetchMissingPhotos.ts` disagree)
-6. Is the Python enhance/facecheck tooling part of the release cycle or a one-off pass? Where do the model weights come from?
-7. Does face-check actually run in prod, given `yalies-internal` isn't co-deployed with the external backend (it silently skips if the script isn't found)?
+3. Has the password leaked in `index.ts:17` been rotated? Is it the live Cloud SQL credential?
+4. Is `Photo?id=` keyed by `photo_id` or UPI? (the pipeline and `fetchMissingPhotos.ts` disagree)
+5. Is the Python enhance/facecheck tooling part of the release cycle or a one-off pass? Where do the model weights come from?
+6. Does face-check actually run in prod, given `yalies-internal` isn't co-deployed with the external backend (it silently skips if the script isn't found)?
