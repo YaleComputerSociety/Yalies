@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./appsdropdown.module.scss";
 
 type AppLink = {
@@ -67,16 +67,49 @@ function normalizeHostname(hostname: string) {
 	return hostname.replace(/^www\./, "");
 }
 
+const DROPDOWN_ANIMATION_MS = 180;
+
 export default function AppsDropdown() {
 	const [open, setOpen] = useState(false);
+	const [closing, setClosing] = useState(false);
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const openDropdown = useCallback(() => {
+		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		setClosing(false);
+		setOpen(true);
+	}, []);
+
+	const closeDropdown = useCallback(() => {
+		if(!open || closing) return;
+		setClosing(true);
+		closeTimeoutRef.current = setTimeout(() => {
+			setOpen(false);
+			setClosing(false);
+		}, DROPDOWN_ANIMATION_MS);
+	}, [closing, open]);
+
+	const toggleDropdown = useCallback(() => {
+		if(open && !closing) {
+			closeDropdown();
+			return;
+		}
+		openDropdown();
+	}, [closing, closeDropdown, open, openDropdown]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
-			if(wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) setOpen(false);
+			if(wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) closeDropdown();
 		};
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [closeDropdown]);
+
+	useEffect(() => {
+		return () => {
+			if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		};
 	}, []);
 
 	return (
@@ -84,16 +117,16 @@ export default function AppsDropdown() {
 			<button
 				type="button"
 				className={styles.toggle}
-				onClick={() => setOpen(!open)}
+				onClick={toggleDropdown}
 				aria-label="Yale apps"
-				aria-expanded={open}
+				aria-expanded={open && !closing}
 			>
 				<span className={styles.waffle} aria-hidden>
 					{Array.from({ length: 9 }, (_, index) => <span key={index} />)}
 				</span>
 			</button>
 			{open && (
-				<div className={styles.dropdown}>
+				<div className={`${styles.dropdown} ${closing ? styles.closing : ""}`}>
 					<div className={styles.app_grid}>
 						{apps.map((app) => (
 							<a
@@ -106,11 +139,11 @@ export default function AppsDropdown() {
 									const targetUrl = new URL(app.href);
 									if(normalizeHostname(window.location.hostname) === normalizeHostname(targetUrl.hostname)) {
 										event.preventDefault();
-										setOpen(false);
+										closeDropdown();
 										window.location.assign(targetUrl.origin);
 										return;
 									}
-									setOpen(false);
+									closeDropdown();
 								}}
 							>
 								<span className={styles.app_icon} style={{ color: app.color }}>

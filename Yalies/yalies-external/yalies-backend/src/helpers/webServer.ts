@@ -21,16 +21,6 @@ import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
 const SequelizeStore = ConnectSessionSequelize(session.Store);
 
-// Admin allow-list for /v3/admin/* routes (comma-separated netids in env).
-const ADMIN_NETIDS = (process.env.ADMIN_NETIDS || "").split(",").map((s) => s.trim()).filter(Boolean);
-if (ADMIN_NETIDS.length === 0) {
-	console.warn("[admin] ADMIN_NETIDS is empty — /v3/admin/* routes will reject everyone. Set ADMIN_NETIDS=netid1,netid2 in the backend env.");
-}
-const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-	if (req.netid && ADMIN_NETIDS.includes(req.netid)) return next();
-	return res.status(403).json({ error: "Admin access required" });
-};
-
 export default class WebServer {
 	#app: Express;
 	#db: DB;
@@ -94,6 +84,16 @@ export default class WebServer {
 	};
 
 	initializeSubRouters = () => {
+		// Read the allow-list after the development env file has been loaded.
+		const adminNetids = (process.env.ADMIN_NETIDS || "").split(",").map((s) => s.trim()).filter(Boolean);
+		if (adminNetids.length === 0) {
+			console.warn("[admin] ADMIN_NETIDS is empty — /v3/admin/* routes will reject everyone. Set ADMIN_NETIDS=netid1,netid2 in the backend env.");
+		}
+		const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+			if (req.netid && adminNetids.includes(req.netid)) return next();
+			return res.status(403).json({ error: "Admin access required" });
+		};
+
 		const pingPongRouter = new PingPongRouter();
 		this.#app.use(API_ROUTES.ping, pingPongRouter.getRouter());
 

@@ -374,6 +374,12 @@
 	}
 }
 
+.field_error {
+	color: shared.$destructive-color;
+	font-size: 12px;
+	font-weight: 500;
+}
+
 .tabs {
 	display: flex;
 	gap: 0;

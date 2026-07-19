@@ -17,6 +17,38 @@ const GCS_BUCKET_NAME = "yalies-photos";
 // actually configured (e.g. local dev with GOOGLE_APPLICATION_CREDENTIALS set);
 // never fall back to a hardcoded path that doesn't exist in the container.
 const GCS_KEY_FILENAME = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const SOCIAL_HOSTS = {
+	linkedin: new Set(["linkedin.com", "www.linkedin.com"]),
+	instagram: new Set(["instagram.com", "www.instagram.com"]),
+};
+
+type SocialPlatform = keyof typeof SOCIAL_HOSTS;
+
+function normalizeExternalUrl(url: string) {
+	const trimmedUrl = url.trim();
+	if(/^https?:\/\//i.test(trimmedUrl)) return trimmedUrl;
+	if(trimmedUrl.startsWith("//")) return `https:${trimmedUrl}`;
+	return `https://${trimmedUrl.replace(/^\/+/, "")}`;
+}
+
+function normalizeSocialUrl(platform: SocialPlatform, value: unknown) {
+	if(value === undefined) return undefined;
+	if(value === null) return null;
+	if(typeof value !== "string") return null;
+
+	const trimmedUrl = value.trim();
+	if(!trimmedUrl) return null;
+	const normalizedUrl = normalizeExternalUrl(trimmedUrl);
+
+	try {
+		const parsedUrl = new URL(normalizedUrl);
+		if(parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") return null;
+		if(!SOCIAL_HOSTS[platform].has(parsedUrl.hostname.toLowerCase())) return null;
+		return normalizedUrl;
+	} catch {
+		return null;
+	}
+}
 
 const upload = multer({
 	storage: multer.memoryStorage(),
@@ -92,14 +124,23 @@ export default class UserProfileRouter {
 
 	updateMyProfile = async (req: Request, res: Response) => {
 		const { description, interests, linkedin_url, instagram_url, classes } = req.body;
+		const normalizedLinkedinUrl = normalizeSocialUrl("linkedin", linkedin_url);
+		const normalizedInstagramUrl = normalizeSocialUrl("instagram", instagram_url);
+
+		if(linkedin_url !== undefined && normalizedLinkedinUrl === null && linkedin_url !== null && String(linkedin_url).trim() !== "") {
+			return res.status(400).send("LinkedIn URL must be on linkedin.com.");
+		}
+		if(instagram_url !== undefined && normalizedInstagramUrl === null && instagram_url !== null && String(instagram_url).trim() !== "") {
+			return res.status(400).send("Instagram URL must be on instagram.com.");
+		}
 
 		try {
 			const [profile] = await UserProfileModel.upsert({
 				netid: req.netid,
 				...description !== undefined && { description },
 				...interests !== undefined && { interests },
-				...linkedin_url !== undefined && { linkedin_url },
-				...instagram_url !== undefined && { instagram_url },
+				...linkedin_url !== undefined && { linkedin_url: normalizedLinkedinUrl },
+				...instagram_url !== undefined && { instagram_url: normalizedInstagramUrl },
 				...classes !== undefined && { classes },
 				updated_at: new Date(),
 			});

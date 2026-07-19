@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
 import ChangeRequestModal from "@/components/ChangeRequestModal";
 import EmailCopyButton from "@/components/EmailCopyButton";
+import { getSocialUrlError, normalizeSocialUrl } from "@/utils/externalUrl";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
@@ -65,6 +66,19 @@ export default function ProfilePage() {
 	const saveProfile = async () => {
 		setIsSaving(true);
 		setSaveMessage("");
+		const normalizedLinkedinUrl = normalizeSocialUrl("linkedin", linkedinUrl);
+		const normalizedInstagramUrl = normalizeSocialUrl("instagram", instagramUrl);
+
+		if(normalizedLinkedinUrl === null) {
+			setSaveMessage("LinkedIn URL must be on linkedin.com.");
+			setIsSaving(false);
+			return;
+		}
+		if(normalizedInstagramUrl === null) {
+			setSaveMessage("Instagram URL must be on instagram.com.");
+			setIsSaving(false);
+			return;
+		}
 
 		let response;
 		try {
@@ -75,8 +89,8 @@ export default function ProfilePage() {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					linkedin_url: linkedinUrl || null,
-					instagram_url: instagramUrl || null,
+					linkedin_url: normalizedLinkedinUrl || null,
+					instagram_url: normalizedInstagramUrl || null,
 				}),
 			});
 		} catch(e) {
@@ -86,17 +100,25 @@ export default function ProfilePage() {
 			return;
 		}
 		if(!response || !response.ok) {
-			console.error("Error saving profile");
-			setSaveMessage("Failed to save profile.");
+			const errorText = response ? await response.text() : "";
+			console.error("Error saving profile", errorText);
+			setSaveMessage(errorText || "Failed to save profile.");
 			setIsSaving(false);
 			return;
 		}
 		const data: UserProfile = await response.json();
 		setProfile(data);
+		setLinkedinUrl(data.linkedin_url ?? "");
+		setInstagramUrl(data.instagram_url ?? "");
 		invalidateProfileCache();
 		setSaveMessage("Profile saved!");
 		setIsSaving(false);
 	};
+
+	const linkedinHref = normalizeSocialUrl("linkedin", linkedinUrl) || "";
+	const instagramHref = normalizeSocialUrl("instagram", instagramUrl) || "";
+	const linkedinError = getSocialUrlError("linkedin", linkedinUrl);
+	const instagramError = getSocialUrlError("instagram", instagramUrl);
 
 	const fetchPeopleByNetids = async (netids: string[]): Promise<Person[]> => {
 		if(netids.length === 0) return [];
@@ -285,7 +307,7 @@ export default function ProfilePage() {
 	const displayName = person
 		? `${person.preferred_name || person.first_name} ${person.last_name}`
 		: profile?.netid ?? "";
-	const hasContactRow = person?.email || linkedinUrl || instagramUrl;
+	const hasContactRow = person?.email || linkedinHref || instagramHref;
 
 	return (
 		<>
@@ -402,13 +424,13 @@ export default function ProfilePage() {
 								<EmailCopyButton className={styles.contact_email} email={person.email} />
 							)}
 							<div className={styles.contact_socials}>
-								{linkedinUrl && (
-									<a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+								{linkedinHref && (
+									<a href={linkedinHref} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
 										<FontAwesomeIcon icon={faLinkedin as IconProp} />
 									</a>
 								)}
-								{instagramUrl && (
-									<a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+								{instagramHref && (
+									<a href={instagramHref} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
 										<FontAwesomeIcon icon={faInstagram as IconProp} />
 									</a>
 								)}
@@ -446,6 +468,7 @@ export default function ProfilePage() {
 								value={linkedinUrl}
 								onChange={e => setLinkedinUrl(e.target.value)}
 							/>
+							{linkedinError && <span className={styles.field_error}>{linkedinError}</span>}
 						</div>
 						<div className={styles.field}>
 							<label>Instagram URL</label>
@@ -454,6 +477,7 @@ export default function ProfilePage() {
 								value={instagramUrl}
 								onChange={e => setInstagramUrl(e.target.value)}
 							/>
+							{instagramError && <span className={styles.field_error}>{instagramError}</span>}
 						</div>
 
 						<div className={styles.save_section}>

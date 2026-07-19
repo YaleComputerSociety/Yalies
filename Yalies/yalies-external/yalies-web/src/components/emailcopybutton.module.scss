@@ -22,7 +22,7 @@
 	&:focus-visible {
 		text-decoration: none;
 
-		.email_icon {
+		.primary_icon {
 			opacity: 0;
 			transform: scale(0.8);
 		}
@@ -44,7 +44,7 @@
 	flex-shrink: 0;
 }
 
-.email_button .email_icon,
+.email_button .primary_icon,
 .email_button .copy_icon {
 	position: absolute;
 	width: 14px;
@@ -52,7 +52,7 @@
 	transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
-.email_button .email_icon {
+.email_button .primary_icon {
 	opacity: 0.7;
 	transform: scale(1);
 }

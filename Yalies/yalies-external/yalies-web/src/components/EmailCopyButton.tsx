@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { faCheck, faCopy, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import styles from "./emailcopybutton.module.scss";
 
@@ -17,12 +18,18 @@ function fallbackCopy(text: string) {
 	document.body.removeChild(textarea);
 }
 
-export default function EmailCopyButton({
-	email,
+export function CopyButton({
+	value,
+	displayValue,
+	icon,
+	copyLabel,
 	className,
 	stopPropagation,
 }: {
-	email: string;
+	value: string;
+	displayValue?: string;
+	icon: IconProp;
+	copyLabel: string;
 	className?: string;
 	stopPropagation?: boolean;
 }) {
@@ -34,9 +41,9 @@ export default function EmailCopyButton({
 
 		try {
 			if(navigator.clipboard?.writeText) {
-				await navigator.clipboard.writeText(email);
+				await navigator.clipboard.writeText(value);
 			} else {
-				fallbackCopy(email);
+				fallbackCopy(value);
 			}
 			setCopied(true);
 			if(timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -51,14 +58,34 @@ export default function EmailCopyButton({
 			type="button"
 			className={`${styles.email_button} ${className ?? ""}`}
 			onClick={handleClick}
-			aria-label={copied ? "Email copied" : `Copy ${email}`}
-			title={copied ? "Copied" : "Copy email"}
+			aria-label={copied ? `${copyLabel} copied` : `Copy ${copyLabel}`}
+			title={copied ? "Copied" : `Copy ${copyLabel}`}
 		>
 			<span className={styles.icon_wrap} aria-hidden="true">
-				<FontAwesomeIcon icon={faEnvelope} className={styles.email_icon} />
+				<FontAwesomeIcon icon={icon} className={styles.primary_icon} />
 				<FontAwesomeIcon icon={copied ? faCheck : faCopy} className={styles.copy_icon} />
 			</span>
-			<span>{copied ? "Copied" : email}</span>
+			<span>{copied ? "Copied" : (displayValue ?? value)}</span>
 		</button>
+	);
+}
+
+export default function EmailCopyButton({
+	email,
+	className,
+	stopPropagation,
+}: {
+	email: string;
+	className?: string;
+	stopPropagation?: boolean;
+}) {
+	return (
+		<CopyButton
+			value={email}
+			icon={faEnvelope}
+			copyLabel="email"
+			className={className}
+			stopPropagation={stopPropagation}
+		/>
 	);
 }

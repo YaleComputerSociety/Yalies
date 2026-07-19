@@ -11,6 +11,7 @@ import { faCake, faBook, faGraduationCap, faHouse } from "@fortawesome/free-soli
 import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { COLLEGE_SHIELDS } from "@/consts";
 import EmailCopyButton from "./EmailCopyButton";
+import { normalizeExternalUrl } from "@/utils/externalUrl";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -94,7 +95,9 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 						),
 					];
 
-					const hasFooter = person.email || person.user_profile?.linkedin_url || person.user_profile?.instagram_url;
+					const linkedinUrl = normalizeExternalUrl(person.user_profile?.linkedin_url);
+					const instagramUrl = normalizeExternalUrl(person.user_profile?.instagram_url);
+					const hasFooter = person.email || linkedinUrl || instagramUrl;
 
 					return (
 						<div
@@ -103,14 +106,16 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 							onClick={() => setSelectedPerson(person)}
 						>
 							<div className={gridStyles.info_box}>
-								<img
-									className={gridStyles.profile_image}
-									src={person.image || "/no_image.png"}
-									alt={`${person.first_name} ${person.last_name}`}
-									loading="lazy"
-									decoding="async"
-									onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
-								/>
+								<div className={gridStyles.profile_image_frame}>
+									<img
+										className={gridStyles.profile_image}
+										src={person.image || "/no_image.png"}
+										alt={`${person.first_name} ${person.last_name}`}
+										loading="lazy"
+										decoding="async"
+										onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
+									/>
+								</div>
 								<div className={gridStyles.details}>
 									<div className={gridStyles.name_row}>
 										<h3 className={gridStyles.name}>{person.first_name} {person.last_name}</h3>
@@ -128,9 +133,9 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 										/>
 									)}
 									<div className={gridStyles.card_socials}>
-										{person.user_profile?.linkedin_url && (
+										{linkedinUrl && (
 											<a
-												href={person.user_profile.linkedin_url}
+												href={linkedinUrl}
 												target="_blank"
 												rel="noopener noreferrer"
 												onClick={e => e.stopPropagation()}
@@ -139,9 +144,9 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 												<FontAwesomeIcon icon={faLinkedin as IconProp} />
 											</a>
 										)}
-										{person.user_profile?.instagram_url && (
+										{instagramUrl && (
 											<a
-												href={person.user_profile.instagram_url}
+												href={instagramUrl}
 												target="_blank"
 												rel="noopener noreferrer"
 												onClick={e => e.stopPropagation()}

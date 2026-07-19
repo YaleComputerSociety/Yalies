@@ -32,6 +32,17 @@
 	}
 }
 
+:global(:root[data-theme="dark"]) .profile_button {
+	&:hover,
+	&[aria-expanded="true"] {
+		background: #4b9cf0;
+	}
+}
+
+.profile_fallback_icon {
+	font-size: 0.95rem;
+}
+
 .dropdown {
 	position: absolute;
 	top: 56px;
@@ -48,6 +59,11 @@
 	animation: profile_dropdown_expand 0.18s ease-out;
 }
 
+.closing {
+	animation: profile_dropdown_collapse 0.18s ease-in forwards;
+	pointer-events: none;
+}
+
 @keyframes profile_dropdown_expand {
 	from {
 		max-height: 0;
@@ -55,8 +71,20 @@
 	}
 
 	to {
-		max-height: 330px;
+		max-height: 520px;
 		opacity: 1;
+	}
+}
+
+@keyframes profile_dropdown_collapse {
+	from {
+		max-height: 520px;
+		opacity: 1;
+	}
+
+	to {
+		max-height: 0;
+		opacity: 0;
 	}
 }
 
@@ -72,49 +100,6 @@
 	background: shared.$accent-color;
 }
 
-.theme_toggle,
-.header_edit {
-	position: absolute;
-	top: 0.85rem;
-	width: 30px;
-	height: 30px;
-	display: grid;
-	place-items: center;
-	border: 0;
-	background: transparent;
-	color: #ffffff;
-	text-decoration: none;
-	transition: opacity 0.1s ease;
-
-	&:hover {
-		color: #ffffff;
-		opacity: 0.75;
-	}
-}
-
-.theme_toggle {
-	left: 0.85rem;
-	cursor: pointer;
-
-	&.dark {
-		.moon_icon {
-			display: block;
-		}
-
-		svg:first-child {
-			display: none;
-		}
-	}
-}
-
-.header_edit {
-	right: 0.85rem;
-}
-
-.moon_icon {
-	display: none;
-}
-
 .header_initials {
 	min-height: 42px;
 	display: grid;
@@ -123,6 +108,10 @@
 	line-height: 1;
 	font-weight: 700;
 	transform: scaleX(0.8);
+}
+
+.header_fallback_icon {
+	font-size: 1.9rem;
 }
 
 .greeting {
@@ -213,12 +202,31 @@
 }
 
 @include shared.responsive() {
+	.profile_wrapper {
+		display: contents;
+	}
+
 	.dropdown {
-		position: fixed;
-		top: 66px;
-		left: 10px;
-		right: 10px;
-		width: auto;
+		position: static;
+		flex: 0 0 100%;
+		order: 10;
+		width: 100%;
+		margin-top: 8px;
+		background: transparent;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		overflow: visible;
+		transform: none;
+	}
+
+	.identity_header {
+		min-height: 168px;
+		border-radius: 24px;
+	}
+
+	.menu_items {
+		padding: 1.15rem 1.25rem 0.85rem;
 	}
 
 	.profile_button {
@@ -230,6 +238,10 @@
 
 @media (prefers-reduced-motion: reduce) {
 	.dropdown {
+		animation: none;
+	}
+
+	.closing {
 		animation: none;
 	}
 }

@@ -77,7 +77,7 @@ echo "==================================="
 echo ""
 echo "Starting Cloud SQL Proxy..."
 if [ -s "$CREDENTIALS_FILE" ]; then
-  cloud-sql-proxy --port "$PORT" --credentials-file="$CREDENTIALS_FILE" "$INSTANCE"
+  exec cloud-sql-proxy --port "$PORT" --credentials-file="$CREDENTIALS_FILE" "$INSTANCE"
 else
-  cloud-sql-proxy --port "$PORT" "$INSTANCE"
+  exec cloud-sql-proxy --port "$PORT" "$INSTANCE"
 fi

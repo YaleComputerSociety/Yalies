@@ -10,6 +10,7 @@ import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { COLLEGE_SHIELDS } from "@/consts";
 import EmailCopyButton from "./EmailCopyButton";
+import { normalizeExternalUrl } from "@/utils/externalUrl";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -67,49 +68,52 @@ export default function PeopleGrid({
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
 	const peopleElems = people.map(person => {
-			const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
+		const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
 
-			const collegeYearText = formatCollegeYear(person);
-			const hometownText = formatHometown(person);
-			const birthdayText = formatBirthday(person);
-			const birthdayToday = isBirthdayToday(person);
+		const collegeYearText = formatCollegeYear(person);
+		const hometownText = formatHometown(person);
+		const birthdayText = formatBirthday(person);
+		const birthdayToday = isBirthdayToday(person);
 
-			const detailRows = [
-				collegeYearText && (
-					<div key="college_year" className={styles.row}>
-						{hasCollegeShield ? (
-							<CollegeIcon collegeCode={person.college_code as keyof typeof COLLEGE_SHIELDS} />
-						) : person.year ? (
-							<FontAwesomeIcon icon={faGraduationCap} />
-						) : null}
-						<span>{collegeYearText}</span>
-					</div>
-				),
-				person.major && (
-					<div key="major" className={styles.row}>
-						<FontAwesomeIcon icon={faBook} />
-						<span>{person.major}</span>
-					</div>
-				),
-				hometownText && (
-					<div key="hometown" className={styles.row}>
-						<FontAwesomeIcon icon={faHouse} />
-						<span>{hometownText}</span>
-					</div>
-				),
-				birthdayText && (
-					<div key="birthday" className={`${styles.row} ${birthdayToday ? styles.birthday_today : ""}`}>
-						<FontAwesomeIcon icon={faCake} />
-						<span>{birthdayText}</span>
-					</div>
-				),
-			];
+		const detailRows = [
+			collegeYearText && (
+				<div key="college_year" className={styles.row}>
+					{hasCollegeShield ? (
+						<CollegeIcon collegeCode={person.college_code as keyof typeof COLLEGE_SHIELDS} />
+					) : person.year ? (
+						<FontAwesomeIcon icon={faGraduationCap} />
+					) : null}
+					<span>{collegeYearText}</span>
+				</div>
+			),
+			person.major && (
+				<div key="major" className={styles.row}>
+					<FontAwesomeIcon icon={faBook} />
+					<span>{person.major}</span>
+				</div>
+			),
+			hometownText && (
+				<div key="hometown" className={styles.row}>
+					<FontAwesomeIcon icon={faHouse} />
+					<span>{hometownText}</span>
+				</div>
+			),
+			birthdayText && (
+				<div key="birthday" className={`${styles.row} ${birthdayToday ? styles.birthday_today : ""}`}>
+					<FontAwesomeIcon icon={faCake} />
+					<span>{birthdayText}</span>
+				</div>
+			),
+		];
 
-			const hasFooter = person.email || person.user_profile?.linkedin_url || person.user_profile?.instagram_url;
+		const linkedinUrl = normalizeExternalUrl(person.user_profile?.linkedin_url);
+		const instagramUrl = normalizeExternalUrl(person.user_profile?.instagram_url);
+		const hasFooter = person.email || linkedinUrl || instagramUrl;
 
-			const cardContent = (
-				<>
-					<div className={styles.info_box}>
+		const cardContent = (
+			<>
+				<div className={styles.info_box}>
+					<div className={styles.profile_image_frame}>
 						<img
 							className={styles.profile_image}
 							src={person.image || "/no_image.png"}
@@ -118,56 +122,57 @@ export default function PeopleGrid({
 							decoding="async"
 							onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
 						/>
-						<div className={styles.details}>
-							<div className={styles.name_row}>
-								<h3 className={styles.name}>{person.first_name} {person.last_name}</h3>
-							</div>
-							{detailRows}
+					</div>
+					<div className={styles.details}>
+						<div className={styles.name_row}>
+							<h3 className={styles.name}>{person.first_name} {person.last_name}</h3>
+						</div>
+						{detailRows}
+					</div>
+				</div>
+				{hasFooter && (
+					<div className={styles.card_footer}>
+						{person.email && (
+							<EmailCopyButton
+								className={styles.email_link}
+								email={person.email}
+								stopPropagation
+							/>
+						)}
+						<div className={styles.card_socials}>
+							{linkedinUrl && (
+								<a
+									href={linkedinUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={e => e.stopPropagation()}
+									aria-label="LinkedIn"
+								>
+									<FontAwesomeIcon icon={faLinkedin as IconProp} />
+								</a>
+							)}
+							{instagramUrl && (
+								<a
+									href={instagramUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={e => e.stopPropagation()}
+									aria-label="Instagram"
+								>
+									<FontAwesomeIcon icon={faInstagram as IconProp} />
+								</a>
+							)}
 						</div>
 					</div>
-					{hasFooter && (
-						<div className={styles.card_footer}>
-							{person.email && (
-								<EmailCopyButton
-									className={styles.email_link}
-									email={person.email}
-									stopPropagation
-								/>
-							)}
-							<div className={styles.card_socials}>
-								{person.user_profile?.linkedin_url && (
-									<a
-										href={person.user_profile.linkedin_url}
-										target="_blank"
-										rel="noopener noreferrer"
-										onClick={e => e.stopPropagation()}
-										aria-label="LinkedIn"
-									>
-										<FontAwesomeIcon icon={faLinkedin as IconProp} />
-									</a>
-								)}
-								{person.user_profile?.instagram_url && (
-									<a
-										href={person.user_profile.instagram_url}
-										target="_blank"
-										rel="noopener noreferrer"
-										onClick={e => e.stopPropagation()}
-										aria-label="Instagram"
-									>
-										<FontAwesomeIcon icon={faInstagram as IconProp} />
-									</a>
-								)}
-							</div>
-						</div>
-					)}
-				</>
-			);
+				)}
+			</>
+		);
 
-			return (
-				<div key={person.netid} className={styles.person} onClick={() => setSelectedPerson(person)}>
-					{cardContent}
-				</div>
-			);
+		return (
+			<div key={person.netid} className={styles.person} onClick={() => setSelectedPerson(person)}>
+				{cardContent}
+			</div>
+		);
 	});
 
 	const showEmpty = !isSearching && hasReachedEnd && people.length === 0;

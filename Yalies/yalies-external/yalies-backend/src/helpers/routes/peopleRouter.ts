@@ -10,12 +10,14 @@ import Elasticsearch from "../elasticsearch.js";
 
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
+const RANDOM_ORDER_MODULUS = 2147483647;
+const RANDOM_ORDER_MULTIPLIER = 2654435761;
 const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
 
-function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, page: number, pageSize: number): string {
+function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, page: number, pageSize: number, randomSeed: number | null): string {
 	// netid is part of the key because the cached payload embeds per-user state
 	// (liked_by_me, directional friend status) — sharing it across users leaks data.
-	return JSON.stringify({ netid, query, filters, page, pageSize });
+	return JSON.stringify({ netid, query, filters, page, pageSize, randomSeed });
 }
 
 type SearchMode = "default" | "full_name" | "first_name" | "last_name" | "initials";
@@ -31,6 +33,26 @@ const BIRTHDAY_FILTER_DAYS: Record<string, number> = {
 
 function isSearchMode(value: unknown): value is SearchMode {
 	return value === "default" || value === "full_name" || value === "first_name" || value === "last_name" || value === "initials";
+}
+
+function getRandomSeed(value: unknown): number | null {
+	const seed = Number(value);
+	if(!Number.isInteger(seed) || seed < 1 || seed >= RANDOM_ORDER_MODULUS) return null;
+	return seed;
+}
+
+function getPeopleOrder(randomSeed: number | null) {
+	const multiplier = randomSeed === null
+		? RANDOM_ORDER_MULTIPLIER
+		: (RANDOM_ORDER_MULTIPLIER + randomSeed) % RANDOM_ORDER_MODULUS || RANDOM_ORDER_MULTIPLIER;
+	const randomOrderExpression = randomSeed === null
+		? "(id::bigint * 2654435761) % 2147483647"
+		: `(id::bigint * ${multiplier}) % ${RANDOM_ORDER_MODULUS}`;
+
+	return [
+		[Sequelize.literal("image IS NULL OR image = ''"), "ASC"],
+		[Sequelize.literal(randomOrderExpression), "ASC"],
+	] as [ReturnType<typeof Sequelize.literal>, string][];
 }
 
 function getFilterValues(filters: Record<string, unknown>, field: string): string[] {
@@ -230,13 +252,14 @@ export default class PeopleRouter {
 		const filtersRaw = req.body.filters || {};
 		const page = req.body.page || 0;
 		const pageSize = req.body.page_size || 100;
+		const randomSeed = getRandomSeed(req.body.random_seed);
 
 		if(pageSize > 100 || pageSize < 1) {
 			res.status(400).send("Page size must be between 1 and 100");
 			return;
 		}
 
-		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, page, pageSize);
+		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, page, pageSize, randomSeed);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
 			return res.status(200).json(cached.data);
@@ -357,10 +380,7 @@ export default class PeopleRouter {
 		try {
 			people = await PersonModel.findAll({
 				where,
-				order: [
-					[Sequelize.literal("image IS NULL OR image = ''"), "ASC"],
-					[Sequelize.literal("(id * 2654435761) % 2147483647"), "ASC"],
-				],
+				order: getPeopleOrder(randomSeed),
 				limit: pageSize,
 				offset: page * pageSize,
 			});

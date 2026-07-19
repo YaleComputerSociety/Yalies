@@ -8,18 +8,15 @@ import { API, Person } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { faAddressBook, faArrowRightFromBracket, faCircleInfo, faCode, faQuestionCircle, faRightToBracket, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FaRegMoon } from "react-icons/fa";
-import { FiSmile } from "react-icons/fi";
-import { ImSun } from "react-icons/im";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const YALEMOJI_URL = "https://yalemoji.com?ref=yalies";
-const THEME_STORAGE_KEY = "yalies-theme";
 const PROFILE_IDENTITY_STORAGE_KEY = "yalies-profile-identity";
-type Theme = "light" | "dark";
+const PROFILE_IDENTITY_CACHE_VERSION = 2;
+const DROPDOWN_ANIMATION_MS = 180;
 type CachedProfileIdentity = {
 	initials: string;
 	firstName: string;
+	version: number;
 };
 
 function getFirstName(person: Person | null) {
@@ -40,6 +37,7 @@ function getProfileIdentity(person: Person): CachedProfileIdentity | null {
 	return {
 		initials,
 		firstName: getFirstName(person),
+		version: PROFILE_IDENTITY_CACHE_VERSION,
 	};
 }
 
@@ -50,9 +48,15 @@ function getCachedProfileIdentity(): CachedProfileIdentity | null {
 		if(!raw) return null;
 		const parsed = JSON.parse(raw) as Partial<CachedProfileIdentity>;
 		if(typeof parsed.initials !== "string" || parsed.initials.trim().length === 0) return null;
+		const initials = parsed.initials.trim().toUpperCase();
+		if(initials === "ME" && parsed.version !== PROFILE_IDENTITY_CACHE_VERSION) {
+			window.localStorage.removeItem(PROFILE_IDENTITY_STORAGE_KEY);
+			return null;
+		}
 		return {
-			initials: parsed.initials,
+			initials,
 			firstName: typeof parsed.firstName === "string" ? parsed.firstName : "",
+			version: typeof parsed.version === "number" ? parsed.version : 1,
 		};
 	} catch {
 		return null;
@@ -108,31 +112,51 @@ export default function ProfileButton({
 	showCompactNavLinks?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
+	const [closing, setClosing] = useState(false);
 	const [person, setPerson] = useState<Person | null>(null);
-	const [cachedIdentity, setCachedIdentity] = useState<CachedProfileIdentity | null>(() => getCachedProfileIdentity());
-	const [theme, setTheme] = useState<Theme>("light");
+	const [cachedIdentity, setCachedIdentity] = useState<CachedProfileIdentity | null>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	useEffect(() => {
-		const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-		const initialTheme: Theme = storedTheme === "dark" ? "dark" : "light";
-		document.documentElement.dataset.theme = initialTheme;
-		setTheme(initialTheme);
+	const openDropdown = useCallback(() => {
+		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		setClosing(false);
+		setOpen(true);
 	}, []);
 
-	const toggleTheme = () => {
-		const nextTheme: Theme = theme === "dark" ? "light" : "dark";
-		document.documentElement.dataset.theme = nextTheme;
-		window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-		setTheme(nextTheme);
-	};
+	const closeDropdown = useCallback(() => {
+		if(!open || closing) return;
+		setClosing(true);
+		closeTimeoutRef.current = setTimeout(() => {
+			setOpen(false);
+			setClosing(false);
+		}, DROPDOWN_ANIMATION_MS);
+	}, [closing, open]);
+
+	const toggleDropdown = useCallback(() => {
+		if(open && !closing) {
+			closeDropdown();
+			return;
+		}
+		openDropdown();
+	}, [closing, closeDropdown, open, openDropdown]);
+
+	useEffect(() => {
+		setCachedIdentity(getCachedProfileIdentity());
+	}, []);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
-			if(wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) setOpen(false);
+			if(wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) closeDropdown();
 		};
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [closeDropdown]);
+
+	useEffect(() => {
+		return () => {
+			if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -152,8 +176,9 @@ export default function ProfileButton({
 	const initials = useMemo(() => {
 		const personInitials = getInitials(person);
 		if(personInitials) return personInitials;
-		if(cachedIdentity?.initials) return cachedIdentity.initials;
-		return "ME";
+		const cachedInitials = cachedIdentity?.initials.trim().toUpperCase();
+		if(cachedInitials && (cachedInitials !== "ME" || cachedIdentity?.version === PROFILE_IDENTITY_CACHE_VERSION)) return cachedInitials;
+		return "";
 	}, [cachedIdentity, person]);
 
 	const firstName = getFirstName(person) || cachedIdentity?.firstName || "";
@@ -165,36 +190,33 @@ export default function ProfileButton({
 					type="button"
 					className={styles.profile_button}
 					onMouseEnter={() => prefetchProfile()}
-					onClick={() => setOpen(!open)}
+					onClick={toggleDropdown}
 					aria-label="Profile menu"
-					aria-expanded={open}
+					aria-expanded={open && !closing}
 				>
-					<span suppressHydrationWarning>{initials}</span>
+					{initials ? (
+						<span suppressHydrationWarning>{initials}</span>
+					) : (
+						<FontAwesomeIcon icon={faUser} className={styles.profile_fallback_icon} />
+					)}
 				</button>
 				{open && (
-					<div className={styles.dropdown}>
+					<div className={`${styles.dropdown} ${closing ? styles.closing : ""}`}>
 						<div className={styles.identity_header}>
-							<button
-								type="button"
-								className={`${styles.theme_toggle} ${theme === "dark" ? styles.dark : ""}`}
-								onClick={toggleTheme}
-								aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-								aria-pressed={theme === "dark"}
-								title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-							>
-								<ImSun size={17} />
-								<FaRegMoon size={16} className={styles.moon_icon} />
-							</button>
+							{/* YaleMoji button temporarily disabled.
 							<a
 								className={styles.header_edit}
-								href={YALEMOJI_URL}
+								href="https://yalemoji.com?ref=yalies"
 								target="_blank"
 								rel="noopener noreferrer"
 								aria-label="Build your YaleMoji"
 							>
 								<FiSmile size={17} strokeWidth={1.7} />
 							</a>
-							<div className={styles.header_initials} suppressHydrationWarning>{initials}</div>
+							*/}
+							<div className={styles.header_initials} suppressHydrationWarning>
+								{initials || <FontAwesomeIcon icon={faUser} className={styles.header_fallback_icon} />}
+							</div>
 							{firstName && <span className={styles.greeting}>Hello, {firstName}</span>}
 						</div>
 						<div className={styles.menu_items}>

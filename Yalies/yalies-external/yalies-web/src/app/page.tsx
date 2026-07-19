@@ -18,20 +18,36 @@ import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
 
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
 const SEARCH_MODE = "full_name";
+const PAGE_SIZE = 20;
+const BROWSE_RANDOM_SEED_MAX = 2_147_483_646;
+const DEFAULT_FILTERS: Record<string, string[]> = {
+	school: [YALE_COLLEGE],
+	year: [],
+	college: [],
+	major: [],
+};
+
+function getRandomBrowseSeed() {
+	return Math.floor(Math.random() * BROWSE_RANDOM_SEED_MAX) + 1;
+}
 
 function getResultsLabel(count: number, label = "Yalies") {
 	if (count === 1) return "Showing 1 Yalie";
 	return `Showing ${count} ${label}`;
 }
 
-export default function HomePage() {
-	const DEFAULT_FILTERS = {
-		school: [YALE_COLLEGE],
-		year: [],
-		college: [],
-		major: [],
-	};
+function filtersAreDefaultBrowse(filters: Record<string, string[]> | null) {
+	return (
+		filters !== null &&
+		filters.school && filters.school.length === 1 &&
+		filters.school[0] === YALE_COLLEGE &&
+		filters.year && filters.year.length === 0 &&
+		filters.college && filters.college.length === 0 &&
+		filters.major && filters.major.length === 0
+	);
+}
 
+export default function HomePage() {
 	const homeCache = getHomeCache();
 
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
@@ -40,6 +56,7 @@ export default function HomePage() {
 	const [hasReachedEnd, setHasReachedEnd] = useState(homeCache?.hasReachedEnd ?? false);
 	const [currentPage, setCurrentPage] = useState(homeCache?.currentPage ?? 0);
 	const [filters, setFilters] = useState<Record<string, string[]> | null>(homeCache?.filters ?? DEFAULT_FILTERS);
+	const [browseSeed, setBrowseSeed] = useState(homeCache?.browseSeed ?? getRandomBrowseSeed());
 
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
@@ -102,6 +119,7 @@ export default function HomePage() {
 			setIsSearching(true);
 		}
 		setSearchError(null);
+		const shouldUseRandomBrowseOrder = query.length === 0 && queryActual.length === 0 && filtersAreDefaultBrowse(filters);
 
 		try {
 			response = await fetch(`${API_URL}${API.people}`, {
@@ -115,7 +133,8 @@ export default function HomePage() {
 					searchMode: SEARCH_MODE,
 					filters: filterObject,
 					page: currentPage,
-					page_size: 20,
+					page_size: PAGE_SIZE,
+					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
 				}),
 			});
 		} catch(e) {
@@ -151,11 +170,16 @@ export default function HomePage() {
 			setIsSearching(false);
 			return;
 		}
-		setPeople((prev) => currentPage === 0 ? newPeople : [...prev, ...newPeople]);
+		setPeople((prev) => {
+			if(currentPage === 0) return newPeople;
+			const seenNetids = new Set(prev.map(person => person.netid).filter(Boolean));
+			const uniqueNewPeople = newPeople.filter(person => !person.netid || !seenNetids.has(person.netid));
+			return [...prev, ...uniqueNewPeople];
+		});
 		setCurrentPage((prev) => prev + 1);
 		setIsSearching(false);
 
-		if(newPeople.length === 20) {
+		if(newPeople.length === PAGE_SIZE) {
 			fetch(`${API_URL}${API.people}`, {
 				method: "POST",
 				credentials: "include",
@@ -165,12 +189,13 @@ export default function HomePage() {
 					searchMode: SEARCH_MODE,
 					filters: filterObject,
 					page: currentPage + 1,
-					page_size: 20,
+					page_size: PAGE_SIZE,
+					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
 				}),
 			}).catch(() => {});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hasReachedEnd, filters, query, currentPage]);
+	}, [hasReachedEnd, filters, query, currentPage, browseSeed]);
 
 	const getTodaysBirthdays = async () => {
 		let response;
@@ -244,9 +269,10 @@ export default function HomePage() {
 				query,
 				currentPage,
 				hasReachedEnd,
+				browseSeed,
 			});
 		}
-	}, [people, birthdayPeople, filters, query, currentPage, hasReachedEnd]);
+	}, [people, birthdayPeople, filters, query, currentPage, hasReachedEnd, browseSeed]);
 
 	if(isUnauthenticated) {
 		return (
@@ -259,14 +285,7 @@ export default function HomePage() {
 		);
 	}
 
-	const filtersAreDefault = (
-		filters !== null &&
-		filters.school && filters.school.length === 1 &&
-		filters.school[0] === YALE_COLLEGE &&
-		filters.year && filters.year.length === 0 &&
-		filters.college && filters.college.length === 0 &&
-		filters.major && filters.major.length === 0
-	);
+	const filtersAreDefault = filtersAreDefaultBrowse(filters);
 
 	const showBirthdays = filtersAreDefault && query.length === 0 && birthdayPeople.length > 0 && people.length !== 1;
 
@@ -279,6 +298,7 @@ export default function HomePage() {
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
+		setBrowseSeed(getRandomBrowseSeed());
 		setQuery(searchboxText);
 		sendGAEvent("event", "search", { query: searchboxText });
 	}
@@ -294,6 +314,7 @@ export default function HomePage() {
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
+		setBrowseSeed(getRandomBrowseSeed());
 		setFilters({ ...filters, [key]: newValue });
 	};
 
@@ -307,6 +328,7 @@ export default function HomePage() {
 				setPeople([]);
 				setHasReachedEnd(false);
 				setCurrentPage(0);
+				setBrowseSeed(getRandomBrowseSeed());
 			}}
 			onSubmit={onSubmit}
 			wrapperClassName={wrapperClassName}
@@ -317,6 +339,7 @@ export default function HomePage() {
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
+		setBrowseSeed(getRandomBrowseSeed());
 		setFilters(DEFAULT_FILTERS);
 		setQuery("");
 		setSearchboxText("");

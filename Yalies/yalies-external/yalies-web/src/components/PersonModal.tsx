@@ -12,12 +12,14 @@ import {
 	faGraduationCap,
 	faHouse,
 	faBuilding,
+	faIdCard,
 	faUser,
 	faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faInstagram } from "@fortawesome/free-brands-svg-icons";
 import FriendButton from "./FriendButton";
-import EmailCopyButton from "./EmailCopyButton";
+import EmailCopyButton, { CopyButton } from "./EmailCopyButton";
+import { normalizeExternalUrl } from "@/utils/externalUrl";
 
 export default function PersonModal({
 	person,
@@ -90,7 +92,9 @@ export default function PersonModal({
 		});
 	}
 	const todayIsBirthday = person.birth_month === new Date().getMonth() + 1 && person.birth_day === new Date().getDate();
-	const hasContactRow = person.email || userProfile?.linkedin_url || userProfile?.instagram_url;
+	const linkedinUrl = normalizeExternalUrl(userProfile?.linkedin_url);
+	const instagramUrl = normalizeExternalUrl(userProfile?.instagram_url);
+	const hasContactRow = person.email || person.netid || linkedinUrl || instagramUrl;
 
 	return (
 		<div
@@ -192,13 +196,24 @@ export default function PersonModal({
 
 				{hasContactRow && (
 					<div className={styles.contact_section}>
-						{person.email && (
-							<EmailCopyButton className={styles.contact_email} email={person.email} />
-						)}
+						<div className={styles.contact_details}>
+							{person.email && (
+								<EmailCopyButton className={styles.contact_email} email={person.email} />
+							)}
+							{person.netid && (
+								<CopyButton
+									value={person.netid}
+									displayValue={`NetID ${person.netid}`}
+									icon={faIdCard}
+									copyLabel="NetID"
+									className={styles.contact_netid}
+								/>
+							)}
+						</div>
 						<div className={styles.contact_socials}>
-							{userProfile?.linkedin_url && (
+							{linkedinUrl && (
 								<a
-									href={userProfile.linkedin_url}
+									href={linkedinUrl}
 									target="_blank"
 									rel="noopener noreferrer"
 									aria-label="LinkedIn"
@@ -206,9 +221,9 @@ export default function PersonModal({
 									<FontAwesomeIcon icon={faLinkedin as IconProp} />
 								</a>
 							)}
-							{userProfile?.instagram_url && (
+							{instagramUrl && (
 								<a
-									href={userProfile.instagram_url}
+									href={instagramUrl}
 									target="_blank"
 									rel="noopener noreferrer"
 									aria-label="Instagram"

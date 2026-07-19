@@ -2,6 +2,7 @@
 
 #navbar {
 	width: 100%;
+	position: relative;
 }
 
 .navbar_top {
@@ -25,6 +26,7 @@
 
 	@include shared.responsive() {
 		align-items: center;
+		flex-wrap: wrap;
 		min-height: 58px;
 		gap: 12px;
 		padding: 0 1rem;
@@ -215,10 +217,51 @@
 	color: shared.$accent-color !important;
 }
 
+.theme_toggle {
+	width: 18px;
+	height: 18px;
+	justify-content: center;
+}
+
+.mobile_theme_toggle {
+	display: none;
+	width: 30px;
+	height: 30px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 7px;
+	color: shared.$secondary-color;
+	background: transparent;
+	box-shadow: none;
+	cursor: pointer;
+	transition: color 0.15s ease, background-color 0.15s ease;
+
+	&:hover {
+		color: shared.$accent-color;
+		background: transparent;
+		box-shadow: none;
+	}
+
+	@include shared.tablet() {
+		display: grid;
+	}
+
+	@include shared.responsive() {
+		display: grid;
+		margin-left: auto;
+		margin-right: -4px;
+	}
+}
+
 .account_controls {
 	display: flex;
 	align-items: center;
 	gap: 1rem;
+
+	@include shared.responsive() {
+		display: contents;
+	}
 }
 
 #links {
@@ -230,10 +273,7 @@
 	}
 
 	@include shared.responsive() {
-		display: flex;
-		align-items: center;
-		min-height: 0;
-		padding-top: 0;
+		display: contents;
 	}
 }
 

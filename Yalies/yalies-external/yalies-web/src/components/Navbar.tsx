@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { FaRegMoon } from "react-icons/fa";
+import { ImSun } from "react-icons/im";
 import styles from "./navbar.module.scss";
 import { Lexend_Deca } from "next/font/google";
 import ProfileButton from "./ProfileButton";
 import AppsDropdown from "./AppsDropdown";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
+const THEME_STORAGE_KEY = "yalies-theme";
+type Theme = "light" | "dark";
 
 export default function Navbar({
 	middleContent,
@@ -23,11 +27,24 @@ export default function Navbar({
 	onFeelingLucky?: () => void;
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const [theme, setTheme] = useState<Theme>("light");
 	const pathname = usePathname();
 	const directoryActive = pathname === "/";
 	const profileActive = pathname === "/profile" || pathname.startsWith("/profile/");
 	const useCompactTopNav = !middleContent && pathname !== "/";
 	const topNavClassName = useCompactTopNav ? `${styles.navbar_top} ${styles.navbar_top_compact}` : styles.navbar_top;
+
+	useEffect(() => {
+		const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+		setTheme(storedTheme === "dark" ? "dark" : "light");
+	}, []);
+
+	const toggleTheme = () => {
+		const nextTheme: Theme = theme === "dark" ? "light" : "dark";
+		document.documentElement.dataset.theme = nextTheme;
+		window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+		setTheme(nextTheme);
+	};
 
 	return (
 		<nav id={styles.navbar}>
@@ -54,10 +71,30 @@ export default function Navbar({
 				)}
 				<div id={styles.links}>
 					<div className={styles.nav_text_links}>
+						<button
+							type="button"
+							className={styles.theme_toggle}
+							onClick={toggleTheme}
+							aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+							aria-pressed={theme === "dark"}
+							title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+						>
+							{theme === "dark" ? <FaRegMoon size={15} /> : <ImSun size={16} />}
+						</button>
 						<Link href="/" className={directoryActive ? styles.active_nav_button : undefined}>Directory</Link>
 						<Link href="/profile" className={profileActive ? styles.active_nav_button : undefined}>Profile</Link>
 					</div>
 					<div className={styles.account_controls}>
+						<button
+							type="button"
+							className={styles.mobile_theme_toggle}
+							onClick={toggleTheme}
+							aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+							aria-pressed={theme === "dark"}
+							title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+						>
+							{theme === "dark" ? <FaRegMoon size={15} /> : <ImSun size={16} />}
+						</button>
 						<AppsDropdown />
 						<ProfileButton isAuthenticated={isAuthenticated} showCompactNavLinks />
 					</div>

@@ -7,6 +7,7 @@ type HomeCache = {
 	query: string;
 	currentPage: number;
 	hasReachedEnd: boolean;
+	browseSeed: number;
 	timestamp: number;
 };
 
