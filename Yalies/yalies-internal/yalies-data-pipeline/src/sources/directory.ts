@@ -185,15 +185,12 @@ export default class DirectorySource {
 
 				if (records.length === 0) {
 					notFound++;
-				} else if (records.length === 1) {
-					enrichStudent(enriched[i], records[0]);
-					enrichedCount++;
 				} else {
 					const best = matchRecord(student, records);
 					if (best) {
 						enrichStudent(enriched[i], best);
 						enrichedCount++;
-						multiMatch++;
+						if (records.length > 1) multiMatch++;
 					} else {
 						notFound++;
 					}
@@ -284,7 +281,16 @@ export function enrichStudent(student: EnrichedStudent, record: DirectoryRecord)
 	}
 }
 
-export function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): DirectoryRecord | null {
+export const MIN_DIRECTORY_MATCH_SCORE = 5;
+
+export function scoreRecord(student: FacebookStudent, rec: DirectoryRecord): number {
+	// Face Book students must resolve to a Yale College directory record.
+	// A same-name graduate/professional-school record is not an acceptable
+	// fallback even if its first and last names match exactly.
+	if (rec.PrimarySchoolCode !== YALE_COLLEGE_CODE && rec.PrimarySchoolName !== "Yale College") {
+		return -1;
+	}
+
 	const studentCollege = student.college?.toLowerCase() || "";
 	const studentFirst = student.first_name.toLowerCase().replace(/\s*\(.*?\)\s*/g, "").trim();
 	const studentLast = student.last_name.toLowerCase();
@@ -294,37 +300,42 @@ export function matchRecord(student: FacebookStudent, records: DirectoryRecord[]
 		if (!isNaN(parsed)) studentYearInt = 2000 + parsed;
 	}
 
+	let score = 0;
+	const recCollege = (rec.ResidentialCollegeName || "").toLowerCase();
+	const recYear = rec.StudentExpectedGraduationYear;
+	const recFirst = (rec.FirstName || "").toLowerCase();
+	const recLast = (rec.LastName || "").toLowerCase();
+	const recKnown = (rec.KnownAs || "").toLowerCase();
+
+	if (recCollege && recCollege === studentCollege) score += 3;
+
+	if (studentYearInt && recYear && Number(recYear) === studentYearInt) score += 2;
+
+	if (rec.PrimarySchoolCode === YALE_COLLEGE_CODE) score += 1;
+
+	const firstParts = studentFirst.split(" ");
+	if (firstParts.some(p => p === recFirst || p === recKnown)) score += 2;
+	else if (recFirst.includes(studentFirst) || studentFirst.includes(recFirst)) score += 1;
+
+	if (recLast === studentLast) score += 2;
+	else if (studentLast.includes(recLast) || recLast.includes(studentLast)) score += 1;
+
+	return score;
+}
+
+export function matchRecord(student: FacebookStudent, records: DirectoryRecord[]): DirectoryRecord | null {
 	let bestRecord: DirectoryRecord | null = null;
 	let bestScore = -1;
 
 	for (const rec of records) {
-		let score = 0;
-		const recCollege = (rec.ResidentialCollegeName || "").toLowerCase();
-		const recYear = rec.StudentExpectedGraduationYear;
-		const recFirst = (rec.FirstName || "").toLowerCase();
-		const recLast = (rec.LastName || "").toLowerCase();
-		const recKnown = (rec.KnownAs || "").toLowerCase();
-
-		if (recCollege && recCollege === studentCollege) score += 3;
-
-		if (studentYearInt && recYear && Number(recYear) === studentYearInt) score += 2;
-
-		if (rec.PrimarySchoolCode === YALE_COLLEGE_CODE) score += 1;
-
-		const firstParts = studentFirst.split(" ");
-		if (firstParts.some(p => p === recFirst || p === recKnown)) score += 2;
-		else if (recFirst.includes(studentFirst) || studentFirst.includes(recFirst)) score += 1;
-
-		if (recLast === studentLast) score += 2;
-		else if (studentLast.includes(recLast) || recLast.includes(studentLast)) score += 1;
-
+		const score = scoreRecord(student, rec);
 		if (score > bestScore) {
 			bestScore = score;
 			bestRecord = rec;
 		}
 	}
 
-	if (bestScore < 3) return null;
+	if (bestScore < MIN_DIRECTORY_MATCH_SCORE) return null;
 
 	return bestRecord;
 }

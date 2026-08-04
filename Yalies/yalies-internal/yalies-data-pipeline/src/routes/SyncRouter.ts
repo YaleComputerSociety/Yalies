@@ -36,9 +36,24 @@ export default class SyncRouter {
 				return;
 			}
 
+			const facebookValidation = validateFacebook(enrichedData);
+			const enrichedValidation = validateEnriched(enrichedData);
+			const failures = [...facebookValidation.failures, ...enrichedValidation.failures];
+			if (failures.length > 0) {
+				res.status(422).json({
+					error: "Sync blocked because validation failed",
+					failures,
+				});
+				return;
+			}
+
 			// `force: true` in the body overrides the small-sync safety guard.
 			const force = req.body?.force === true;
-			await loadToDatabase(enrichedData, databaseUrl, false, force);
+			await loadToDatabase(enrichedData, databaseUrl, {
+				dryRun: false,
+				force,
+				requireConfirmation: false,
+			});
 			res.json({ success: true, message: `Loaded ${enrichedData.length} students to database` });
 		} catch (e) {
 			console.error("Sync to database error:", e);

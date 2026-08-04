@@ -157,15 +157,12 @@ export default class ScrapeRouter {
 
 					if (records.length === 0) {
 						notFound++;
-					} else if (records.length === 1) {
-						enrichStudent(enriched[i], records[0]);
-						enrichedCount++;
 					} else {
 						const best = matchRecord(student, records);
 						if (best) {
 							enrichStudent(enriched[i], best);
 							enrichedCount++;
-							multiMatch++;
+							if (records.length > 1) multiMatch++;
 						} else {
 							notFound++;
 						}

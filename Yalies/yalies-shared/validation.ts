@@ -10,7 +10,10 @@ export const VALID_COLLEGES = [
 	"Timothy Dwight College", "Trumbull College",
 ] as const;
 
-export const EXPECTED_YEARS = [2026, 2027, 2028, 2029] as const;
+// 2026–27 academic-year Yale College roster. Update this deliberately as part
+// of each annual directory refresh so an old validator cannot silently approve
+// the wrong four cohorts.
+export const EXPECTED_YEARS = [2027, 2028, 2029, 2030] as const;
 
 export const NETID_REGEX = /^[a-z]{2,4}\d{1,4}$/;
 export const YALE_EMAIL_REGEX = /^[^@]+@(.*\.)?yale\.edu$/;

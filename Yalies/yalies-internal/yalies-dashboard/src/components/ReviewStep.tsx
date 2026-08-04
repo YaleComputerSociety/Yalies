@@ -91,6 +91,9 @@ export default function ReviewStep({
 	}
 
 	if (!preview) return null;
+	const hasValidationFailures = preview.validations
+		? Object.values(preview.validations).some((result) => (result as ValidationResult).failures.length > 0)
+		: true;
 
 	return (
 		<div className={styles.container}>
@@ -152,11 +155,14 @@ export default function ReviewStep({
 			)}
 
 			<div className={styles.syncAction}>
+				{hasValidationFailures && (
+					<div className={styles.error}>Sync is blocked until every validation failure is resolved.</div>
+				)}
 				<Button
 					variant="primary"
 					onClick={handleSync}
 					loading={isSyncing}
-					disabled={isSyncing || !!syncResult}
+					disabled={isSyncing || !!syncResult || hasValidationFailures}
 				>
 					Sync to Database
 				</Button>

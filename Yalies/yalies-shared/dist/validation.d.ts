@@ -1,7 +1,7 @@
 export declare const YALE_COLLEGE = "Yale College";
 export declare const YALE_COLLEGE_CODE = "YC";
 export declare const VALID_COLLEGES: readonly ["Benjamin Franklin College", "Berkeley College", "Branford College", "Davenport College", "Ezra Stiles College", "Grace Hopper College", "Jonathan Edwards College", "Morse College", "Pauli Murray College", "Pierson College", "Saybrook College", "Silliman College", "Timothy Dwight College", "Trumbull College"];
-export declare const EXPECTED_YEARS: readonly [2026, 2027, 2028, 2029];
+export declare const EXPECTED_YEARS: readonly [2027, 2028, 2029, 2030];
 export declare const NETID_REGEX: RegExp;
 export declare const YALE_EMAIL_REGEX: RegExp;
 export declare const VALIDATION_THRESHOLDS: {

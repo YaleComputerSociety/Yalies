@@ -11,6 +11,7 @@
     "start": "npx tsc && node build/index.js",
     "server": "npx tsc && node build/server.js",
     "lint": "eslint src/**/*.ts",
+		"test": "npx tsc && node --test build/**/*.test.js",
     "format": "eslint src/**/*.ts --fix",
     "enhance": "python/venv/bin/python python/enhancer/enhance.py",
     "facecheck": "python/venv/bin/python python/facecheck/facecheck.py",

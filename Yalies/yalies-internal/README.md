@@ -22,10 +22,10 @@ Yale Directory ──(_people_search…)────┘            │          
                                                    └─ photos pulled into GCS
 ```
 
-1. **Scrape** (`yalies-data-pipeline/src/sources/facebook.ts`) — one request to `students.yale.edu/facebook` (the `currentIndex=-1&numberToGet=-1` trick grabs the whole roster), parsed with cheerio into `output/students.json`. Also pulls photos into `gs://yalies-photos`.
+1. **Scrape** (`yalies-data-pipeline/src/sources/facebook.ts`) — one request to `students.yale.edu/facebook` (the `currentIndex=-1&numberToGet=-1` trick grabs the whole roster), parsed with cheerio into `output/students.json`. Photo copying is a separate opt-in stage.
 2. **Enrich** (`src/sources/directory.ts`) — for each student, looks them up in `directory.yale.edu/api` (needs a CSRF token + cookie) to get authoritative netid/email/UPI/college/year, writing `output/students_enriched.json`. Multi-match is scored by college+year.
 3. **Validate** (`src/validate.ts`) — sanity thresholds from `yalies-shared/validation.ts` (≈6000–8000 students, 14 colleges, years 2026–2029).
-4. **Sync** (`src/loadDb.ts`) — ⚠️ **destructive**: in one transaction it `DELETE`s every `school='Yale College'` row in the shared `person` table and re-inserts the scraped set. See "Known issues."
+4. **Sync** (`src/loadDb.ts`) — ⚠️ **destructive**: in one transaction it snapshots, `DELETE`s every Yale College row in the shared `person` table, and re-inserts the scraped set. The CLI defaults to preview and requires a database-bound plan token to apply.
 
 The pipeline only touches Postgres + GCS. The public backend searches the shared
 Postgres `person` table directly, so newly synced records are immediately
@@ -52,7 +52,13 @@ Health check: `curl localhost:8080/health` → `{"status":"ok"}`, then open `htt
 
 **Node:** pipeline & dashboard pin `20.13.0` (`.nvmrc`); the external backend uses 22 — don't assume one version across the monorepo.
 
-**CLI (no dashboard):** from `yalies-data-pipeline`, `npm start -- all --facebook-cookie <JSESSIONID> --directory-cookie <session>` (or run `facebook` / `directory` / `load` / `validate` individually; `--dry-run` previews the load; `--start-from N` resumes enrichment). Cookies are copied by hand from DevTools after logging into each Yale site.
+**CLI (no dashboard):** from `yalies-data-pipeline`, `npm start -- all --facebook-cookie <JSESSIONID> --directory-cookie <session>` (or run `facebook` / `directory` / `load` / `validate` individually; `load` previews by default, `--apply` plus its printed plan token writes, and `--start-from N` resumes enrichment). Cookies are copied by hand from DevTools after logging into each Yale site.
+
+**Recommended no-cookie data workflow:** paste the scripts in
+`yalies-data-pipeline/browser/` into the Face Book and Directory consoles, then
+run `browser-import`, `load` (preview), and `load --apply --target ... --confirm
+APPLY-...`. See [`yalies-data-pipeline/README.md`](yalies-data-pipeline/README.md)
+for the exact production runbook.
 
 ## Using the dashboard
 
@@ -70,27 +76,29 @@ Health check: `curl localhost:8080/health` → `{"status":"ok"}`, then open `htt
 
 It shares **infrastructure, not code**: the same Cloud SQL `person` table (synced destructively), the same `yalies-photos` bucket (photo URLs are `https://storage.googleapis.com/yalies-photos/<id>.jpg`, stored in `person.image`), the same Yale CAS, and the same GCP service account. A bad sync directly degrades the live site.
 
-## Known issues — distance to "stable"
+## Remaining operational limitations
 
-**Blockers (can't reliably run/deploy):**
-- **No `.config` template or docs.** A new operator has nothing to recreate the required secrets from. → commit a `.config.example/` tree or `CONFIG.md` enumerating every file/key; store real secrets in a shared vault.
-- **Hardcoded Postgres password committed** in `yalies-data-pipeline/src/index.ts:17` (the CLI `load`/`all` default `DATABASE_URL`). It's in git history. → remove it, require `--database-url`/`DATABASE_URL`, and **rotate the credential**.
-- **No deployment path for either internal service** — no Dockerfile/cloudbuild/deploy script anywhere under `yalies-internal` (only the external stack has them). How the pipeline + dashboard run in prod is undefined. → natural fit is Cloud Run (pipeline) + Firebase Hosting (static dashboard), mirroring external.
-
-**Major (correctness / safety):**
-- **Destructive sync, no guardrail.** `loadDb.ts` deletes+reinserts all Yale College rows with no pre-snapshot and no abort-if-too-small check; a partial scrape (expired cookie mid-run) can shrink the live roster. Enrichment-validation failure only warns and loads anyway (`index.ts`). → add a row-count guard, snapshot before delete, and gate the load on validation.
-- **Brittle scraping** — every Face Book field depends on exact Yale HTML/classes and the undocumented whole-roster trick; template drift silently yields blank fields, guarded only by a <100-students throw.
-- **`fetchMissingPhotos.ts`** crashes when nothing's missing (`missing[0]` deref) and keys photos by UPI while the main pipeline keys by Face Book `photo_id` — two conventions that disagree.
-- **CORS `origin:true` + credentials** on the pipeline (`server.ts`) lets any origin make authenticated requests (limited only by `requireAdmin`), with a ~400-day session cookie and full write/delete access. → lock to the dashboard origin.
-- **In-memory pipeline state** (`state.ts` module globals) means scrape→enrich→sync only works within one process — breaks on Cloud Run multi-instance/restart.
-
-**Cleanup:** stale 3-line `yalies-data-pipeline/README.md`; broken `output` symlink; `test_py_enrich.py` imports a missing module; no `engines.node`; admin-bootstrap undocumented; `start-data-pipeline.sh` doesn't validate its env file like the other start scripts.
+- The Face Book HTML/API shape is undocumented and can drift. Both browser and
+  server scrapers use count/college/field validation, but an annual run still
+  needs human review.
+- Dashboard scrape state remains in-memory. The browser-export + CLI workflow is
+  restart-safe and is the recommended production path.
+- The dashboard now blocks validation failures and has the 80% size guard, but
+  it does not use the CLI's database-bound plan token. Prefer the CLI for live
+  replacement.
+- The internal dashboard/pipeline still have no committed deployment path; they
+  are designed to run locally through Cloud SQL Auth Proxy.
+- Browser JSON does not include photo bytes. New/missing photos need the separate
+  authenticated `photos` stage.
+- `.config` is intentionally outside git. Key names are documented above, but a
+  new operator still needs the actual values/service account from the team vault.
+- Expected cohort years are deliberately hardcoded and must be reviewed during
+  each annual refresh. They currently represent academic year 2026–27.
 
 ## Open questions for Matei / Jeet
 
 1. Where does `.config` live and how does a new teammate get it (DB URL, `SESSION_SECRET`, service key, Cloud SQL instance names)?
-2. Is the pipeline server meant to be deployed, or run locally on-demand? If deployed, where, and what sets its prod env?
-3. Has the password leaked in `index.ts:17` been rotated? Is it the live Cloud SQL credential?
-4. Is `Photo?id=` keyed by `photo_id` or UPI? (the pipeline and `fetchMissingPhotos.ts` disagree)
-5. Is the Python enhance/facecheck tooling part of the release cycle or a one-off pass? Where do the model weights come from?
-6. Does face-check actually run in prod, given `yalies-internal` isn't co-deployed with the external backend (it silently skips if the script isn't found)?
+2. Is the pipeline server meant to stay local-only or eventually be deployed?
+3. Is `Photo?id=` definitively keyed by Face Book `photo_id` across every photo tool?
+4. Is the Python enhance/facecheck tooling part of the release cycle or a one-off pass? Where do the model weights come from?
+5. Does face-check actually run in prod, given `yalies-internal` isn't co-deployed with the external backend (it silently skips if the script isn't found)?

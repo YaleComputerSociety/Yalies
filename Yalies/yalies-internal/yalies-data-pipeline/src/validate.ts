@@ -181,6 +181,22 @@ export function validateEnriched(data: EnrichedStudent[]): ValidationResult {
 	if (badUpis === 0) result.passes.push("UPI format: all UPIs are integers");
 	else result.failures.push(`UPI format: ${badUpis} non-integer UPIs`);
 
+	const duplicateValues = <T extends string | number>(values: T[]): T[] => {
+		const seen = new Set<T>();
+		const duplicates = new Set<T>();
+		for (const value of values) {
+			if (seen.has(value)) duplicates.add(value);
+			seen.add(value);
+		}
+		return [...duplicates];
+	};
+	const duplicateNetids = duplicateValues(data.flatMap((s) => s.netid ? [s.netid.toLowerCase()] : []));
+	const duplicateUpis = duplicateValues(data.flatMap((s) => s.upi ? [s.upi] : []));
+	if (duplicateNetids.length === 0) result.passes.push("NetID uniqueness: no duplicates in enriched data");
+	else result.failures.push(`NetID uniqueness: ${duplicateNetids.length} duplicates — e.g. ${duplicateNetids.slice(0, 5).join(", ")}`);
+	if (duplicateUpis.length === 0) result.passes.push("UPI uniqueness: no duplicates in enriched data");
+	else result.failures.push(`UPI uniqueness: ${duplicateUpis.length} duplicates — e.g. ${duplicateUpis.slice(0, 5).join(", ")}`);
+
 	// 6. College consistency
 	const mismatched = data.filter((s) => {
 		const fb = s.college?.toLowerCase() || "";

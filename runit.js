@@ -1,4 +1,7 @@
-//use this on students.yale.edu/facebook. in the console.
+// LEGACY/UNSUPPORTED: this raw-HTML collector is not accepted by the current
+// import pipeline. Use the guarded, normalized exporter at:
+// Yalies/yalies-internal/yalies-data-pipeline/browser/facebook-export.js
+// See that directory's README.md for the complete two-site workflow.
 
 (async () => {
   const step = 12;

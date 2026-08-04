@@ -1,4 +1,5 @@
 import { Sequelize, QueryTypes } from "sequelize";
+import { createHash } from "crypto";
 import { decode } from "html-entities";
 import { EnrichedStudent, DbRow } from "./types.js";
 import { parseLocation } from "./parseLocation.js";
@@ -88,9 +89,17 @@ export function toDbRow(student: EnrichedStudent): DbRow {
 export async function loadToDatabase(
 	students: EnrichedStudent[],
 	databaseUrl: string,
-	dryRun = false,
-	force = false,
-): Promise<void> {
+	options: {
+		dryRun?: boolean;
+		force?: boolean;
+		confirmationToken?: string;
+		requireConfirmation?: boolean;
+		targetLabel?: "development" | "production";
+	} = {},
+): Promise<{ planToken: string; existingCount: number; backupTable?: string }> {
+	const dryRun = options.dryRun ?? true;
+	const force = options.force ?? false;
+	const requireConfirmation = options.requireConfirmation ?? true;
 	console.log(`Loading ${students.length} students into database...`);
 
 	const sequelize = new Sequelize(databaseUrl, { logging: false });
@@ -108,9 +117,40 @@ export async function loadToDatabase(
 		const existingCount = parseInt(existingResult.count);
 		console.log(`Existing ${YALE_COLLEGE} rows: ${existingCount}`);
 
+		const [targetResult] = await sequelize.query<{
+			database_name: string;
+			database_user: string;
+			database_host: string;
+		}>(
+			"SELECT current_database() AS database_name, current_user AS database_user, " +
+			"COALESCE(inet_server_addr()::text, 'local') AS database_host",
+			{ type: QueryTypes.SELECT },
+		);
+		const targetDescription = `${targetResult.database_user}@${targetResult.database_host}/${targetResult.database_name}`;
+		console.log(`Database target: ${targetDescription}`);
+		if (options.targetLabel) console.log(`Operator target label: ${options.targetLabel}`);
+
+		const planToken = `APPLY-${createHash("sha256")
+			.update(JSON.stringify({
+				targetDescription,
+				existingCount,
+				students: students.map(toDbRow),
+			}))
+			.digest("hex")
+			.slice(0, 12)
+			.toUpperCase()}`;
+
 		if (dryRun) {
 			console.log(`DRY RUN: Would delete ${existingCount} rows and insert ~${students.length}`);
-			return;
+			console.log(`Plan token: ${planToken}`);
+			console.log(`To apply this exact plan, re-run with --apply --target <development|production> --confirm ${planToken}`);
+			return { planToken, existingCount };
+		}
+
+		if (requireConfirmation && options.confirmationToken !== planToken) {
+			throw new Error(
+				`Confirmation token missing or stale. Run the load without --apply first, then pass --confirm ${planToken}`,
+			);
 		}
 
 		// Safety guard: refuse to replace a healthy roster with a much smaller
@@ -124,16 +164,29 @@ export async function loadToDatabase(
 		}
 
 		const transaction = await sequelize.transaction();
+		let backupTable: string | undefined;
 
 		try {
-			// Step 1: Delete existing rows
+			// Step 1: preserve the exact replaced roster in Postgres. The backup is
+			// committed atomically with the replacement and remains available if a
+			// post-load validation reveals a problem.
+			const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+			backupTable = `person_backup_yc_${timestamp}_${planToken.slice(-6).toLowerCase()}`;
+			await sequelize.query(
+				`CREATE TABLE "${backupTable}" AS ` +
+				"SELECT * FROM person WHERE school = :yc OR school_code = :ycCode",
+				{ transaction, replacements: ycReplacements },
+			);
+			console.log(`Created database backup table: ${backupTable}`);
+
+			// Step 2: Delete existing rows
 			await sequelize.query(
 				"DELETE FROM person WHERE school = :yc OR school_code = :ycCode",
 				{ transaction, replacements: ycReplacements },
 			);
 			console.log(`Deleted existing ${YALE_COLLEGE} rows`);
 
-			// Step 2: Insert new students
+			// Step 3: Insert new students
 			let inserted = 0;
 			const seenIds = new Set<number>();
 			const idConflicts: string[] = [];
@@ -179,7 +232,7 @@ export async function loadToDatabase(
 				console.log(`Resolved ${idConflicts.length} ID conflicts: ${idConflicts.slice(0, 5).join(", ")}...`);
 			}
 
-			// Step 3: Verify
+			// Step 4: Verify
 			const [totalResult] = await sequelize.query<{ count: string }>(
 				"SELECT COUNT(*) as count FROM person",
 				{ type: QueryTypes.SELECT },
@@ -198,6 +251,8 @@ export async function loadToDatabase(
 			console.log(`  ${YALE_COLLEGE} rows: ${ycResult.count}`);
 			console.log(`  ${YALE_COLLEGE} with netid: ${netidResult.count}`);
 			console.log(`  Non-${YALE_COLLEGE} rows: ${parseInt(totalResult.count) - parseInt(ycResult.count)}`);
+			console.log(`  Recovery table: ${backupTable}`);
+			return { planToken, existingCount, backupTable };
 		} catch (e) {
 			await transaction.rollback();
 			throw e;
