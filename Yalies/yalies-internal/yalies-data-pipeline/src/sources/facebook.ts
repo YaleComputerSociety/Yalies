@@ -1,7 +1,7 @@
 import https from "https";
 import * as cheerio from "cheerio";
 import { decode } from "html-entities";
-import { Storage } from "@google-cloud/storage";
+import { File, Storage } from "@google-cloud/storage";
 import { FacebookStudent } from "../types.js";
 import { httpGet } from "../httpClient.js";
 import { sleep } from "../util.js";
@@ -14,6 +14,25 @@ const GCS_BUCKET_NAME = "yalies-photos";
 const BIRTHDAY_PATTERN = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}$/;
 const PHONE_PATTERN = /^\d+-\d+/;
 const ADDRESS_PATTERN = /[\d,]/;
+const IMAGE_PREFIX_BYTES = 12;
+const EXISTING_PHOTO_CHECK_CONCURRENCY = 40;
+
+export function isSupportedImageBuffer(buffer: Buffer): boolean {
+	if(buffer.length < IMAGE_PREFIX_BYTES) return false;
+	const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+	const isPng = buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+	const isGif = buffer.subarray(0, 6).toString("ascii") === "GIF87a"
+		|| buffer.subarray(0, 6).toString("ascii") === "GIF89a";
+	const isWebp = buffer.subarray(0, 4).toString("ascii") === "RIFF"
+		&& buffer.subarray(8, 12).toString("ascii") === "WEBP";
+	return isJpeg || isPng || isGif || isWebp;
+}
+
+export function isPlaceholderCookie(cookie: string): boolean {
+	return cookie.trim().length === 0
+		|| /<[^>]*(?:jsessionid|cookie)[^>]*>/i.test(cookie)
+		|| /current\s+jsessionid|full\s+cookie\s+header/i.test(cookie);
+}
 
 // Known countries/locations that get misidentified as majors because they lack digits/commas
 import { COUNTRY_ALIASES, US_STATES, YALE_COLLEGE } from "yalies-shared";
@@ -159,6 +178,12 @@ export default class FacebookSource {
 	#cookie: string;
 
 	constructor(cookie: string) {
+		if(isPlaceholderCookie(cookie)) {
+			throw new Error(
+				"--facebook-cookie still contains the documentation placeholder. "
+				+ "Copy the current JSESSIONID value or full Cookie request header from an authenticated students.yale.edu request.",
+			);
+		}
 		this.#cookie = cookie;
 	}
 
@@ -173,32 +198,58 @@ export default class FacebookSource {
 		"Accept-Language": "en-US,en;q=0.9",
 	});
 
-	#fetchPhotoBuffer = (photoId: string, maxRedirects = 5): Promise<Buffer | null> => {
+	#fetchPhotoBuffer = (photoId: string, maxRedirects = 5): Promise<Buffer> => {
 		const headers = this.#buildHeaders();
-		const followRedirects = (url: string, remaining: number): Promise<Buffer | null> => {
-			return new Promise((resolve) => {
+		const followRedirects = (url: string, remaining: number): Promise<Buffer> => {
+			return new Promise((resolve, reject) => {
 				https.get(url, { headers }, (res) => {
-					if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && remaining > 0) {
+					if(res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
 						res.resume();
 						const next = res.headers.location.startsWith("http")
 							? res.headers.location
 							: new URL(res.headers.location, url).href;
+						if(new URL(next).origin !== new URL(PHOTO_URL).origin) {
+							reject(new Error("photo request redirected to Yale CAS; the Facebook cookie is missing or expired"));
+							return;
+						}
+						if(remaining <= 0) {
+							reject(new Error("photo request exceeded the redirect limit"));
+							return;
+						}
 						resolve(followRedirects(next, remaining - 1));
 						return;
 					}
 					if (res.statusCode !== 200) {
 						res.resume();
-						resolve(null);
+						reject(new Error(`photo request returned HTTP ${res.statusCode ?? "unknown"}`));
 						return;
 					}
 					const chunks: Buffer[] = [];
 					res.on("data", (chunk: Buffer) => chunks.push(chunk));
-					res.on("end", () => resolve(Buffer.concat(chunks)));
-					res.on("error", () => resolve(null));
-				}).on("error", () => resolve(null));
+					res.on("end", () => {
+						const buffer = Buffer.concat(chunks);
+						const contentType = String(res.headers["content-type"] || "");
+						if(!contentType.toLowerCase().startsWith("image/") || !isSupportedImageBuffer(buffer)) {
+							reject(new Error(`photo response was not an image (Content-Type: ${contentType || "missing"})`));
+							return;
+						}
+						resolve(buffer);
+					});
+					res.on("error", reject);
+				}).on("error", reject);
 			});
 		};
 		return followRedirects(`${PHOTO_URL}?id=${photoId}`, maxRedirects);
+	};
+
+	#storedPhotoIsValid = (file: File): Promise<boolean> => {
+		return new Promise((resolve) => {
+			const chunks: Buffer[] = [];
+			file.createReadStream({ start: 0, end: IMAGE_PREFIX_BYTES - 1 })
+				.on("data", (chunk: Buffer) => chunks.push(chunk))
+				.on("end", () => resolve(isSupportedImageBuffer(Buffer.concat(chunks))))
+				.on("error", () => resolve(false));
+		});
 	};
 
 	fetchPage = async (
@@ -251,20 +302,69 @@ export default class FacebookSource {
 		const existing = new Set(files.map((f) => f.name));
 		console.log(`Uploading photos to gs://${GCS_BUCKET_NAME}/ (${existing.size} already exist)...`);
 
+		const expectedNames = [...new Set(students
+			.map((student) => student.photo_id)
+			.filter((photoId) => photoId && photoId !== "0")
+			.map((photoId) => `${photoId}.jpg`))];
+		const relevantExisting = expectedNames.filter((name) => existing.has(name));
+		const invalidExisting = new Set<string>();
+		console.log(`Verifying ${relevantExisting.length} existing roster photos...`);
+		for(let start = 0; start < relevantExisting.length; start += EXISTING_PHOTO_CHECK_CONCURRENCY) {
+			const names = relevantExisting.slice(start, start + EXISTING_PHOTO_CHECK_CONCURRENCY);
+			const results = await Promise.all(names.map(async (name) => ({
+				name,
+				valid: await this.#storedPhotoIsValid(bucket.file(name)),
+			})));
+			for(const result of results) {
+				if(!result.valid) invalidExisting.add(result.name);
+			}
+		}
+		for(const name of invalidExisting) existing.delete(name);
+		if(invalidExisting.size > 0) {
+			console.warn(`Found ${invalidExisting.size} corrupt existing photo objects; they will be replaced.`);
+		}
+
+		const firstCandidate = students.find((student) => {
+			const photoId = student.photo_id;
+			return photoId && photoId !== "0" && !existing.has(`${photoId}.jpg`);
+		});
+		let preflight: { photoId: string; buffer: Buffer } | null = null;
+		if(firstCandidate?.photo_id) {
+			try {
+				preflight = {
+					photoId: firstCandidate.photo_id,
+					buffer: await this.#fetchPhotoBuffer(firstCandidate.photo_id),
+				};
+			} catch(error) {
+				const message = error instanceof Error ? error.message : String(error);
+				throw new Error(`Photo download preflight failed: ${message}. No photo objects were changed.`);
+			}
+		}
+
 		let uploaded = 0;
+		let failed = 0;
 		for (let i = 0; i < students.length; i++) {
 			const pid = students[i].photo_id;
 			if (!pid || pid === "0" || existing.has(`${pid}.jpg`)) continue;
 
 			try {
-				const photoBuffer = await this.#fetchPhotoBuffer(pid);
-				if (photoBuffer && photoBuffer.length > 100) {
-					const file = bucket.file(`${pid}.jpg`);
-					await file.save(photoBuffer, { contentType: "image/jpeg" });
-					uploaded++;
+				const photoBuffer = preflight?.photoId === pid
+					? preflight.buffer
+					: await this.#fetchPhotoBuffer(pid);
+				const file = bucket.file(`${pid}.jpg`);
+				await file.save(photoBuffer, {
+					contentType: "image/jpeg",
+					metadata: { cacheControl: "public, max-age=3600" },
+				});
+				existing.add(`${pid}.jpg`);
+				uploaded++;
+			} catch(error) {
+				failed++;
+				const message = error instanceof Error ? error.message : String(error);
+				console.warn(`  Failed photo ${pid}: ${message}`);
+				if(/CAS|cookie|not an image/i.test(message)) {
+					throw new Error(`Photo session became invalid after ${uploaded} uploads: ${message}`);
 				}
-			} catch {
-
 			}
 
 			if ((i + 1) % 100 === 0) {
@@ -273,7 +373,7 @@ export default class FacebookSource {
 			await sleep(delay);
 		}
 
-		console.log(`Uploaded ${uploaded} photos to GCS`);
+		console.log(`Uploaded ${uploaded} photos to GCS (${failed} failed)`);
 		return uploaded;
 	};
 

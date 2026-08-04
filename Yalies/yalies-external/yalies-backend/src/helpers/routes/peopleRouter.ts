@@ -281,6 +281,18 @@ export default class PeopleRouter {
 					...where,
 					[Op.or]: countryConditions,
 				};
+			} else if(field === "year") {
+				const years = getFilterValues(filtersRaw, field)
+					.map((value) => Number(value))
+					.filter((value) => Number.isInteger(value));
+				if(years.length === 0) {
+					res.status(400).send("Year filters must be integers");
+					return;
+				}
+				where = {
+					...where,
+					year: { [Op.in]: years },
+				};
 			} else if(Array.isArray(filtersRaw[field])) {
 				where = {
 					...where,
@@ -321,7 +333,7 @@ export default class PeopleRouter {
 					return;
 				}
 
-			} else if(query.match(/^[a-z]{2}$/i)) {
+			} else if(searchMode === "default" && query.match(/^[a-z]{2}$/i)) {
 				where = andWhere(where, this.constructInitialsQuery(query));
 				searchOrder = getInitialsOrder();
 			} else {

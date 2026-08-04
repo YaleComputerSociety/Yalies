@@ -16,7 +16,7 @@ The dashboard does no real work — it calls the pipeline cross-origin (`credent
 ## Data flow (the whole point)
 
 ```
-Yale Face Book ──(JSESSIONID cookie)──┐
+Yale Face Book ──(verified Cookie header)─┐
                                       ├─► scrape ─► enrich ─► validate ─► SYNC ─► Postgres `person`  ─► public site
 Yale Directory ──(_people_search…)────┘            │                                    + photos ─► GCS `yalies-photos`
                                                    └─ photos pulled into GCS
@@ -24,7 +24,7 @@ Yale Directory ──(_people_search…)────┘            │          
 
 1. **Scrape** (`yalies-data-pipeline/src/sources/facebook.ts`) — one request to `students.yale.edu/facebook` (the `currentIndex=-1&numberToGet=-1` trick grabs the whole roster), parsed with cheerio into `output/students.json`. Photo copying is a separate opt-in stage.
 2. **Enrich** (`src/sources/directory.ts`) — for each student, looks them up in `directory.yale.edu/api` (needs a CSRF token + cookie) to get authoritative netid/email/UPI/college/year, writing `output/students_enriched.json`. Multi-match is scored by college+year.
-3. **Validate** (`src/validate.ts`) — sanity thresholds from `yalies-shared/validation.ts` (≈6000–8000 students, 14 colleges, years 2026–2029).
+3. **Validate** (`src/validate.ts`) — sanity thresholds from `yalies-shared/validation.ts` (≈6000–8000 students, 14 colleges, expected years 2027–2030).
 4. **Sync** (`src/loadDb.ts`) — ⚠️ **destructive**: in one transaction it snapshots, `DELETE`s every Yale College row in the shared `person` table, and re-inserts the scraped set. The CLI defaults to preview and requires a database-bound plan token to apply.
 
 The pipeline only touches Postgres + GCS. The public backend searches the shared
@@ -52,7 +52,7 @@ Health check: `curl localhost:8080/health` → `{"status":"ok"}`, then open `htt
 
 **Node:** pipeline & dashboard pin `20.13.0` (`.nvmrc`); the external backend uses 22 — don't assume one version across the monorepo.
 
-**CLI (no dashboard):** from `yalies-data-pipeline`, `npm start -- all --facebook-cookie <JSESSIONID> --directory-cookie <session>` (or run `facebook` / `directory` / `load` / `validate` individually; `load` previews by default, `--apply` plus its printed plan token writes, and `--start-from N` resumes enrichment). Cookies are copied by hand from DevTools after logging into each Yale site.
+**CLI (no dashboard):** from `yalies-data-pipeline`, `npm start -- all --facebook-cookie-file <private-cookie-file> --directory-cookie <session>` (or run `facebook` / `photos` / `directory` / `load` / `validate` individually; `load` previews by default, `--apply` plus its printed plan token writes, and `--start-from N` resumes enrichment). Face Book authentication must come from the complete Cookie header of an exact successful request; a random bare `JSESSIONID` can refer to the wrong Yale app/path. See the [photo runbook](yalies-data-pipeline/PHOTO_RUNBOOK.md) for capture, repair, and verification.
 
 **Recommended no-cookie data workflow:** paste the scripts in
 `yalies-data-pipeline/browser/` into the Face Book and Directory consoles, then
@@ -88,8 +88,10 @@ It shares **infrastructure, not code**: the same Cloud SQL `person` table (synce
   replacement.
 - The internal dashboard/pipeline still have no committed deployment path; they
   are designed to run locally through Cloud SQL Auth Proxy.
-- Browser JSON does not include photo bytes. New/missing photos need the separate
-  authenticated `photos` stage.
+- Browser JSON does not include photo bytes. New, missing, or corrupt photos
+  need the separate authenticated `photos` stage. Follow the
+  [photo runbook](yalies-data-pipeline/PHOTO_RUNBOOK.md); a clean second pass
+  must upload zero objects.
 - `.config` is intentionally outside git. Key names are documented above, but a
   new operator still needs the actual values/service account from the team vault.
 - Expected cohort years are deliberately hardcoded and must be reviewed during

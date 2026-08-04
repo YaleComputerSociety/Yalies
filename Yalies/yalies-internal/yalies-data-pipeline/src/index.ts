@@ -157,6 +157,7 @@ async function main(): Promise<void> {
 		allowPositionals: true,
 		options: {
 			"facebook-cookie": { type: "string" },
+			"facebook-cookie-file": { type: "string" },
 			"directory-cookie": { type: "string" },
 			"database-url": { type: "string" },
 			"delay": { type: "string", default: "300" },
@@ -190,7 +191,8 @@ Commands:
   validate [step]     Validate data (steps: facebook, enriched, database, all)
 
 Options:
-  --facebook-cookie   JSESSIONID cookie for students.yale.edu (required for facebook/all)
+  --facebook-cookie   Full Cookie header from a verified students.yale.edu request
+  --facebook-cookie-file  Path to a file containing that Cookie header (preferred)
   --directory-cookie  _people_search_session cookie for directory.yale.edu (required for directory/all)
   --database-url      PostgreSQL connection URL (or set DATABASE_URL env)
   --facebook-file     Browser Facebook JSON (browser-import)
@@ -206,8 +208,9 @@ Options:
   --help              Show this help message
 
 Examples:
-  npm start -- all --facebook-cookie ABC123 --directory-cookie XYZ789
-  npm start -- facebook --facebook-cookie ABC123
+  npm start -- all --facebook-cookie-file /tmp/yalies-facebook-cookie.txt --directory-cookie XYZ789
+  npm start -- facebook --facebook-cookie-file /tmp/yalies-facebook-cookie.txt
+  npm start -- photos --facebook-cookie-file /tmp/yalies-facebook-cookie.txt
   npm start -- directory --directory-cookie XYZ789 --start-from 1000
   npm start -- browser-import --facebook-file ~/Downloads/yalies-facebook.json --directory-file ~/Downloads/yalies-directory.json
   npm start -- load
@@ -226,6 +229,24 @@ Examples:
 	const databaseUrl = values["database-url"] || process.env.DATABASE_URL || "";
 	const delay = parseInt(values.delay || "300");
 	const startFrom = parseInt(values["start-from"] || "0");
+	if(values["facebook-cookie"] && values["facebook-cookie-file"]) {
+		console.error("ERROR: pass either --facebook-cookie or --facebook-cookie-file, not both");
+		process.exit(1);
+	}
+	let facebookCookie = values["facebook-cookie"];
+	if(values["facebook-cookie-file"]) {
+		try {
+			facebookCookie = readFileSync(path.resolve(values["facebook-cookie-file"]), "utf8").trim();
+		} catch(error) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error(`ERROR: could not read --facebook-cookie-file: ${message}`);
+			process.exit(1);
+		}
+		if(!facebookCookie) {
+			console.error("ERROR: --facebook-cookie-file is empty");
+			process.exit(1);
+		}
+	}
 
 	const validateStep = command === "validate" ? (positionals[1] || "all") : null;
 	const needsDb = command === "load" || command === "all"
@@ -287,9 +308,9 @@ Examples:
 	}
 
 	if (command === "facebook" || command === "all") {
-		const cookie = values["facebook-cookie"];
+		const cookie = facebookCookie;
 		if (!cookie) {
-			console.error("ERROR: --facebook-cookie is required");
+			console.error("ERROR: --facebook-cookie or --facebook-cookie-file is required");
 			process.exit(1);
 		}
 		const students = await runFacebook(cookie, values["upload-photos"] || false);
@@ -302,9 +323,9 @@ Examples:
 	}
 
 	if (command === "photos") {
-		const cookie = values["facebook-cookie"];
+		const cookie = facebookCookie;
 		if (!cookie) {
-			console.error("ERROR: --facebook-cookie is required");
+			console.error("ERROR: --facebook-cookie or --facebook-cookie-file is required");
 			process.exit(1);
 		}
 		await runPhotos(cookie);

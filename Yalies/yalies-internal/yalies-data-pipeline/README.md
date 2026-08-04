@@ -14,7 +14,7 @@ Requires Node 20 (`nvm use`), `npm install`, and `../../../.config/internal/.env
 (`DATABASE_URL`, etc.). The DB must be reachable — locally via the Cloud SQL proxy (`../../start-proxy.sh`).
 
 - `npm run server` — start the dashboard API on :8080
-- `npm start -- all --facebook-cookie <c> --directory-cookie <c>` — cookie-based scrape and enrichment followed by a database **preview**
+- `npm start -- all --facebook-cookie-file <path> --directory-cookie <c>` — cookie-based scrape and enrichment followed by a database **preview**
 - `npm start -- <facebook|photos|directory|load|validate>` — run a single stage
 - `npm start -- browser-import --facebook-file <json> --directory-file <json>` — merge and validate the two browser downloads
 - `npm run add-admin -- <netid>` — grant a netid access to the dashboard (required to bootstrap the first admin)
@@ -22,7 +22,9 @@ Requires Node 20 (`nvm use`), `npm install`, and `../../../.config/internal/.env
 - `npm run enrich-missing -- --cookie <c>` — backfill netids for rows missing them
 
 Cookies are copied by hand from DevTools after logging into students.yale.edu/facebook
-and directory.yale.edu.
+and directory.yale.edu. For Face Book, capture the complete Cookie header from
+an exact successful request; an arbitrary bare `JSESSIONID` may belong to the
+wrong Yale app or cookie path.
 
 ## Recommended browser-export workflow
 
@@ -96,13 +98,23 @@ recovery window; dropping it is a separate, deliberate operator action.
 The JSON exports contain confidential Yale data. They and `output/` are
 gitignored; delete downloaded copies after validation and any recovery window.
 
-The JSON workflow updates the `person` table. It records photo URLs from Face
-Book photo IDs but does not copy image bytes into GCS. For missing/new photos,
-the existing separate command still requires a current Face Book session:
+The JSON workflow updates the `person` table and records photo URLs, but it does
+not copy image bytes into GCS. Run the separate authenticated photo stage after
+each roster refresh. It byte-validates existing objects, repairs corrupt files,
+uploads missing photos, and supports a clean zero-change verification pass.
+
+Follow [`PHOTO_RUNBOOK.md`](PHOTO_RUNBOOK.md) exactly. In particular, copy the
+complete Cookie value from a verified successful
+`https://students.yale.edu/facebook/Photo?id=XXXXXX` browser request and prefer
+the private-file form:
 
 ```bash
-npm start -- photos --facebook-cookie '<current JSESSIONID or full Cookie header>'
+npm start -- photos \
+  --facebook-cookie-file /tmp/yalies-facebook-cookie.txt
 ```
+
+Do not reload the database or redeploy the public apps after this command; the
+existing `person.image` URLs already address the GCS objects.
 
 ## Python tools (optional)
 

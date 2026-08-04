@@ -69,6 +69,8 @@ export default function HomePage() {
 	const [compactFiltersOpen, setCompactFiltersOpen] = useState(false);
 	const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const restoredFromCache = useRef(!!homeCache);
+	const activeSearchRequest = useRef<AbortController | null>(null);
+	const searchRequestVersion = useRef(0);
 
 	useEffect(() => {
 		const label = RESULT_LABEL_WORDS[Math.floor(Math.random() * RESULT_LABEL_WORDS.length)];
@@ -86,9 +88,15 @@ export default function HomePage() {
 		return () => window.removeEventListener("resize", updateCompact);
 	}, []);
 
+	useEffect(() => () => activeSearchRequest.current?.abort(), []);
+
 	const getPeople = useCallback(async () => {
 		if(hasReachedEnd) return;
 		if(filters === null) return;
+		activeSearchRequest.current?.abort();
+		const controller = new AbortController();
+		activeSearchRequest.current = controller;
+		const requestVersion = ++searchRequestVersion.current;
 		let response;
 
 		let queryActual = query;
@@ -136,13 +144,16 @@ export default function HomePage() {
 					page_size: PAGE_SIZE,
 					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
 				}),
+				signal: controller.signal,
 			});
 		} catch(e) {
+			if(e instanceof DOMException && e.name === "AbortError") return;
 			console.error(e);
 			setSearchError("Failed to connect to the server. Please try again.");
 			setIsSearching(false);
 			return;
 		}
+		if(requestVersion !== searchRequestVersion.current) return;
 		if(!response) {
 			console.error("No response from server");
 			setSearchError("No response from server. Please try again.");
@@ -165,6 +176,7 @@ export default function HomePage() {
 			return;
 		}
 		const newPeople: Person[] = await response?.json();
+		if(requestVersion !== searchRequestVersion.current) return;
 		if(newPeople.length === 0) {
 			setHasReachedEnd(true);
 			setIsSearching(false);
@@ -295,6 +307,8 @@ export default function HomePage() {
 
 	const onSubmit = () => {
 		if(searchboxText === query) return;
+		activeSearchRequest.current?.abort();
+		searchRequestVersion.current++;
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
@@ -311,6 +325,8 @@ export default function HomePage() {
 	};
 
 	const setFilterValue = (key: string, newValue: string[]) => {
+		activeSearchRequest.current?.abort();
+		searchRequestVersion.current++;
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
@@ -323,6 +339,8 @@ export default function HomePage() {
 			value={searchboxText}
 			onChange={onQueryChange}
 			onClear={() => {
+				activeSearchRequest.current?.abort();
+				searchRequestVersion.current++;
 				setSearchboxText("");
 				setQuery("");
 				setPeople([]);
@@ -336,6 +354,8 @@ export default function HomePage() {
 	);
 
 	const reset = () => {
+		activeSearchRequest.current?.abort();
+		searchRequestVersion.current++;
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);

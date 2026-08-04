@@ -7,6 +7,7 @@ import {
 	NETID_REGEX,
 	VALIDATION_THRESHOLDS,
 	YALE_COLLEGE,
+	YALE_COLLEGE_CODE,
 } from "yalies-shared";
 
 const {
@@ -265,10 +266,13 @@ export async function validateDatabase(databaseUrl: string): Promise<ValidationR
 
 		// 5. Duplicate netids
 		const [dupNetids] = await sequelize.query(
-			"SELECT netid, COUNT(*) as count FROM person WHERE netid IS NOT NULL GROUP BY netid HAVING COUNT(*) > 1",
+			"SELECT netid, COUNT(*) as count FROM person " +
+			"WHERE netid IS NOT NULL AND (school = :yc OR school_code = :ycCode) " +
+			"GROUP BY netid HAVING COUNT(*) > 1",
+			{ replacements: { yc: YALE_COLLEGE, ycCode: YALE_COLLEGE_CODE } },
 		);
-		if ((dupNetids as unknown[]).length === 0) result.passes.push("DB netid uniqueness: no duplicates");
-		else result.failures.push(`DB duplicate netids: ${(dupNetids as unknown[]).length}`);
+		if ((dupNetids as unknown[]).length === 0) result.passes.push("DB Yale College netid uniqueness: no duplicates");
+		else result.failures.push(`DB duplicate Yale College netids: ${(dupNetids as unknown[]).length}`);
 
 		// 6. Duplicate IDs
 		const [dupIds] = await sequelize.query(
