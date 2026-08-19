@@ -38,3 +38,9 @@
 7. User is redirected to `/`
 8. User tries to go to the protected route again
 9. Express session checks if there's authentication information; it's there. User is allowed to go to the protected route
+
+### YaleMoji authentication
+
+`GET /v3/login/yalemoji?state=<random-value>` authenticates through the existing Yale CAS strategy and redirects to the fixed YaleMoji callback with a signed, 60-second identity assertion.
+
+Set `YALEMOJI_AUTH_CALLBACK_URL` and `YALEMOJI_AUTH_ERROR_CALLBACK_URL` to YaleMoji's fixed success and error callbacks. Error redirects include a stable `error` code and include `state` when it was valid. Set `YALEMOJI_AUTH_SECRET` to a strong shared secret, and configure that same secret in YaleMoji so it can verify the assertion. Never commit the secret.
