@@ -8,13 +8,14 @@
     "start": "node build/index.js",
     "copy-shared": "rm -rf src/yalies-shared && cp -r ../yalies-shared ./src",
     "build": "npx tsc",
+    "test": "npm run build && node --test test/*.test.js",
     "dev": "npm run copy-shared && npm run build && NODE_ENV=development npm start",
     "lint": "eslint src/**/*.ts",
     "format": "eslint src/**/*.ts --fix",
     "deploy": "npm run copy-shared && gcloud run deploy --source . --region us-central1 --allow-unauthenticated yalies-backend"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "repository": {
     "type": "git",
@@ -54,7 +55,7 @@
     "@types/passport-strategy": "^0.2.38",
     "eslint": "^8.57.0",
     "eslint-plugin-github": "^5.0.1",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "typescript": "^5.5.4"
   }
 }

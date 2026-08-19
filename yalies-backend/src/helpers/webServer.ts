@@ -83,6 +83,7 @@ export default class WebServer {
 		
 		const casRouter = new CasRouter();
 		this.#app.use("/v2/login", casRouter.getRouter());
+		this.#app.use("/v3/login/yalemoji", casRouter.getYaleMojiRouter());
 		
 		const filtersRouter = new FiltersRouter();
 		this.#app.use("/v2/filters", filtersRouter.getRouter());
