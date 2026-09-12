@@ -1,5 +1,5 @@
 # Yalies
-✨ The Yale Search Engine
+The Yale Identity Engine
 
 ## What is this repo?
 Code in this repo is not in production yet. This is a repository for the rewrite of Yalies in NextJS/NodeJS.
