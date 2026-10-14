@@ -1,5 +1,6 @@
 "use client";
 import { API_URL } from "@/consts";
+import { parseSearch } from "@/helpers/searchQuery";
 import PeopleGrid from "@/components/PeopleGrid";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
@@ -16,25 +17,6 @@ import { sendGAEvent } from "@next/third-parties/google";
 import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHomeCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
-
-const COLLEGE_EXPAND: Record<string, string> = {
-    BK: "Berkeley",
-    BR: "Branford",
-    DC: "Davenport",
-    BF: "Benjamin Franklin",
-    GH: "Grace Hopper",
-    JE: "Jonathan Edwards",
-    MO: "Morse",
-    MY: "Pauli Murray",
-    PM: "Pauli Murray",
-    PC: "Pierson",
-    SM: "Silliman",
-    SI: "Silliman",
-    SY: "Saybrook",
-    TD: "Timothy Dwight",
-    TR: "Trumbull",
-};
-
 
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
 const PAGE_SIZE = 20;
@@ -119,78 +101,7 @@ export default function HomePage() {
 		const requestVersion = ++searchRequestVersion.current;
 		let response;
 
-		let queryActual = query;
-
-		let filterObject: Record<string, string[]> = {};
-		if(filters.year && filters.year.length > 0) filterObject.year = filters.year;
-		if(filters.school && filters.school.length > 0) filterObject.school = filters.school;
-		if(filters.college && filters.college.length > 0) filterObject.college = filters.college;
-		if(filters.major && filters.major.length > 0) filterObject.major = filters.major;
-		
-		/*
-        MATCHING: SQL like, using dedicated keywords
-        '%d%d : class year
-        IN : college  needs to differ from initial...
-        STUDYING : major
-
-        implement OR/lists later?
-
-        fizz standardized form: KL '29 BK (kingsten lin '29 in berkeley)
-            this requires more complicated college parsing...
-            once i find a name, then can look for college
-            but imagine someone named "John Je"
-            nvm it would be "JE." just have to distinguish from initials
-        */
-
-        let queryClass = null;
-        let queryCollege = null;
-        let splitQuery = queryActual.split(/\s+/);
-        let endOfName = splitQuery.length;
-        let word;
-        for (let i = 1; i < splitQuery.length; i++) {
-            // start from one to avoid initial first thing
-            word = splitQuery[i];
-            if (word.match(/^'[0-9]{2}$/)) {
-                queryClass = "20" + word.slice(1);
-                endOfName = Math.min(endOfName, i);
-            } else if (Object.hasOwn(COLLEGE_EXPAND, word)) {
-                queryCollege = COLLEGE_EXPAND[word];
-                endOfName = Math.min(endOfName, i);
-            }
-        }
-
-        queryActual = splitQuery.slice(0, endOfName).join(" ");
-        if (queryClass != null) {
-            filterObject = {
-                year: [queryClass],
-                ...filterObject,
-            };
-        }
-        if (queryCollege != null) {
-            filterObject = {
-                college: [queryCollege],
-                ...filterObject,
-            };
-        }
-
-		if(searchMode === "full_name" && queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
-
-			queryActual = "";
-			filterObject = {
-				netid: [query],
-				...filterObject,
-			};
-		} else if(searchMode === "full_name" && queryActual.match(/^\d{8}$/i)) {
-
-			queryActual = "";
-			filterObject = {
-				upi: [query],
-				...filterObject,
-			};
-		} else if (searchMode === "full_name" && queryActual.match(/^[A-Z]{2}$/)) {
-            setSearchMode("initials");
-        }
-
+		const { queryActual, resolvedSearchMode, filterObject } = parseSearch(query, searchMode, filters);
 
 		if (currentPage === 0) {
 			setIsSearching(true);
@@ -207,7 +118,7 @@ export default function HomePage() {
 				},
 				body: JSON.stringify({
 					query: queryActual.length > 0 ? queryActual : null,
-					searchMode,
+					searchMode: resolvedSearchMode,
 					filters: filterObject,
 					page: currentPage,
 					page_size: PAGE_SIZE,
@@ -267,7 +178,7 @@ export default function HomePage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					query: queryActual.length > 0 ? queryActual : null,
-					searchMode,
+					searchMode: resolvedSearchMode,
 					filters: filterObject,
 					page: currentPage + 1,
 					page_size: PAGE_SIZE,
