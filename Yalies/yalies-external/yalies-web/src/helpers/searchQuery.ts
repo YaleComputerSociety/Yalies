@@ -28,6 +28,9 @@ export function parseSearch(query: string, searchMode: SearchMode, filters: Reco
 		if (/^['’][0-9]{2}$/.test(word)) {
 			filterObject.year = ["20" + word.slice(1)];
 			endOfName = Math.min(endOfName, i);
+		} else if (/^[0-9]{2}$/.test(word)) {
+			filterObject.year = ["20" + word];
+			endOfName = Math.min(endOfName, i);
 		} else if (Object.hasOwn(COLLEGE_EXPAND, word)) {
 			filterObject.college = [COLLEGE_EXPAND[word]];
 			endOfName = Math.min(endOfName, i);
