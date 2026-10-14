@@ -18,6 +18,8 @@ import FriendshipRouter from "./routes/friendshipRouter.js";
 import { API_ROUTES } from "yalies-shared";
 import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
+import { isOidcPath, isOidcProtocolPath, mountOidc } from "./oidc/provider.js";
+
 const SequelizeStore = ConnectSessionSequelize(session.Store);
 
 export default class WebServer {
@@ -27,6 +29,7 @@ export default class WebServer {
 	constructor(db: DB) {
 		this.#db = db;
 		this.initializeExpress();
+		mountOidc(this.#app, this.#db.getSql());
 		this.initializeSubRouters();
 		this.serve();
 	}
@@ -35,9 +38,19 @@ export default class WebServer {
 		this.#app = express();
 		this.#app.set("trust proxy", 1);
 		this.#app.use(compression());
-		this.#app.use(cors({ credentials: true, origin: true }));
-		this.#app.use(express.json());
-		this.#app.use(express.urlencoded({ extended: true }));
+		const legacyCors = cors({ credentials: true, origin: true });
+		this.#app.use((req, res, next) => isOidcPath(req.path) ? next() : legacyCors(req, res, next));
+		const json = express.json();
+		const form = express.urlencoded({ extended: true });
+		this.#app.use((req, res, next) => isOidcProtocolPath(req.path) ? next() : json(req, res, next));
+		this.#app.use((req, res, next) => isOidcPath(req.path) ? next() : form(req, res, next));
+		if (process.env.PREVIEW_READ_ONLY === "true") {
+			this.#app.use((req, res, next) => {
+				const isSearch = req.method === "POST" && req.path.replace(/\/$/, "") === API_ROUTES.people;
+				if (["GET", "HEAD", "OPTIONS"].includes(req.method) || isSearch) return next();
+				return res.status(403).json({ error: "This development preview is read-only." });
+			});
+		}
 		this.#app.use((req, res, next) => {
 
 			res.set("Cache-Control", "no-store");

@@ -103,6 +103,7 @@ export type DataChangeRequest = {
 	resolved_by?: string;
 
 	requester_name?: string;
+	current_image?: string;
 };
 
 export const CHANGE_REQUEST_ALLOWED_FIELDS = [

@@ -3,6 +3,8 @@ import passport from "passport";
 import { RequestUser } from "../types";
 import { createSignedAuthAssertion, isValidYaleMojiState, YaleMojiAuthError } from "../yalemojiAuth.js";
 
+import { takeOidcContinuation, finishLogin } from "../oidc/continuation.js";
+
 export default class CasRouter {
 	getRouter = () => {
 		const router = express.Router();
@@ -13,6 +15,7 @@ export default class CasRouter {
 	};
 
 	casLogin = (req: Request, res: Response, next: NextFunction) => {
+		const continuation = takeOidcContinuation(req);
 		const authFunction = passport.authenticate("cas", (err: Error, user: Express.User) => {
 			if(err) {
 				console.error(err);
@@ -24,7 +27,7 @@ export default class CasRouter {
 			return req.logIn(user, async (err) => {
 				if(err) return res.status(500).send("Could not log in");
 				req.session.netid = userWithData.netId;
-				return res.redirect(process.env.FRONTEND_URL + "/");
+				return finishLogin(req, res, continuation);
 			});
 		});
 		authFunction(req, res, next);

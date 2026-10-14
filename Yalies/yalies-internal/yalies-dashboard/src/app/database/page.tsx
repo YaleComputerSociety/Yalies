@@ -762,7 +762,16 @@ export default function DatabasePage() {
 										</span>
 									</div>
 									<div className={styles.requestChanges}>
-										{Object.entries(req.requested_changes).map(([field, value]) => (
+										{typeof req.requested_changes.image === "string" && (
+											<div className={styles.requestPhotoSummary}>
+												<img src={req.requested_changes.image} alt="Proposed profile photo" />
+												<div>
+													<strong>Profile photo</strong>
+													<span>Ready for visual review</span>
+												</div>
+											</div>
+										)}
+										{Object.entries(req.requested_changes).filter(([field]) => field !== "image").map(([field, value]) => (
 											<div key={field} className={styles.changeRow}>
 												<span className={styles.changeField}>{field.replace(/_/g, " ")}</span>
 												<span className={styles.changeValue}>{String(value)}</span>
@@ -1347,6 +1356,7 @@ function ReviewRequestModal({
 	const [modifiedValues, setModifiedValues] = useState<Record<string, string>>(() => {
 		const init: Record<string, string> = {};
 		for (const [key, value] of Object.entries(request.requested_changes)) {
+			if (key === "image") continue;
 			init[key] = value != null ? String(value) : "";
 		}
 		return init;
@@ -1389,6 +1399,9 @@ function ReviewRequestModal({
 		const original = request.requested_changes[key];
 		return String(original ?? "") !== value;
 	});
+	const requestedPhoto = typeof request.requested_changes.image === "string"
+		? request.requested_changes.image
+		: null;
 
 	return (
 		<div className={styles.overlay} onClick={onCancel}>
@@ -1404,7 +1417,23 @@ function ReviewRequestModal({
 				<form onSubmit={(e) => e.preventDefault()} className={styles.modalForm}>
 					<fieldset className={styles.formSection}>
 						<legend className={styles.formLegend}>Requested Changes</legend>
-						{Object.entries(request.requested_changes).map(([field, value]) => (
+						{requestedPhoto && (
+							<div className={styles.photoComparison}>
+								<div>
+									<span className={styles.photoComparisonLabel}>Current</span>
+									{request.current_image ? (
+										<img src={request.current_image} alt="Current profile photo" />
+									) : (
+										<div className={styles.photoComparisonEmpty}>No current photo</div>
+									)}
+								</div>
+								<div>
+									<span className={styles.photoComparisonLabel}>Proposed</span>
+									<img src={requestedPhoto} alt="Proposed profile photo" />
+								</div>
+							</div>
+						)}
+						{Object.entries(request.requested_changes).filter(([field]) => field !== "image").map(([field, value]) => (
 							<div key={field} className={styles.formRow}>
 								<label className={styles.fieldLabel}>
 									<span className={styles.fieldLabelText}>

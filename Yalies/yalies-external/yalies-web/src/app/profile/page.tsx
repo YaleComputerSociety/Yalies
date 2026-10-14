@@ -11,10 +11,10 @@ import { useEffect, useRef, useState } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus } from "@fortawesome/free-solid-svg-icons";
+import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus, faCamera, faCloudArrowUp, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { useRouter } from "next/navigation";
-import { getProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
+import { getProfile, invalidateProfileCache, type PendingPhotoRequest } from "@/hooks/useProfileCache";
 import ChangeRequestModal from "@/components/ChangeRequestModal";
 import EmailCopyButton from "@/components/EmailCopyButton";
 import { getSocialUrlError, normalizeSocialUrl } from "@/utils/externalUrl";
@@ -38,22 +38,33 @@ export default function ProfilePage() {
 	const [friends, setFriends] = useState<Person[]>([]);
 	const [friendRequests, setFriendRequests] = useState<Person[]>([]);
 	const [friendsLoading, setFriendsLoading] = useState(false);
+	const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+	const [photoPreview, setPhotoPreview] = useState("");
+	const [photoUploading, setPhotoUploading] = useState(false);
+	const [photoMessage, setPhotoMessage] = useState("");
+	const [photoRequest, setPhotoRequest] = useState<PendingPhotoRequest | null>(null);
 	const settingsRef = useRef<HTMLDivElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	const applyProfileData = (data: UserProfile, personData: Person | null) => {
+	const applyProfileData = (
+		data: UserProfile,
+		personData: Person | null,
+		pendingPhotoRequest: PendingPhotoRequest | null,
+	) => {
 		setProfile(data);
 		setLinkedinUrl(data.linkedin_url ?? "");
 		setInstagramUrl(data.instagram_url ?? "");
 		if(personData) {
 			setPerson(personData);
 		}
+		setPhotoRequest(pendingPhotoRequest);
 	};
 
 	const fetchProfile = async () => {
 		try {
 			const cached = await getProfile();
 			if(cached) {
-				applyProfileData(cached.profile, cached.person);
+				applyProfileData(cached.profile, cached.person, cached.photoRequest);
 				return;
 			}
 
@@ -291,6 +302,67 @@ export default function ProfilePage() {
 		}
 	};
 
+	const clearSelectedPhoto = () => {
+		if(photoPreview) URL.revokeObjectURL(photoPreview);
+		setSelectedPhoto(null);
+		setPhotoPreview("");
+		if(fileInputRef.current) fileInputRef.current.value = "";
+	};
+
+	const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if(!file) return;
+		setPhotoMessage("");
+		if(!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+			setPhotoMessage("Choose a JPEG, PNG, or WebP image.");
+			event.target.value = "";
+			return;
+		}
+		if(file.size > 5 * 1024 * 1024) {
+			setPhotoMessage("Photo must be under 5MB.");
+			event.target.value = "";
+			return;
+		}
+		if(photoPreview) URL.revokeObjectURL(photoPreview);
+		setSelectedPhoto(file);
+		setPhotoPreview(URL.createObjectURL(file));
+	};
+
+	const submitPhoto = async () => {
+		if(!selectedPhoto || photoUploading) return;
+		setPhotoUploading(true);
+		setPhotoMessage("");
+		const formData = new FormData();
+		formData.append("photo", selectedPhoto);
+
+		try {
+			const response = await fetch(`${API_URL}${API.profileMePhoto}`, {
+				method: "POST",
+				credentials: "include",
+				body: formData,
+			});
+			const contentType = response.headers.get("content-type") || "";
+			const result = contentType.includes("application/json")
+				? await response.json()
+				: { error: await response.text() };
+			if(!response.ok) throw new Error(result.error || "Could not submit your photo.");
+
+			setPhotoRequest({
+				id: result.request.id,
+				status: "pending",
+				created_at: result.request.created_at,
+				preview_image: result.preview_image,
+			});
+			clearSelectedPhoto();
+			invalidateProfileCache();
+			setPhotoMessage("Photo submitted for admin review.");
+		} catch(error) {
+			setPhotoMessage(error instanceof Error ? error.message : "Could not submit your photo.");
+		} finally {
+			setPhotoUploading(false);
+		}
+	};
+
 	if(isUnauthenticated) {
 		return (
 			<>
@@ -357,10 +429,10 @@ export default function ProfilePage() {
 
 					<div className={styles.card_header}>
 						<div className={styles.photo_section}>
-							{person?.image ? (
+							{photoPreview || person?.image ? (
 								<img
 									className={styles.profile_image}
-									src={person.image}
+									src={photoPreview || person?.image || ""}
 									alt={displayName}
 								/>
 							) : (
@@ -368,6 +440,23 @@ export default function ProfilePage() {
 									<FontAwesomeIcon icon={faUser} />
 								</div>
 							)}
+							<button
+								type="button"
+								className={styles.photo_edit_button}
+								onClick={() => fileInputRef.current?.click()}
+								disabled={photoUploading || !!photoRequest}
+								aria-label={photoRequest ? "Photo awaiting review" : "Choose a new profile photo"}
+							>
+								<FontAwesomeIcon icon={faCamera} />
+								<span>{photoRequest ? "Pending" : "Change"}</span>
+							</button>
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept="image/jpeg,image/png,image/webp"
+								onChange={handlePhotoSelect}
+								className={styles.photo_file_input}
+							/>
 						</div>
 						<div className={styles.person_details}>
 							<div className={styles.name_block}>
@@ -418,6 +507,33 @@ export default function ProfilePage() {
 							</div>
 						</div>
 					</div>
+					{selectedPhoto && (
+						<div className={styles.photo_confirmation}>
+							<div>
+								<strong>Submit this photo?</strong>
+								<span>An admin will review it before it replaces your current picture.</span>
+							</div>
+							<div className={styles.photo_confirmation_actions}>
+								<button type="button" onClick={clearSelectedPhoto} disabled={photoUploading}>
+									<FontAwesomeIcon icon={faXmark} /> Cancel
+								</button>
+								<button type="button" className={styles.photo_submit_button} onClick={submitPhoto} disabled={photoUploading}>
+									<FontAwesomeIcon icon={faCloudArrowUp} />
+									{photoUploading ? "Submitting…" : "Submit for review"}
+								</button>
+							</div>
+						</div>
+					)}
+					{photoRequest && !selectedPhoto && (
+						<div className={styles.photo_pending_notice}>
+							<img src={photoRequest.preview_image} alt="Pending profile photo" />
+							<div>
+								<strong>Photo awaiting review</strong>
+								<span>Your current photo will stay visible until an admin approves this one.</span>
+							</div>
+						</div>
+					)}
+					{photoMessage && <div className={styles.photo_message} role="status">{photoMessage}</div>}
 					{hasContactRow && (
 						<div className={styles.contact_section}>
 							{person?.email && (

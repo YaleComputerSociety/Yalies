@@ -8,6 +8,21 @@ export type HttpResponse = {
 	cookies: Record<string, string>;
 };
 
+/**
+ * Yale's Face Book endpoint currently serves some pages with Windows-1252
+ * bytes even though the document claims to be UTF-8. Decode as strict UTF-8
+ * first, then fall back only when the byte stream is not valid UTF-8. This
+ * keeps normal UTF-8 responses unchanged while preserving names such as
+ * "Pérez-Mariño, César" from the legacy endpoint.
+ */
+export function decodeTextResponse(buffer: Buffer): string {
+	try {
+		return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+	} catch {
+		return new TextDecoder("windows-1252").decode(buffer);
+	}
+}
+
 const DEFAULT_HEADERS: Record<string, string> = {
 	"Accept": "*/*",
 	"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
@@ -46,13 +61,13 @@ function rawRequest(
 		}
 
 		const req = client.request(parsedUrl, { method, headers: reqHeaders }, (res) => {
-			let responseBody = "";
-			res.on("data", (chunk) => { responseBody += chunk; });
+			const responseChunks: Buffer[] = [];
+			res.on("data", (chunk: Buffer) => { responseChunks.push(chunk); });
 			res.on("end", () => {
 				resolve({
 					status: res.statusCode ?? 0,
 					headers: res.headers as Record<string, string | string[] | undefined>,
-					body: responseBody,
+					body: decodeTextResponse(Buffer.concat(responseChunks)),
 					cookies: parseSetCookies(res.headers["set-cookie"]),
 				});
 			});

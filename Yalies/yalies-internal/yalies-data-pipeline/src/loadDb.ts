@@ -4,6 +4,7 @@ import { decode } from "html-entities";
 import { EnrichedStudent, DbRow } from "./types.js";
 import { parseLocation } from "./parseLocation.js";
 import { YALE_COLLEGE, YALE_COLLEGE_CODE } from "yalies-shared";
+import { findStudentsWithInvalidMajor, normalizeAllowedMajor } from "./allowedMajors.js";
 
 const MONTH_MAP: Record<string, number> = {
 	"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
@@ -35,6 +36,10 @@ function cleanStr(value?: string | number | null): string | undefined {
 }
 
 export function toDbRow(student: EnrichedStudent): DbRow {
+	const major = normalizeAllowedMajor(student.major);
+	if (findStudentsWithInvalidMajor([student]).length > 0) {
+		throw new Error(`Refusing unapproved major: ${student.major}`);
+	}
 	const { month: birthMonth, day: birthDay } = parseBirthday(student.birthday);
 	const year = parseYear(student.year, student.year_directory);
 	const upi = student.upi;
@@ -75,7 +80,7 @@ export function toDbRow(student: EnrichedStudent): DbRow {
 		image,
 		birth_month: birthMonth,
 		birth_day: birthDay,
-		major: cleanStr(student.major),
+		major,
 		address: cleanedAddress,
 		address_state: address_state ?? undefined,
 		address_country: address_country ?? undefined,
@@ -100,6 +105,16 @@ export async function loadToDatabase(
 	const dryRun = options.dryRun ?? true;
 	const force = options.force ?? false;
 	const requireConfirmation = options.requireConfirmation ?? true;
+	const invalidMajors = findStudentsWithInvalidMajor(students);
+	if (invalidMajors.length > 0) {
+		const examples = invalidMajors
+			.slice(0, 5)
+			.map((student) => `${student.full_name} (${student.major})`)
+			.join(", ");
+		throw new Error(
+			`Refusing to load ${invalidMajors.length} students with a major outside the approved allowlist: ${examples}`,
+		);
+	}
 	console.log(`Loading ${students.length} students into database...`);
 
 	const sequelize = new Sequelize(databaseUrl, { logging: false });
@@ -116,6 +131,29 @@ export async function loadToDatabase(
 		);
 		const existingCount = parseInt(existingResult.count);
 		console.log(`Existing ${YALE_COLLEGE} rows: ${existingCount}`);
+
+		const existingProfilePhotos = await sequelize.query<{ netid: string; image: string }>(
+			"SELECT netid, image FROM person " +
+			"WHERE netid IS NOT NULL AND image LIKE :profilePhotoPrefix",
+			{
+				type: QueryTypes.SELECT,
+				replacements: {
+					profilePhotoPrefix: "https://storage.googleapis.com/yalies-photos/profile-photos/%",
+				},
+			},
+		);
+		const profilePhotoByNetid = new Map(
+			existingProfilePhotos.map(({ netid, image }) => [netid.toLowerCase(), image]),
+		);
+		const buildDbRow = (student: EnrichedStudent): DbRow => {
+			const row = toDbRow(student);
+			const approvedProfilePhoto = row.netid ? profilePhotoByNetid.get(row.netid) : undefined;
+			if (approvedProfilePhoto) row.image = approvedProfilePhoto;
+			return row;
+		};
+		if (profilePhotoByNetid.size > 0) {
+			console.log(`Preserving ${profilePhotoByNetid.size} approved profile photo overrides`);
+		}
 
 		const [targetResult] = await sequelize.query<{
 			database_name: string;
@@ -134,7 +172,7 @@ export async function loadToDatabase(
 			.update(JSON.stringify({
 				targetDescription,
 				existingCount,
-				students: students.map(toDbRow),
+				students: students.map(buildDbRow),
 			}))
 			.digest("hex")
 			.slice(0, 12)
@@ -192,7 +230,7 @@ export async function loadToDatabase(
 			const idConflicts: string[] = [];
 
 			for (const student of students) {
-				const row = toDbRow(student);
+				const row = buildDbRow(student);
 
 				// Generate stable ID for students without UPI
 				if (!row.id) {

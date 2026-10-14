@@ -18,6 +18,7 @@ Requires Node 20 (`nvm use`), `npm install`, and `../../../.config/internal/.env
 - `npm start -- <facebook|photos|directory|load|validate>` — run a single stage
 - `npm start -- browser-import --facebook-file <json> --directory-file <json>` — merge and validate the two browser downloads
 - `npm run add-admin -- <netid>` — grant a netid access to the dashboard (required to bootstrap the first admin)
+- `npm run add-admin -- <netid> --only` — make that netid the sole dashboard admin
 - `npm run qc` / `npm run qc:fix` — data quality checks
 - `npm run enrich-missing -- --cookie <c>` — backfill netids for rows missing them
 
@@ -32,7 +33,8 @@ The paste-in-console scripts live in [`browser/`](browser/):
 
 - [`browser/facebook-export.js`](browser/facebook-export.js) runs on
   `students.yale.edu/facebook`. It downloads normalized student JSON and refuses
-  a roster below 5,000 people, below 14 colleges, or with missing names.
+  a roster below 5,000 people, below 14 colleges, with missing names, or with a
+  major outside the approved allowlist.
 - [`browser/directory-export.js`](browser/directory-export.js) runs on
   `directory.yale.edu`. It asks for the Facebook JSON, queries the Directory,
   and downloads a matching Directory JSON. It checkpoints every 25 students in
@@ -55,6 +57,27 @@ merges records using Yale College/name/year/college scoring, writes
 `output/students.json` and `output/students_enriched.json`, and runs all roster
 and enrichment validations. Exports over 14 days old are rejected. It never
 touches the database.
+
+### Approved major values
+
+[`src/allowedMajors.ts`](src/allowedMajors.ts) contains the 86 exact Yale College
+values reviewed from production on September 23, 2026, including `Undeclared`.
+Both Facebook scrapers retain the existing location checks and field boundaries,
+then accept the selected major only if it matches this list after HTML decoding
+and edge-whitespace trimming. Rejected candidates remain in `details_raw`; they
+are not moved into the address or matched by substring. A combined value such as
+`San Francisco, Computer Science` is therefore omitted, not guessed at.
+
+Facebook/enriched-data validation and the database loader reject populated majors
+outside the list, including in older cached JSON. The loader checks before
+connecting or writing, and `--force` does not bypass this check. Missing majors
+remain allowed. Post-load major validation is scoped to Yale College, leaving
+other schools' values such as `MBA` outside this policy.
+
+This list is intentionally based on observed values, not a complete Yale catalog.
+Review new values before adding them to both `src/allowedMajors.ts` and the inline
+copy in `browser/facebook-export.js`; `npm test` checks that the copies match and
+that both parsers retain every allowed value without changing surrounding fields.
 
 ### Database preview and apply
 

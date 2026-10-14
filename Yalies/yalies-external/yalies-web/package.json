@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "bash deploy.sh"
+    "deploy": "bash deploy.sh",
+    "preview": "bash ../../preview/deploy.sh"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",

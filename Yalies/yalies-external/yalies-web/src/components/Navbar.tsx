@@ -20,11 +20,13 @@ export default function Navbar({
 	isAuthenticated,
 	onLogoClick,
 	onFeelingLucky,
+	searchStatus,
 }: {
 	middleContent?: React.ReactNode;
 	isAuthenticated?: boolean;
 	onLogoClick?: () => void;
 	onFeelingLucky?: () => void;
+	searchStatus?: React.ReactNode;
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [theme, setTheme] = useState<Theme>("light");
@@ -51,7 +53,7 @@ export default function Navbar({
 			<div className={topNavClassName}>
 				<div className={styles.logo_wrapper}>
 					<Link href="/" id={styles.logo} className={logoFont.className} onClick={onLogoClick}>
-						<Image width={46} height={46} src="/logo.png" alt="Yalies logo" />
+						<Image width={46} height={46} src="/logo.svg" alt="Yalies logo" />
 						<h2>Yalies</h2>
 					</Link>
 					{onFeelingLucky && (
@@ -99,6 +101,7 @@ export default function Navbar({
 						<ProfileButton isAuthenticated={isAuthenticated} showCompactNavLinks />
 					</div>
 				</div>
+				{searchStatus && <div className={styles.search_status} role="status">{searchStatus}</div>}
 				<button
 					className={styles.hamburger}
 					onClick={() => setMenuOpen(!menuOpen)}

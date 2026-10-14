@@ -21,7 +21,7 @@ function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 function LoadingIcon() {
 	return (
 		<div className={styles.loading_icon_container}>
-			<img src="/logo.png" alt="Loading" className={styles.loading_icon} />
+			<img src="/logo.svg" alt="Loading" className={styles.loading_icon} />
 		</div>
 	);
 }

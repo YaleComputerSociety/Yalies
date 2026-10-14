@@ -41,6 +41,115 @@ searchable without maintaining a separate search index.
 
 Health check: `curl localhost:8080/health` → `{"status":"ok"}`, then open `http://localhost:3001`.
 
+## Production database access and local secrets
+
+Production database exports require configuration that is deliberately excluded
+from Git. Never commit populated `.env` files, database URLs, passwords, service
+account keys, or exported student data.
+
+### Where the production configuration currently lives
+
+As verified in Google Cloud project `yalies` on 2026-08-22:
+
+- Production Cloud SQL instance: `yalies:us-central1:yalies-sql-prod`
+- Development Cloud SQL instance: `yalies:us-central1:yalies-sql-dev`
+- Production database name: `postgres`
+- The deployed Cloud Run service `yalies-backend` has `DATABASE_URL` and
+  `SESSION_SECRET` as literal environment variables. They are **not currently
+  backed by Secret Manager**.
+- Secret Manager currently contains `yalemoji-auth-secret` and a
+  Firebase-managed GitHub OAuth secret; neither supplies the database
+  credentials.
+- `yalies-backend` runs as
+  `335460719231-compute@developer.gserviceaccount.com`.
+
+The literal Cloud Run environment variables are the current source of truth for
+the production database username/password. Restrict access to operators who
+already have permission to view the production service configuration.
+
+This should eventually be migrated: create dedicated Secret Manager secrets for
+the production database URL and session secret, grant only the runtime service
+account and authorized operators access, update Cloud Run to use secret
+references, deploy, verify, and then remove the literal values from the service
+revision configuration.
+
+### Files required by the local tooling
+
+The scripts expect `.config` alongside the repository directory:
+
+```text
+<checkout-parent>/
+├── .config/
+│   ├── .env.proxy
+│   ├── internal/
+│   │   └── .env.data-pipeline
+│   └── gcloud/
+│       └── service-key.json   # optional when ADC is available
+└── Yalies/
+    └── start-proxy.sh
+```
+
+For the checkout at `/Users/yavin/clubs/Yalies/Yalies`, this means:
+
+```text
+/Users/yavin/clubs/Yalies/.config/.env.proxy
+/Users/yavin/clubs/Yalies/.config/internal/.env.data-pipeline
+/Users/yavin/clubs/Yalies/.config/gcloud/service-key.json
+```
+
+`.env.proxy` needs:
+
+```dotenv
+DEV_MODE=production
+CLOUD_SQL_PROD_INSTANCE=yalies:us-central1:yalies-sql-prod
+CLOUD_SQL_DEV_INSTANCE=yalies:us-central1:yalies-sql-dev
+```
+
+`.env.data-pipeline` needs at minimum for a direct database export:
+
+```dotenv
+DATABASE_URL=postgresql://USER:PASSWORD@127.0.0.1:1357/postgres
+```
+
+The username and password come from the deployed `yalies-backend`
+`DATABASE_URL`. When using the local Cloud SQL Auth Proxy, retain the URL's
+credentials and database name but replace its deployed private-IP host with
+`127.0.0.1:1357`. Do not print the resulting URL in terminal logs or shell
+history.
+
+Running the full data-pipeline server additionally requires:
+
+```dotenv
+SESSION_SECRET=...
+AUTH_MODE=cas
+DASHBOARD_URL=http://localhost:3001
+NODE_ENV=production
+```
+
+`service-key.json` is optional if the operator has working Google Application
+Default Credentials. `start-proxy.sh` uses the key file when present and
+otherwise asks `cloud-sql-proxy` to use ADC. Prefer short-lived ADC over copying
+a long-lived service-account key.
+
+Protect local configuration before use:
+
+```bash
+chmod 700 /Users/yavin/clubs/Yalies/.config
+chmod 600 /Users/yavin/clubs/Yalies/.config/.env.proxy
+chmod 600 /Users/yavin/clubs/Yalies/.config/internal/.env.data-pipeline
+```
+
+If a service-account key is present, also run:
+
+```bash
+chmod 600 /Users/yavin/clubs/Yalies/.config/gcloud/service-key.json
+```
+
+Before any production operation, verify both `DEV_MODE=production` and the
+resolved instance name `yalies:us-central1:yalies-sql-prod`. Database exports
+should use only `SELECT` queries, be written with mode `0600`, remain outside
+Git, and be deleted when no longer needed.
+
 **Before any of that works:**
 - **Secrets** — everything reads from a `.config/` directory **one level above the repo root** (`<parent>/.config`, intentionally outside git). It is **not in this checkout and has no template** (see blockers). Layout the code expects:
   - `.config/.env.proxy` → `DEV_MODE` (`production`|`development`), `CLOUD_SQL_PROD_INSTANCE`, `CLOUD_SQL_DEV_INSTANCE`
@@ -59,6 +168,39 @@ Health check: `curl localhost:8080/health` → `{"status":"ok"}`, then open `htt
 run `browser-import`, `load` (preview), and `load --apply --target ... --confirm
 APPLY-...`. See [`yalies-data-pipeline/README.md`](yalies-data-pipeline/README.md)
 for the exact production runbook.
+
+On macOS, `../sync-yalies-production.sh` wraps that workflow interactively. It
+opens the two authenticated Yale pages, copies each vetted browser exporter to
+the clipboard, locates the resulting files in Downloads, validates and imports
+them, discovers the production database configuration, and prints a load
+preview. It does not apply the replacement unless the operator pastes the exact
+`APPLY-...` token from that preview:
+
+```bash
+cd /Users/yavin/clubs/Yalies
+./sync-yalies-production.sh
+```
+
+To resume after both browser downloads and jump directly to import/validation
+(Step 3), pass both checkpoint files:
+
+```bash
+./sync-yalies-production.sh \
+  --facebook-file "$HOME/Downloads/yalies-facebook-YYYY-MM-DD.json" \
+  --directory-file "$HOME/Downloads/yalies-directory-YYYY-MM-DD.json"
+```
+
+Passing only `--facebook-file` skips the Face Book export and resumes at the
+Directory browser stage. The workflow installs the lockfile-pinned pipeline
+dependencies with `npm ci` when the local TypeScript compiler is missing.
+
+After a successful database apply, the guided script offers the authenticated
+`photos` stage as an option. It opens a real photo request, extracts the Cookie
+value locally from a copied cURL request, keeps it in a mode-`0600` temporary
+file, and deletes it on exit. The existing photo implementation validates GCS
+objects, uploads only missing images, repairs corrupt objects, and supports an
+immediate zero-change verification pass. See the photo runbook for operational
+details.
 
 ## Using the dashboard
 

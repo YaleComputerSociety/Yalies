@@ -925,6 +925,38 @@
 	margin-bottom: 12px;
 }
 
+.requestPhotoSummary {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px;
+	border: 1px solid rgba(0, 53, 107, 0.14);
+	border-radius: $border-radius-standard;
+	background: rgba(0, 53, 107, 0.035);
+
+	img {
+		width: 52px;
+		height: 64px;
+		border-radius: 6px;
+		object-fit: cover;
+		border: 1px solid #d8dde4;
+	}
+
+	strong,
+	span { display: block; }
+
+	strong {
+		font-size: 0.8125rem;
+		color: $foreground;
+	}
+
+	span {
+		margin-top: 2px;
+		font-size: 0.75rem;
+		color: $secondary;
+	}
+}
+
 .changeRow {
 	display: flex;
 	align-items: center;
@@ -1012,4 +1044,43 @@
 	strong {
 		color: $accent;
 	}
+}
+
+.photoComparison {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+
+	> div {
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
+
+	img,
+	.photoComparisonEmpty {
+		width: 100%;
+		aspect-ratio: 4 / 5;
+		max-height: 310px;
+		border: 1px solid #d8dde4;
+		border-radius: 8px;
+		background: #f5f7f9;
+	}
+
+	img { object-fit: cover; }
+
+	.photoComparisonEmpty {
+		display: grid;
+		place-items: center;
+		color: $secondary;
+		font-size: 0.75rem;
+	}
+}
+
+.photoComparisonLabel {
+	font-size: 0.6875rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: $secondary;
 }

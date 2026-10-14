@@ -5,6 +5,8 @@ import { File, Storage } from "@google-cloud/storage";
 import { FacebookStudent } from "../types.js";
 import { httpGet } from "../httpClient.js";
 import { sleep } from "../util.js";
+import { isUsState } from "../dataIntegrity.js";
+import { normalizeAllowedMajor } from "../allowedMajors.js";
 
 const BASE_URL = "https://students.yale.edu/facebook";
 const PHOTO_PAGE_URL = `${BASE_URL}/PhotoPageNew`;
@@ -13,7 +15,7 @@ const GCS_BUCKET_NAME = "yalies-photos";
 
 const BIRTHDAY_PATTERN = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}$/;
 const PHONE_PATTERN = /^\d+-\d+/;
-const ADDRESS_PATTERN = /[\d,]/;
+const ADDRESS_NUMBER_PATTERN = /\d/;
 const IMAGE_PREFIX_BYTES = 12;
 const EXISTING_PHOTO_CHECK_CONCURRENCY = 40;
 
@@ -58,7 +60,8 @@ const KNOWN_LOCATIONS = new Set([
 const US_CITY_STATE_REGEX = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*[A-Z]{2}$/;
 
 function isLocationLine(line: string): boolean {
-	if (ADDRESS_PATTERN.test(line)) return true;
+	if (ADDRESS_NUMBER_PATTERN.test(line)) return true;
+	if (isUsState(line)) return true;
 	if (KNOWN_LOCATIONS.has(line.toLowerCase())) return true;
 	if (US_CITY_STATE_REGEX.test(line)) return true;
 	return false;
@@ -104,7 +107,10 @@ function parseDetails(parts: string[], data: Partial<FacebookStudent>): void {
 		addressLines = remaining;
 	}
 
-	if (major) data.major = major;
+	// Keep the field boundary above even when the candidate is rejected: do not
+	// move an email or an unknown major into the address, or search other fields.
+	const allowedMajor = normalizeAllowedMajor(major);
+	if (allowedMajor) data.major = allowedMajor;
 	if (addressLines.length > 0) data.address = addressLines.join(" | ");
 }
 

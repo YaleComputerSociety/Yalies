@@ -15,7 +15,7 @@ import SyncRouter from "./routes/SyncRouter.js";
 import DatabaseRouter from "./routes/DatabaseRouter.js";
 import CasRouter from "./routes/CasRouter.js";
 import DevLoginRouter from "./routes/DevLoginRouter.js";
-import CAS from "./helpers/cas.js";
+import requireAdmin from "./helpers/requireAdmin.js";
 import { PIPELINE_ROUTES } from "yalies-shared";
 
 import SessionModel from "./models/SessionModel.js";
@@ -33,6 +33,7 @@ SessionModel.initModel(sequelize);
 AdminModel.initModel(sequelize);
 
 if (process.env.AUTH_MODE !== "dev") {
+	const { default: CAS } = await import("./helpers/cas.js");
 	new CAS();
 } else {
 
@@ -116,10 +117,10 @@ const scrapeRouter = new ScrapeRouter();
 const syncRouter = new SyncRouter();
 const databaseRouter = new DatabaseRouter();
 
-app.use(PIPELINE_ROUTES.cookie, CAS.requireAdmin, cookieRouter.getRouter());
-app.use(PIPELINE_ROUTES.scrape, CAS.requireAdmin, scrapeRouter.getRouter());
-app.use(PIPELINE_ROUTES.sync, CAS.requireAdmin, syncRouter.getRouter());
-app.use(PIPELINE_ROUTES.database, CAS.requireAdmin, databaseRouter.getRouter());
+app.use(PIPELINE_ROUTES.cookie, requireAdmin, cookieRouter.getRouter());
+app.use(PIPELINE_ROUTES.scrape, requireAdmin, scrapeRouter.getRouter());
+app.use(PIPELINE_ROUTES.sync, requireAdmin, syncRouter.getRouter());
+app.use(PIPELINE_ROUTES.database, requireAdmin, databaseRouter.getRouter());
 
 // Global error handler — always return JSON, never leak stack traces to clients.
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {

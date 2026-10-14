@@ -9,6 +9,7 @@ import {
 	YALE_COLLEGE,
 	YALE_COLLEGE_CODE,
 } from "yalies-shared";
+import { ALLOWED_MAJORS, findStudentsWithInvalidMajor } from "./allowedMajors.js";
 
 const {
 	MIN_TOTAL_STUDENTS,
@@ -37,9 +38,48 @@ function reportResult(result: ValidationResult, title: string): boolean {
 	return result.failures.length === 0;
 }
 
+function validateMajorIntegrity(
+	data: Array<{ full_name: string; major?: string }>,
+	result: ValidationResult,
+): void {
+	const invalid = findStudentsWithInvalidMajor(data);
+	if (invalid.length === 0) {
+		result.passes.push("Major integrity: all populated majors are on the approved allowlist");
+		return;
+	}
+
+	const examples = invalid
+		.slice(0, 5)
+		.map((student) => `${student.full_name} (${student.major})`)
+		.join(", ");
+	result.failures.push(
+		`Major integrity: ${invalid.length} students have a major outside the approved allowlist — e.g. ${examples}`,
+	);
+}
+
+function validateUnicodeIntegrity(
+	data: Array<Record<string, unknown>>,
+	result: ValidationResult,
+): void {
+	const invalid = data.filter((student) => Object.values(student).some(
+		(value) => typeof value === "string" && value.includes("\uFFFD"),
+	));
+	if (invalid.length === 0) {
+		result.passes.push("Unicode integrity: no replacement characters found");
+		return;
+	}
+
+	const examples = invalid.slice(0, 5).map((student) => String(student.full_name || "unknown")).join(", ");
+	result.failures.push(
+		`Unicode integrity: ${invalid.length} records contain U+FFFD replacement characters — e.g. ${examples}`,
+	);
+}
+
 export function validateFacebook(data: FacebookStudent[]): ValidationResult {
 	const result = createResult();
 	const n = data.length;
+	validateMajorIntegrity(data, result);
+	validateUnicodeIntegrity(data as Array<Record<string, unknown>>, result);
 
 	if (n >= MIN_TOTAL_STUDENTS && n <= MAX_TOTAL_STUDENTS) {
 		result.passes.push(`Student count: ${n} (expected ${MIN_TOTAL_STUDENTS}-${MAX_TOTAL_STUDENTS})`);
@@ -142,6 +182,8 @@ export function validateFacebook(data: FacebookStudent[]): ValidationResult {
 export function validateEnriched(data: EnrichedStudent[]): ValidationResult {
 	const result = createResult();
 	const n = data.length;
+	validateMajorIntegrity(data, result);
+	validateUnicodeIntegrity(data as Array<Record<string, unknown>>, result);
 
 	// 1. Enrichment rate
 	const withNetid = data.filter((s) => s.netid).length;
@@ -280,6 +322,23 @@ export async function validateDatabase(databaseUrl: string): Promise<ValidationR
 		);
 		if ((dupIds as unknown[]).length === 0) result.passes.push("DB id uniqueness: no duplicates");
 		else result.failures.push(`DB duplicate ids: ${(dupIds as unknown[]).length}`);
+
+		const [invalidMajorResult] = await sequelize.query<{ count: string }>(
+			"SELECT COUNT(*) as count FROM person " +
+			"WHERE (school = :yc OR school_code = :ycCode) " +
+			"AND major IS NOT NULL AND major NOT IN (:allowedMajors)",
+			{
+				type: QueryTypes.SELECT,
+				replacements: {
+					yc: YALE_COLLEGE,
+					ycCode: YALE_COLLEGE_CODE,
+					allowedMajors: [...ALLOWED_MAJORS],
+				},
+			},
+		);
+		const invalidMajors = parseInt(invalidMajorResult.count);
+		if (invalidMajors === 0) result.passes.push("DB major integrity: all Yale College majors are on the approved allowlist");
+		else result.failures.push(`DB major integrity: ${invalidMajors} Yale College majors outside the approved allowlist`);
 
 		// 7. College distribution
 		const [colleges] = await sequelize.query(

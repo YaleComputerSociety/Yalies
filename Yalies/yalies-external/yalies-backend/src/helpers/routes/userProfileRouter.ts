@@ -4,6 +4,7 @@ import { Storage } from "@google-cloud/storage";
 import path from "path";
 import fs from "fs";
 import os from "os";
+import { randomUUID } from "crypto";
 import CAS from "../cas.js";
 import UserProfileModel from "../models/UserProfileModel.js";
 import PersonModel from "../models/PersonModel.js";
@@ -17,6 +18,25 @@ const GCS_BUCKET_NAME = "yalies-photos";
 // actually configured (e.g. local dev with GOOGLE_APPLICATION_CREDENTIALS set);
 // never fall back to a hardcoded path that doesn't exist in the container.
 const GCS_KEY_FILENAME = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const PENDING_PHOTO_PREFIX = "pending-profile-photos/";
+const PHOTO_TYPES: Record<string, { extension: string; signature: (buffer: Buffer) => boolean }> = {
+	"image/jpeg": {
+		extension: "jpg",
+		signature: (buffer) => buffer.length >= 3
+			&& buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff,
+	},
+	"image/png": {
+		extension: "png",
+		signature: (buffer) => buffer.length >= 8
+			&& buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+	},
+	"image/webp": {
+		extension: "webp",
+		signature: (buffer) => buffer.length >= 12
+			&& buffer.subarray(0, 4).toString("ascii") === "RIFF"
+			&& buffer.subarray(8, 12).toString("ascii") === "WEBP",
+	},
+};
 const SOCIAL_HOSTS = {
 	linkedin: new Set(["linkedin.com", "www.linkedin.com"]),
 	instagram: new Set(["instagram.com", "www.instagram.com"]),
@@ -54,10 +74,22 @@ const upload = multer({
 	storage: multer.memoryStorage(),
 	limits: { fileSize: 5 * 1024 * 1024 }, 
 	fileFilter: (_req, file, cb) => {
-		if(file.mimetype.startsWith("image/")) cb(null, true);
-		else cb(new Error("Only image files are allowed"));
+		if(PHOTO_TYPES[file.mimetype]) cb(null, true);
+		else cb(new Error("Upload a JPEG, PNG, or WebP image"));
 	},
 });
+
+function bucketObjectFromUrl(url: string): string | null {
+	try {
+		const parsed = new URL(url);
+		if(parsed.hostname !== "storage.googleapis.com") return null;
+		const prefix = `/${GCS_BUCKET_NAME}/`;
+		if(!parsed.pathname.startsWith(prefix)) return null;
+		return decodeURIComponent(parsed.pathname.slice(prefix.length));
+	} catch {
+		return null;
+	}
+}
 
 // Run multer and turn its rejections into JSON responses. Without this, multer
 // errors (file too large, non-image) fall through to Express's default handler,
@@ -95,13 +127,27 @@ export default class UserProfileRouter {
 
 	getMyFullProfile = async (req: Request, res: Response) => {
 		try {
-			const [profile, person] = await Promise.all([
+			const [profile, person, pendingRequests] = await Promise.all([
 				UserProfileModel.findByPk(req.netid),
 				PersonModel.findOne({ where: { netid: req.netid } }),
+				DataChangeRequestModel.findAll({
+					where: { requester_netid: req.netid, status: "pending" },
+					order: [["created_at", "DESC"]],
+				}),
 			]);
+			const pendingPhotoRequest = pendingRequests.find((request) => {
+				const image = request.requested_changes?.image;
+				return typeof image === "string" && bucketObjectFromUrl(image)?.startsWith(PENDING_PHOTO_PREFIX);
+			});
 			return res.status(200).json({
 				profile: profile ? profile.toSanitizedObject() : { netid: req.netid },
 				person: person ? person.toSanitizedObject() : null,
+				photo_request: pendingPhotoRequest ? {
+					id: pendingPhotoRequest.id,
+					status: pendingPhotoRequest.status,
+					created_at: pendingPhotoRequest.created_at,
+					preview_image: pendingPhotoRequest.requested_changes.image,
+				} : null,
 			});
 		} catch(e) {
 			console.error(e);
@@ -170,14 +216,33 @@ export default class UserProfileRouter {
 		if(!req.file) {
 			return res.status(400).send("No photo uploaded");
 		}
+		const photoType = PHOTO_TYPES[req.file.mimetype];
+		if(!photoType || !photoType.signature(req.file.buffer)) {
+			return res.status(415).json({ error: "The uploaded file is not a valid JPEG, PNG, or WebP image." });
+		}
 
 		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yalies-photo-"));
 		const newPhotoPath = path.join(tmpDir, "new.jpg");
+		let pendingObjectName: string | null = null;
 
 		try {
 			const person = await PersonModel.findOne({ where: { netid: req.netid } });
 			if(!person) {
 				return res.status(403).send("Person not found in directory");
+			}
+
+			const pendingRequests = await DataChangeRequestModel.findAll({
+				where: { requester_netid: req.netid, status: "pending" },
+			});
+			const existingPhotoRequest = pendingRequests.find((request) => {
+				const image = request.requested_changes?.image;
+				return typeof image === "string" && bucketObjectFromUrl(image)?.startsWith(PENDING_PHOTO_PREFIX);
+			});
+			if(existingPhotoRequest) {
+				return res.status(409).json({
+					error: "You already have a profile photo awaiting review.",
+					request_id: existingPhotoRequest.id,
+				});
 			}
 
 			const canFacecheck = await shouldRunFacecheck();
@@ -194,8 +259,8 @@ export default class UserProfileRouter {
 				if(person.image) {
 					try {
 						const existingPhotoPath = path.join(tmpDir, "existing.jpg");
-						const urlParts = person.image.split("/");
-						const existingFilename = urlParts[urlParts.length - 1];
+						const existingFilename = bucketObjectFromUrl(person.image);
+						if(!existingFilename) throw new Error("Current photo is not stored in the Yalies photo bucket");
 
 						const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
 						const [existingBuffer] = await bucket.file(existingFilename).download();
@@ -219,31 +284,43 @@ export default class UserProfileRouter {
 				}
 			}
 
-			// Reuse the existing object name when it's a clean bucket object,
-			// otherwise fall back to a deterministic per-user name so a malformed
-			// or non-GCS existing URL can't send the upload to a bogus object.
-			let filename = `${req.netid}.jpg`;
-			if(person.image) {
-				const candidate = person.image.split("?")[0].split("/").pop() ?? "";
-				if(/^[\w.-]+\.(jpe?g|png|webp)$/i.test(candidate)) filename = candidate;
-			}
-
 			const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
-			const gcsFile = bucket.file(filename);
+			pendingObjectName = `${PENDING_PHOTO_PREFIX}${req.netid}/${randomUUID()}.${photoType.extension}`;
+			const gcsFile = bucket.file(pendingObjectName);
 
-			console.log(`[photo upload] Saving ${req.file.buffer.length} bytes to gs://${GCS_BUCKET_NAME}/${filename}`);
+			console.log(`[photo upload] Queuing ${req.file.buffer.length} bytes at gs://${GCS_BUCKET_NAME}/${pendingObjectName}`);
 			await gcsFile.save(req.file.buffer, {
 				contentType: req.file.mimetype,
 				metadata: { cacheControl: "no-store" },
 			});
-			console.log("[photo upload] Saved successfully");
 
-			const imageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${filename}`;
-			await PersonModel.update({ image: imageUrl }, { where: { netid: req.netid } });
+			const imageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${pendingObjectName}`;
+			const request = await DataChangeRequestModel.create({
+				requester_netid: req.netid,
+				target_netid: req.netid,
+				status: "pending",
+				requested_changes: { image: imageUrl },
+			});
+			pendingObjectName = null;
 
-			return res.status(200).json({ image: imageUrl });
+			return res.status(202).json({
+				status: "pending",
+				request_id: request.id,
+				request: {
+					id: request.id,
+					created_at: request.created_at,
+				},
+				preview_image: imageUrl,
+			});
 		} catch(e) {
 			console.error("[photo upload] Error:", e);
+			if(pendingObjectName) {
+				try {
+					await this.#gcs.bucket(GCS_BUCKET_NAME).file(pendingObjectName).delete({ ignoreNotFound: true });
+				} catch(cleanupError) {
+					console.warn("[photo upload] Could not clean up pending object:", cleanupError);
+				}
+			}
 			return res.status(500).json({ error: "Error uploading photo" });
 		} finally {
 
@@ -258,15 +335,16 @@ export default class UserProfileRouter {
 				return res.status(404).send("No photo found");
 			}
 
-			const urlParts = person.image.split("/");
-			const filename = urlParts[urlParts.length - 1];
+			const filename = bucketObjectFromUrl(person.image);
+			if(!filename) return res.status(400).send("Photo is not stored in the Yalies photo bucket");
 
 			const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
 			const file = bucket.file(filename);
-			const [buffer] = await file.download();
+			const [[buffer], [metadata]] = await Promise.all([file.download(), file.getMetadata()]);
+			const extension = filename.split(".").pop()?.toLowerCase() || "jpg";
 
-			res.set("Content-Type", "image/jpeg");
-			res.set("Content-Disposition", `attachment; filename="${person.first_name}_${person.last_name}.jpg"`);
+			res.set("Content-Type", metadata.contentType || "application/octet-stream");
+			res.set("Content-Disposition", `attachment; filename="${person.first_name}_${person.last_name}.${extension}"`);
 			return res.send(buffer);
 		} catch(e) {
 			console.error(e);

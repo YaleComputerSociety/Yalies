@@ -8,17 +8,18 @@
     "node": "20"
   },
   "scripts": {
-    "start": "npx tsc && node build/index.js",
-    "server": "npx tsc && node build/server.js",
+    "start": "tsc && node build/index.js",
+    "server": "tsc && node build/server.js",
     "lint": "eslint src/**/*.ts",
-		"test": "npx tsc && node --test build/**/*.test.js",
+		"test": "tsc && node --test build/**/*.test.js",
     "format": "eslint src/**/*.ts --fix",
     "enhance": "python/venv/bin/python python/enhancer/enhance.py",
     "facecheck": "python/venv/bin/python python/facecheck/facecheck.py",
-    "qc": "npx tsc && node build/qualityControl.js --dry-run",
-    "qc:fix": "npx tsc && node build/qualityControl.js --fix",
-    "enrich-missing": "npx tsc && node build/enrichMissing.js",
-    "add-admin": "npx tsc && node build/addAdmin.js"
+    "qc": "tsc && node build/qualityControl.js --dry-run",
+    "qc:fix": "tsc && node build/qualityControl.js --fix",
+    "enrich-missing": "tsc && node build/enrichMissing.js",
+    "repair-encoding": "tsc && node build/repairEncodingCorruption.js",
+    "add-admin": "tsc && node build/addAdmin.js"
   },
   "repository": {
     "type": "git",

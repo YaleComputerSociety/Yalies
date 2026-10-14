@@ -32,8 +32,8 @@
 	color: shared.$foreground-color;
 	border: 2px solid shared.$border-color;
 	padding: 0 38px 0 14px;
-	width: 32vw;
-	max-width: 460px;
+	width: 28.8vw;
+	max-width: 414px;
 	height: 38px;
 	outline: none;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
@@ -65,6 +65,10 @@
 
 	@include shared.small-mobile() {
 		padding: 10px 34px 10px 14px;
+	}
+
+	:global(:root[data-theme="dark"]) & {
+		border-width: 1px;
 	}
 }
 

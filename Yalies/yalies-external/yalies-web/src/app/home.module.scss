@@ -1,5 +1,27 @@
 @use "../_shared.scss";
 
+.search_with_filters {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-width: 0;
+	height: 100%;
+}
+
+.search_row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	height: 50%;
+}
+
+.search_row .desktop_searchbar {
+	flex: 1 1 414px;
+	min-width: 0;
+	max-width: 414px;
+	input { width: 100%; box-sizing: border-box; }
+}
+
 .compact_search_panel {
 	display: none;
 
@@ -102,13 +124,23 @@
 }
 
 .compact_search {
+	display: flex;
+	align-items: center;
+	gap: 10px;
 	margin-bottom: 12px;
+
+	@include shared.responsive() {
+		flex-direction: column;
+		align-items: stretch;
+	}
 }
 
 .compact_search .compact_searchbar {
+	flex: 1 1 auto;
 	margin: 0;
 	min-width: 0;
 	width: 100%;
+	input { max-width: none; }
 }
 
 .compact_filters {

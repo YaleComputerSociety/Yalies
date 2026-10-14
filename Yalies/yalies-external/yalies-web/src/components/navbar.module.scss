@@ -6,6 +6,7 @@
 }
 
 .navbar_top {
+	position: relative;
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
@@ -31,6 +32,17 @@
 		gap: 12px;
 		padding: 0 1rem;
 	}
+}
+
+.search_status {
+	position: absolute;
+	right: 1rem;
+	bottom: 17px;
+	color: shared.$secondary-color;
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+	text-align: right;
 }
 
 .navbar_top_compact {

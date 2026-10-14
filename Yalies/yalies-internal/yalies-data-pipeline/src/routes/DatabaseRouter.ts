@@ -9,6 +9,22 @@ const GCS_BUCKET_NAME = "yalies-photos";
 // Use an explicit key file only when configured (local dev); otherwise rely on
 // Application Default Credentials (the runtime service account in the cloud).
 const GCS_KEY_FILENAME = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const PUBLIC_BUCKET_PREFIX = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/`;
+const PENDING_PHOTO_PREFIX = "pending-profile-photos/";
+const APPROVED_PHOTO_PREFIX = "profile-photos/";
+
+function bucketObjectFromUrl(url: unknown): string | null {
+	if (typeof url !== "string") return null;
+	try {
+		const parsed = new URL(url);
+		if (parsed.hostname !== "storage.googleapis.com") return null;
+		const prefix = `/${GCS_BUCKET_NAME}/`;
+		if (!parsed.pathname.startsWith(prefix)) return null;
+		return decodeURIComponent(parsed.pathname.slice(prefix.length));
+	} catch {
+		return null;
+	}
+}
 
 const upload = multer({
 	storage: multer.memoryStorage(),
@@ -380,8 +396,8 @@ export default class DatabaseRouter {
 			// otherwise fall back to a deterministic per-student name.
 			let filename = `${person.netid || id}.jpg`;
 			if (person.image) {
-				const candidate = person.image.split("?")[0].split("/").pop() ?? "";
-				if (/^[\w.-]+\.(jpe?g|png|webp)$/i.test(candidate)) filename = candidate;
+				const candidate = bucketObjectFromUrl(person.image);
+				if (candidate && !candidate.includes("..") && /^[\w./-]+\.(jpe?g|png|webp)$/i.test(candidate)) filename = candidate;
 			}
 
 			const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
@@ -416,15 +432,16 @@ export default class DatabaseRouter {
 			);
 			if (!person?.image) { res.status(404).send("No photo found"); return; }
 
-			const urlParts = person.image.split("/");
-			const filename = urlParts[urlParts.length - 1];
+			const filename = bucketObjectFromUrl(person.image);
+			if (!filename) { res.status(400).send("Photo is not stored in the Yalies photo bucket"); return; }
 
 			const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
 			const file = bucket.file(filename);
-			const [buffer] = await file.download();
+			const [[buffer], [metadata]] = await Promise.all([file.download(), file.getMetadata()]);
+			const extension = filename.split(".").pop()?.toLowerCase() || "jpg";
 
-			res.set("Content-Type", "image/jpeg");
-			res.set("Content-Disposition", `attachment; filename="${person.first_name}_${person.last_name}.jpg"`);
+			res.set("Content-Type", metadata.contentType || "application/octet-stream");
+			res.set("Content-Disposition", `attachment; filename="${person.first_name}_${person.last_name}.${extension}"`);
 			res.send(buffer);
 		} catch (e) {
 			console.error("Download photo error:", e);
@@ -571,7 +588,8 @@ export default class DatabaseRouter {
 
 			const requests = await sequelize.query<Record<string, unknown>>(
 				`SELECT dcr.*,
-					p.first_name || ' ' || p.last_name as requester_name
+					p.first_name || ' ' || p.last_name as requester_name,
+					p.image as current_image
 				FROM data_change_request dcr
 				LEFT JOIN person p ON dcr.requester_netid = p.netid
 				WHERE dcr.status = :status
@@ -606,6 +624,9 @@ export default class DatabaseRouter {
 	#resolveChangeRequest = async (req: Request, res: Response): Promise<void> => {
 		let sequelize: Sequelize | undefined;
 		let transaction: Transaction | undefined;
+		let pendingPhotoObject: string | null = null;
+		let approvedPhotoObject: string | null = null;
+		let priorApprovedPhotoObject: string | null = null;
 		try {
 			sequelize = this.#getSequelize();
 			const id = parseInt(req.params.id as string);
@@ -616,7 +637,9 @@ export default class DatabaseRouter {
 				res.status(400).send("Status must be 'approved' or 'denied'"); return;
 			}
 
-			// Fetch the request, ensuring it's still pending
+			transaction = await sequelize.transaction();
+
+			// Lock the request so two admins cannot resolve the same upload at once.
 			const [request] = await sequelize.query<{
 				id: number;
 				target_netid: string;
@@ -624,19 +647,70 @@ export default class DatabaseRouter {
 				status: string;
 			}>(
 				`SELECT id, target_netid, requested_changes, status
-				FROM data_change_request WHERE id = :id`,
-				{ type: QueryTypes.SELECT, replacements: { id } },
+				FROM data_change_request WHERE id = :id
+				FOR UPDATE`,
+				{ type: QueryTypes.SELECT, replacements: { id }, transaction },
 			);
 
-			if (!request) { res.status(404).send("Request not found"); return; }
-			if (request.status !== "pending") { res.status(409).send("Request already resolved"); return; }
-
-			transaction = await sequelize.transaction();
+			if (!request) {
+				await transaction.rollback();
+				transaction = undefined;
+				res.status(404).send("Request not found");
+				return;
+			}
+			if (request.status !== "pending") {
+				await transaction.rollback();
+				transaction = undefined;
+				res.status(409).send("Request already resolved");
+				return;
+			}
 
 			if (status === "approved") {
-				const changes = (modified_changes && Object.keys(modified_changes).length > 0)
+				const changes: Record<string, string | number | null> = (modified_changes && Object.keys(modified_changes).length > 0)
 					? modified_changes
 					: request.requested_changes;
+
+				const requestedImage = request.requested_changes.image;
+				if (typeof requestedImage === "string") {
+					pendingPhotoObject = bucketObjectFromUrl(requestedImage);
+					const expectedPrefix = `${PENDING_PHOTO_PREFIX}${request.target_netid}/`;
+					if (!pendingPhotoObject?.startsWith(expectedPrefix)) {
+						await transaction.rollback();
+						transaction = undefined;
+						res.status(400).send("Photo request does not reference a valid pending upload");
+						return;
+					}
+
+					const [person] = await sequelize.query<{ image: string | null }>(
+						"SELECT image FROM person WHERE netid = :target_netid",
+						{ type: QueryTypes.SELECT, replacements: { target_netid: request.target_netid }, transaction },
+					);
+					if (!person) {
+						await transaction.rollback();
+						transaction = undefined;
+						res.status(404).send("Target student not found");
+						return;
+					}
+
+					const extension = pendingPhotoObject.split(".").pop()?.toLowerCase();
+					if (!extension || !["jpg", "png", "webp"].includes(extension)) {
+						await transaction.rollback();
+						transaction = undefined;
+						res.status(400).send("Pending photo has an unsupported file type");
+						return;
+					}
+
+					const approvedObject = `${APPROVED_PHOTO_PREFIX}${request.target_netid}/${request.id}.${extension}`;
+					approvedPhotoObject = approvedObject;
+					const bucket = this.#gcs.bucket(GCS_BUCKET_NAME);
+					await bucket.file(pendingPhotoObject).copy(bucket.file(approvedObject));
+					changes.image = `${PUBLIC_BUCKET_PREFIX}${approvedObject}`;
+
+					const currentObject = bucketObjectFromUrl(person.image);
+					if (currentObject?.startsWith(`${APPROVED_PHOTO_PREFIX}${request.target_netid}/`)) {
+						priorApprovedPhotoObject = currentObject;
+					}
+				}
 
 				const ALLOWED_FIELDS = [
 					"netid", "upi", "email", "mailbox", "phone", "fax",
@@ -648,7 +722,7 @@ export default class DatabaseRouter {
 					"major", "access_code", "organization", "organization_code",
 					"unit_class", "unit_code", "unit", "postal_address",
 					"office_building", "office_room", "cv", "profile", "website",
-					"education", "publications",
+					"education", "publications", "image",
 				];
 
 				const sets: string[] = [];
@@ -690,6 +764,24 @@ export default class DatabaseRouter {
 			);
 
 			await transaction.commit();
+			transaction = undefined;
+			approvedPhotoObject = null;
+
+			const requestedPhotoObject = bucketObjectFromUrl(request.requested_changes.image);
+			if (requestedPhotoObject?.startsWith(PENDING_PHOTO_PREFIX)) {
+				try {
+					await this.#gcs.bucket(GCS_BUCKET_NAME).file(requestedPhotoObject).delete({ ignoreNotFound: true });
+				} catch (cleanupError) {
+					console.warn("Could not delete resolved pending profile photo:", cleanupError);
+				}
+			}
+			if (priorApprovedPhotoObject) {
+				try {
+					await this.#gcs.bucket(GCS_BUCKET_NAME).file(priorApprovedPhotoObject).delete({ ignoreNotFound: true });
+				} catch (cleanupError) {
+					console.warn("Could not delete replaced profile photo:", cleanupError);
+				}
+			}
 
 			const [updated] = await sequelize.query<Record<string, unknown>>(
 				"SELECT * FROM data_change_request WHERE id = :id",
@@ -700,6 +792,11 @@ export default class DatabaseRouter {
 		} catch (e) {
 			if (transaction) {
 				try { await transaction.rollback(); } catch { /* already committed or connection closed */ }
+			}
+			if (approvedPhotoObject) {
+				try {
+					await this.#gcs.bucket(GCS_BUCKET_NAME).file(approvedPhotoObject).delete({ ignoreNotFound: true });
+				} catch { /* best-effort cleanup after a failed approval */ }
 			}
 			console.error("Resolve change request error:", e);
 			res.status(500).send(`Failed to resolve change request: ${(e as Error).message}`);

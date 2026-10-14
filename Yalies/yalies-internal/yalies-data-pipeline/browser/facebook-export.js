@@ -20,6 +20,96 @@
     return textarea.value;
   };
 
+  // Exact copy of src/allowedMajors.ts; the parity test prevents drift.
+  const allowedMajors = new Set([
+    "African American Studies",
+    "American Studies",
+    "American Studies (Int.)",
+    "Anthropology",
+    "Applied Mathematics",
+    "Applied Physics",
+    "Archaeological Studies",
+    "Architecture",
+    "Art",
+    "Astronomy",
+    "Astrophysics",
+    "Biomedical Engineering",
+    "Chemical Engineering",
+    "Chemistry",
+    "Chemistry (Int.)",
+    "Classical Civilization",
+    "Classics",
+    "Cognitive Science",
+    "Comparative Literature",
+    "Computer Science",
+    "Computer Science & Econ",
+    "Computer Science & Mathematics",
+    "Computer Science & Psychology",
+    "Computing and the Arts",
+    "Computing & Linguistics",
+    "Earth and Planetary Sciences",
+    "East Asian Languages & Lits",
+    "East Asian Studies",
+    "Ecology & Evolutionary Biology",
+    "Economics",
+    "Economics & Mathematics",
+    "Elec Engineering & Comp Sci",
+    "Electrical Engineering",
+    "Engineering Science-Chemical",
+    "Engineering Science-Electrical",
+    "Engineering Science-Mechanical",
+    "Engineering Sci-Environmental",
+    "English",
+    "Environmental Engineering",
+    "Environmental Studies",
+    "Ethics,Politics & Economics",
+    "Ethnicity, Race & Migration",
+    "Film and Media Studies",
+    "Film and Media Studies (Int.)",
+    "French",
+    "German Studies",
+    "Global Affairs",
+    "History",
+    "History of Art",
+    "History Science, Medicine & PH",
+    "Humanities",
+    "Italian Studies",
+    "Latin American Studies",
+    "Linguistics",
+    "Mathematics",
+    "Mathematics (Int.)",
+    "Mathematics & Philosophy",
+    "Mathematics & Physics",
+    "Mechanical Engineering",
+    "Molecular Biophysics & Biochem",
+    "Molecular,Cellular,DevBio(Int)",
+    "Molecular,Cellular,Dev Biology",
+    "Music",
+    "Music (Int.)",
+    "Near Eastern Languages & Civs",
+    "Neuroscience",
+    "Philosophy",
+    "Physics",
+    "Physics & Geosciences",
+    "Physics (Int.)",
+    "Physics & Philosophy",
+    "Political Science",
+    "Political Science (Int.)",
+    "Psychology",
+    "Religious Studies",
+    "Russ, E Eur & Eurasian Studies",
+    "Sociology",
+    "Sociology (Int.)",
+    "Spanish",
+    "Spanish (Int.)",
+    "Statistics and Data Science",
+    "TheaterDancePerformanceStudies",
+    "Theater & Performance Studies",
+    "Undeclared",
+    "Urban Studies",
+    "Women'sGender&SexualityStudies",
+  ]);
+
   const knownLocations = new Set([
     "romania", "brazil", "indonesia", "japan", "mongolia", "morocco", "ukraine",
     "china", "india", "south korea", "taiwan", "hong kong", "singapore", "malaysia",
@@ -31,8 +121,27 @@
     "bangladesh", "colombia", "argentina", "peru", "chile", "ecuador", "venezuela"
   ]);
 
+  const usStates = new Set([
+    "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id",
+    "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms",
+    "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok",
+    "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv",
+    "wi", "wy", "dc", "pr", "gu", "vi", "as", "mp",
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho", "illinois",
+    "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland",
+    "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana",
+    "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", "new york",
+    "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania",
+    "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah",
+    "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming",
+    "district of columbia", "puerto rico", "guam", "us virgin islands",
+    "american samoa", "northern mariana islands"
+  ]);
+
   const isLocationLine = (line) =>
-    /[\d,]/.test(line) || knownLocations.has(line.toLowerCase()) ||
+    /\d/.test(line) || usStates.has(line.trim().toLowerCase()) ||
+    knownLocations.has(line.toLowerCase()) ||
     /^[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*[A-Z]{2}$/.test(line);
 
   const parseDetails = (parts, student) => {
@@ -65,7 +174,10 @@
       }
     }
     if (!major) addressLines = remaining;
-    if (major) student.major = major;
+    // Preserve the existing address boundary even when the major is rejected.
+    // The original candidate remains available in details_raw for review.
+    const allowedMajor = major === undefined ? undefined : decodeHtml(major.trim()).trim();
+    if (allowedMajors.has(allowedMajor)) student.major = allowedMajor;
     if (addressLines.length) student.address = addressLines.join(" | ");
   };
 
@@ -121,10 +233,23 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  // The legacy Face Book endpoint can return Windows-1252 bytes while its HTML
+  // advertises UTF-8. response.text() always decodes as UTF-8 and silently
+  // turns accented letters into U+FFFD (�), which then also breaks Directory
+  // matching. Prefer strict UTF-8 and use Windows-1252 only for invalid UTF-8.
+  const decodeResponse = async (response) => {
+    const bytes = await response.arrayBuffer();
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      return new TextDecoder("windows-1252").decode(bytes);
+    }
+  };
+
   console.log("Yalies: requesting the complete Yale Face Book roster…");
   const url = `${location.origin}${BASE_PATH}/PhotoPageNew?currentIndex=-1&numberToGet=-1`;
   const response = await fetch(url, { credentials: "include", redirect: "follow" });
-  const html = await response.text();
+  const html = await decodeResponse(response);
   if (!response.ok || response.url.includes("cas/login") || html.includes("cas/login")) {
     throw new Error("The Yale Face Book session is not authenticated. Log in and run the script again.");
   }
@@ -133,19 +258,30 @@
   const colleges = new Set(students.map((student) => student.college).filter(Boolean));
   const missingNames = students.filter((student) => !student.full_name).length;
   const missingPhotos = students.filter((student) => !student.photo_id).length;
+  const invalidMajors = students.filter((student) =>
+    student.major && !allowedMajors.has(student.major)
+  );
+  const replacementCharacters = students.filter((student) =>
+    Object.values(student).some((value) => typeof value === "string" && value.includes("�"))
+  );
 
   console.table({
     students: students.length,
     colleges: colleges.size,
-    missingNames,
-    missingPhotos,
-    selectedOrganization
-  });
+      missingNames,
+      missingPhotos,
+      invalidMajors: invalidMajors.length,
+      replacementCharacters: replacementCharacters.length,
+      selectedOrganization
+    });
 
-  if (students.length < MIN_STUDENTS || colleges.size < MIN_COLLEGES || missingNames > 0) {
+  if (students.length < MIN_STUDENTS || colleges.size < MIN_COLLEGES ||
+      missingNames > 0 || invalidMajors.length > 0 || replacementCharacters.length > 0) {
     throw new Error(
       `Refusing to download an incomplete roster (${students.length} students, ${colleges.size} colleges, ` +
-      `${missingNames} missing names). Select “Yale” in the Face Book organization dropdown, reload, and retry.`
+      `${missingNames} missing names, ${invalidMajors.length} unapproved majors, ` +
+      `${replacementCharacters.length} records with Unicode replacement characters). ` +
+      `Select “Yale” in the Face Book organization dropdown, reload, and retry.`
     );
   }
 

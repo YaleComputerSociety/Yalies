@@ -1,10 +1,12 @@
 import { Person } from "yalies-shared";
+import type { SearchMode } from "@/components/SearchModeToggle";
 
 type HomeCache = {
 	people: Person[];
 	birthdayPeople: Person[];
 	filters: Record<string, string[]>;
 	query: string;
+	searchMode: SearchMode;
 	currentPage: number;
 	hasReachedEnd: boolean;
 	browseSeed: number;

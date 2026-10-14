@@ -6,12 +6,14 @@ export default function Searchbar({
 	onClear,
 	onSubmit,
 	wrapperClassName,
+	placeholder = "Search Yalies",
 }: {
 	value: string;
 	onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 	onClear?: () => void;
 	onSubmit: () => void;
 	wrapperClassName?: string;
+	placeholder?: string;
 }) {
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") {
@@ -25,7 +27,8 @@ export default function Searchbar({
 			<div className={styles.search_input_container}>
 				<input
 					className={styles.search_input}
-					placeholder="Search Yalies"
+					placeholder={placeholder}
+					aria-label={placeholder}
 					value={value}
 					onChange={onChange}
 					onKeyDown={handleKeyDown}

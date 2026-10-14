@@ -2,6 +2,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# This script deploys the production frontend. Do not depend on an untracked env file.
+export NEXT_PUBLIC_YALIES_API_URL="https://api.yalies.io"
 PACKAGE_JSON_BACKUP=""
 PACKAGE_LOCK_BACKUP=""
 ENV_LOCAL_BACKUP=""

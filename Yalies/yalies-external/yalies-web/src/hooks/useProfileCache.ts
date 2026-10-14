@@ -1,9 +1,17 @@
 import { API_URL } from "@/consts";
 import { Person, UserProfile, API } from "yalies-shared";
 
+export type PendingPhotoRequest = {
+	id: number;
+	status: "pending";
+	created_at: string;
+	preview_image: string;
+};
+
 type CachedProfile = {
 	profile: UserProfile;
 	person: Person | null;
+	photoRequest: PendingPhotoRequest | null;
 	timestamp: number;
 };
 
@@ -18,8 +26,13 @@ async function fetchFullProfile(): Promise<CachedProfile | null> {
 			headers: { "Content-Type": "application/json" },
 		});
 		if (!response.ok) return null;
-		const { profile, person } = await response.json();
-		const result: CachedProfile = { profile, person, timestamp: Date.now() };
+		const { profile, person, photo_request } = await response.json();
+		const result: CachedProfile = {
+			profile,
+			person,
+			photoRequest: photo_request ?? null,
+			timestamp: Date.now(),
+		};
 		cached = result;
 		return result;
 	} catch {

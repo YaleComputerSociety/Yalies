@@ -4,8 +4,9 @@ import { NETID_REGEX } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
 import ProfileLikeModel from "../models/ProfileLikeModel.js";
 import FriendshipModel from "../models/FriendshipModel.js";
-import { Op, Sequelize, WhereOptions, type Order } from "sequelize";
+import { Op, Sequelize, WhereOptions, type Order, type OrderItem } from "sequelize";
 import CAS from "../cas.js";
+import { buildFuzzyNameSearch, buildInitialsSearch, normalizeInitials } from "../nameSearch.js";
 
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
@@ -54,7 +55,7 @@ function getPeopleOrder(randomSeed: number | null) {
 	] as [ReturnType<typeof Sequelize.literal>, string][];
 }
 
-function getSearchOrder(query: string): Order {
+function getSearchOrder(query: string): OrderItem[] {
 	const sequelize = PersonModel.sequelize;
 	if(!sequelize) throw new Error("Person model must be initialized before searching");
 
@@ -108,7 +109,7 @@ function getFilterValues(filters: Record<string, unknown>, field: string): strin
 }
 
 function andWhere(where: WhereOptions<PersonModel>, condition: WhereOptions<PersonModel>): WhereOptions<PersonModel> {
-	if(Object.keys(where).length === 0) return condition;
+	if(Reflect.ownKeys(where).length === 0) return condition;
 	return { [Op.and]: [where, condition] };
 }
 
@@ -151,19 +152,7 @@ export default class PeopleRouter {
 	};
 
 	constructInitialsQuery = (initials: string) => {
-		initials = initials.toUpperCase();
-		return {
-			[Op.and]: [
-				Sequelize.where(
-					Sequelize.fn("UPPER", Sequelize.fn("LEFT", Sequelize.col("first_name"), 1)),
-					initials[0],
-				),
-				Sequelize.where(
-					Sequelize.fn("UPPER", Sequelize.fn("LEFT", Sequelize.col("last_name"), 1)),
-					initials[1],
-				),
-			],
-		};
+		return buildInitialsSearch(initials);
 	};
 
 	buildNameSearchWhere = (query: string): WhereOptions<PersonModel> => {
@@ -243,7 +232,11 @@ export default class PeopleRouter {
 	};
 
 	getPeople = async (req: Request, res: Response) => {
-		const query = req.body.query || "";
+		if (req.body.query != null && (typeof req.body.query !== "string" || req.body.query.length > 200)) {
+			res.status(400).send("Search query must be a string of at most 200 characters");
+			return;
+		}
+		const query = (req.body.query || "").trim();
 		const searchMode: SearchMode = isSearchMode(req.body.searchMode) ? req.body.searchMode : "default";
 		const filtersRaw = req.body.filters || {};
 		const page = req.body.page || 0;
@@ -325,14 +318,20 @@ export default class PeopleRouter {
 				});
 				searchOrder = getSearchOrder(query);
 			} else if(searchMode === "initials") {
-				if(query.match(/^[a-z]{2}$/i)) {
-					where = andWhere(where, this.constructInitialsQuery(query));
+				const initials = normalizeInitials(query);
+				if(initials) {
+					where = andWhere(where, this.constructInitialsQuery(initials));
 					searchOrder = getInitialsOrder();
 				} else {
 					res.status(200).json([]);
 					return;
 				}
 
+			} else if(searchMode === "full_name") {
+				const nameSearch = buildFuzzyNameSearch(PersonModel.sequelize!, query);
+				where = andWhere(where, nameSearch.where);
+				const order = getSearchOrder(query);
+				searchOrder = [order[0], nameSearch.similarityOrder, ...order.slice(1)];
 			} else if(searchMode === "default" && query.match(/^[a-z]{2}$/i)) {
 				where = andWhere(where, this.constructInitialsQuery(query));
 				searchOrder = getInitialsOrder();

@@ -1,5 +1,7 @@
 import express, { Request, Response } from "express";
 
+import { takeOidcContinuation, finishLogin } from "../oidc/continuation.js";
+
 export default class DevLoginRouter {
 	getRouter = () => {
 		const router = express.Router();
@@ -14,6 +16,7 @@ export default class DevLoginRouter {
 			return res.status(500).send("DEV_NETID not set in .env.development");
 		}
 
+		const continuation = takeOidcContinuation(req);
 		const user = { netId };
 		return req.logIn(user, (err) => {
 			if(err) {
@@ -22,7 +25,7 @@ export default class DevLoginRouter {
 			}
 			req.session.netid = netId;
 			console.log(`[Dev Auth] Logged in as ${netId}`);
-			return res.redirect(process.env.FRONTEND_URL + "/");
+			return finishLogin(req, res, continuation);
 		});
 	};
 

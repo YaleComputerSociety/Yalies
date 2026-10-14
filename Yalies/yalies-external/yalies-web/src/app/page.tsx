@@ -8,16 +8,16 @@ import Filters from "@/components/Filters";
 import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
 import Searchbar from "@/components/Searchbar";
+import SearchModeToggle, { type SearchMode } from "@/components/SearchModeToggle";
 import BirthdaySection from "@/components/BirthdaySection";
 import PersonModal from "@/components/PersonModal";
 import styles from "./home.module.scss";
 import { sendGAEvent } from "@next/third-parties/google";
-import { getHomeCache, setHomeCache } from "@/hooks/useHomeCache";
+import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHomeCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
 
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
-const SEARCH_MODE = "full_name";
 const PAGE_SIZE = 20;
 const BROWSE_RANDOM_SEED_MAX = 2_147_483_646;
 const DEFAULT_FILTERS: Record<string, string[]> = {
@@ -60,6 +60,7 @@ export default function HomePage() {
 
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
+	const [searchMode, setSearchMode] = useState<SearchMode>(homeCache?.searchMode ?? "full_name");
 	const [isClient, setIsClient] = useState(false);
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchError, setSearchError] = useState<string | null>(null);
@@ -107,14 +108,14 @@ export default function HomePage() {
 		if(filters.college && filters.college.length > 0) filterObject.college = filters.college;
 		if(filters.major && filters.major.length > 0) filterObject.major = filters.major;
 
-		if(queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
+		if(searchMode === "full_name" && queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
 
 			queryActual = "";
 			filterObject = {
 				netid: [query],
 				...filterObject,
 			};
-		} else if(queryActual.match(/^\d{8}$/i)) {
+		} else if(searchMode === "full_name" && queryActual.match(/^\d{8}$/i)) {
 
 			queryActual = "";
 			filterObject = {
@@ -138,7 +139,7 @@ export default function HomePage() {
 				},
 				body: JSON.stringify({
 					query: queryActual.length > 0 ? queryActual : null,
-					searchMode: SEARCH_MODE,
+					searchMode,
 					filters: filterObject,
 					page: currentPage,
 					page_size: PAGE_SIZE,
@@ -198,7 +199,7 @@ export default function HomePage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					query: queryActual.length > 0 ? queryActual : null,
-					searchMode: SEARCH_MODE,
+					searchMode,
 					filters: filterObject,
 					page: currentPage + 1,
 					page_size: PAGE_SIZE,
@@ -207,7 +208,7 @@ export default function HomePage() {
 			}).catch(() => {});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hasReachedEnd, filters, query, currentPage, browseSeed]);
+	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed]);
 
 	const getTodaysBirthdays = async () => {
 		let response;
@@ -270,21 +271,22 @@ export default function HomePage() {
 			if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters, query]);
+	}, [filters, query, searchMode]);
 
 	useEffect(() => {
-		if (people.length > 0 && filters) {
+		if (filters && !isSearching && (people.length > 0 || hasReachedEnd)) {
 			setHomeCache({
 				people,
 				birthdayPeople,
 				filters,
 				query,
+				searchMode,
 				currentPage,
 				hasReachedEnd,
 				browseSeed,
 			});
 		}
-	}, [people, birthdayPeople, filters, query, currentPage, hasReachedEnd, browseSeed]);
+	}, [people, birthdayPeople, filters, query, searchMode, currentPage, hasReachedEnd, browseSeed, isSearching]);
 
 	if(isUnauthenticated) {
 		return (
@@ -317,6 +319,19 @@ export default function HomePage() {
 		sendGAEvent("event", "search", { query: searchboxText });
 	}
 
+	const onSearchModeChange = (mode: SearchMode) => {
+		if (mode === searchMode) return;
+		invalidateHomeCache();
+		activeSearchRequest.current?.abort();
+		searchRequestVersion.current++;
+		setPeople([]);
+		setHasReachedEnd(false);
+		setCurrentPage(0);
+		setSearchError(null);
+		setQuery(searchboxText);
+		setSearchMode(mode);
+	};
+
 	const onFeelingLucky = () => {
 		const candidates = people.length > 0 ? people : birthdayPeople;
 		if(candidates.length === 0) return;
@@ -336,6 +351,7 @@ export default function HomePage() {
 
 	const renderSearchbar = (wrapperClassName?: string) => (
 		<Searchbar
+			placeholder={searchMode === "initials" ? "Search by initials" : "Search Yalies"}
 			value={searchboxText}
 			onChange={onQueryChange}
 			onClear={() => {
@@ -367,12 +383,10 @@ export default function HomePage() {
 	};
 
 	const searchWithFilters = (
-		<div style={{ display: "flex", flexDirection: "column", justifyContent: "center", flex: "1 1 auto", minWidth: 0, height: "100%" }}>
-			<div style={{ display: "flex", alignItems: "center", gap: "12px", height: "50%" }}>
-				{renderSearchbar()}
-				<span className="yalies_nav_search_meta">
-					{isSearching ? "Searching..." : resultsLabel}
-				</span>
+		<div className={styles.search_with_filters}>
+			<div className={styles.search_row}>
+				{renderSearchbar(styles.desktop_searchbar)}
+				<SearchModeToggle value={searchMode} onChange={onSearchModeChange} />
 			</div>
 			<Filters
 				filters={filters || {}}
@@ -413,6 +427,7 @@ export default function HomePage() {
 				</div>
 				<div className={styles.compact_search}>
 					{renderSearchbar(styles.compact_searchbar)}
+					<SearchModeToggle value={searchMode} onChange={onSearchModeChange} />
 				</div>
 				<div className={`${styles.compact_filters} ${compactFiltersOpen ? styles.compact_filters_open : ""}`}>
 					<Filters
@@ -432,6 +447,7 @@ export default function HomePage() {
 			<Topbar>
 				<Navbar
 					middleContent={isCompact ? undefined : searchWithFilters}
+					searchStatus={isCompact ? undefined : (isSearching ? "Searching..." : resultsLabel)}
 					isAuthenticated={true}
 					onLogoClick={reset}
 					onFeelingLucky={onFeelingLucky}
