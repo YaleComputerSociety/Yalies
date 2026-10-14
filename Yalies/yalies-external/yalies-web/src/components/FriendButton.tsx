@@ -162,12 +162,12 @@ export default function FriendButton({
 
 	const getButtonContent = () => {
 		switch(status) {
-			case "none":
-				return { icon: faUserPlus, text: "Add friend", onClick: sendRequest, className: "" };
-			case "pending_sent":
-				return { icon: faUserClock, text: "Requested", onClick: () => {}, className: styles.pending };
-			case "accepted":
-				return { icon: faUserCheck, text: "Remove friend", onClick: removeFriend, className: styles.accepted };
+		case "none":
+			return { icon: faUserPlus, text: "Add friend", onClick: sendRequest, className: "" };
+		case "pending_sent":
+			return { icon: faUserClock, text: "Requested", onClick: () => {}, className: styles.pending };
+		case "accepted":
+			return { icon: faUserCheck, text: "Remove friend", onClick: removeFriend, className: styles.accepted };
 		}
 	};
 

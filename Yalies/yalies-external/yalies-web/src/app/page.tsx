@@ -122,7 +122,11 @@ export default function HomePage() {
 				upi: [query],
 				...filterObject,
 			};
+		} else if (searchMode === "full_name" && queryActual.match(/[A-Z]{2,}/)) {
+			queryActual = "";
+			setSearchMode("initials");
 		}
+
 
 		if (currentPage === 0) {
 			setIsSearching(true);
