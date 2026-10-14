@@ -17,6 +17,25 @@ import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
 
+const COLLEGE_EXPAND: Record<string, string> = {
+    BK: "Berkeley",
+    BR: "Branford",
+    DC: "Davenport",
+    BF: "Benjamin Franklin",
+    GH: "Grace Hopper",
+    JE: "Jonathan Edwards",
+    MO: "Morse",
+    MY: "Pauli Murray",
+    PM: "Pauli Murray",
+    PC: "Pierson",
+    SM: "Silliman",
+    SI: "Silliman",
+    SY: "Saybrook",
+    TD: "Timothy Dwight",
+    TR: "Trumbull",
+};
+
+
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
 const PAGE_SIZE = 20;
 const BROWSE_RANDOM_SEED_MAX = 2_147_483_646;
@@ -107,6 +126,52 @@ export default function HomePage() {
 		if(filters.school && filters.school.length > 0) filterObject.school = filters.school;
 		if(filters.college && filters.college.length > 0) filterObject.college = filters.college;
 		if(filters.major && filters.major.length > 0) filterObject.major = filters.major;
+		
+		/*
+        MATCHING: SQL like, using dedicated keywords
+        '%d%d : class year
+        IN : college  needs to differ from initial...
+        STUDYING : major
+
+        implement OR/lists later?
+
+        fizz standardized form: KL '29 BK (kingsten lin '29 in berkeley)
+            this requires more complicated college parsing...
+            once i find a name, then can look for college
+            but imagine someone named "John Je"
+            nvm it would be "JE." just have to distinguish from initials
+        */
+
+        let queryClass = null;
+        let queryCollege = null;
+        let splitQuery = queryActual.split(/\s+/);
+        let endOfName = splitQuery.length;
+        let word;
+        for (let i = 1; i < splitQuery.length; i++) {
+            // start from one to avoid initial first thing
+            word = splitQuery[i];
+            if (word.match(/^'[0-9]{2}$/)) {
+                queryClass = "20" + word.slice(1);
+                endOfName = Math.min(endOfName, i);
+            } else if (Object.hasOwn(COLLEGE_EXPAND, word)) {
+                queryCollege = COLLEGE_EXPAND[word];
+                endOfName = Math.min(endOfName, i);
+            }
+        }
+
+        queryActual = splitQuery.slice(0, endOfName).join(" ");
+        if (queryClass != null) {
+            filterObject = {
+                year: [queryClass],
+                ...filterObject,
+            };
+        }
+        if (queryCollege != null) {
+            filterObject = {
+                college: [queryCollege],
+                ...filterObject,
+            };
+        }
 
 		if(searchMode === "full_name" && queryActual.match(/^[a-z]{2,}\d{1,4}$/i)) {
 
@@ -122,10 +187,9 @@ export default function HomePage() {
 				upi: [query],
 				...filterObject,
 			};
-		} else if (searchMode === "full_name" && queryActual.match(/[A-Z]{2,}/)) {
-			queryActual = "";
-			setSearchMode("initials");
-		}
+		} else if (searchMode === "full_name" && queryActual.match(/^[A-Z]{2}$/)) {
+            setSearchMode("initials");
+        }
 
 
 		if (currentPage === 0) {
@@ -332,7 +396,7 @@ export default function HomePage() {
 		setHasReachedEnd(false);
 		setCurrentPage(0);
 		setSearchError(null);
-		setQuery(searchboxText);
+		setQuery("");
 		setSearchMode(mode);
 	};
 
