@@ -1,7 +1,5 @@
 # Yalies
 
-<img src="apps/web/src/app/icon2.svg" alt="Yalies" width="64">
-
 The Yale identity engine.
 
 [Onboarding](ONBOARDING.md) · [Contributing](CONTRIBUTING.md) · [Architecture](docs/architecture.md)
