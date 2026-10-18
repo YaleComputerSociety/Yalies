@@ -1,11 +1,22 @@
+node_modules/
+.next/
+build/
+dist/
+out/
+*.tsbuildinfo
 .env
 .env.*
-config/
+!.env.example
+.config/
+config.zip
 output/
 __pycache__/
 venv/
-.config/
-config.zip
 .DS_Store
-yalies-facebook-pages (1).json
+.firebase/
+.npm-cache/
+*.log
+yalies-facebook-*.json
+yalies-directory-*.json
 yale-college-*-emails.csv
+!config/examples/**

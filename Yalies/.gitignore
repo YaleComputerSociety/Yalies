@@ -1,9 +1,0 @@
-.DS_Store
-firebase-debug.log
-.firebase
-node_modules/
-.next/
-.env
-.env.local
-build/
-out/

@@ -1,0 +1,10 @@
+{
+	"extends": ["next/core-web-vitals", "next/typescript"],
+	"rules": {
+		"quotes": ["error", "double"],
+		"indent": ["error", "tab"],
+		"comma-dangle": ["error", "always-multiline"],
+		"eol-last": ["error", "always"],
+		"@next/next/no-img-element": "off"
+	}
+}
