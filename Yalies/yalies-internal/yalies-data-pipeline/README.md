@@ -10,7 +10,7 @@ couples to the public site.
 
 ## CLI (run from this directory)
 
-Requires Node 20 (`nvm use`), `npm install`, and `../../../.config/internal/.env.data-pipeline`
+Requires Node 22 (`nvm install && nvm use`), `npm install`, and `../../../.config/internal/.env.data-pipeline`
 (`DATABASE_URL`, etc.). The DB must be reachable — locally via the Cloud SQL proxy (`../../start-proxy.sh`).
 
 - `npm run server` — start the dashboard API on :8080

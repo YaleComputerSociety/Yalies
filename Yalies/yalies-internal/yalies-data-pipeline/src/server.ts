@@ -16,6 +16,7 @@ import DatabaseRouter from "./routes/DatabaseRouter.js";
 import CasRouter from "./routes/CasRouter.js";
 import DevLoginRouter from "./routes/DevLoginRouter.js";
 import requireAdmin from "./helpers/requireAdmin.js";
+import devIdentity from "./helpers/devIdentity.js";
 import { PIPELINE_ROUTES } from "yalies-shared";
 
 import SessionModel from "./models/SessionModel.js";
@@ -69,6 +70,7 @@ app.use((req, res, next) => {
 });
 
 app.use(session({
+	name: "yalies.pipeline.sid",
 	secret: process.env.SESSION_SECRET!,
 	resave: false,
 	saveUninitialized: false,
@@ -100,6 +102,7 @@ if (process.env.AUTH_MODE === "dev") {
 		process.exit(1);
 	}
 	console.log("[Auth] Using dev login bypass (AUTH_MODE=dev)");
+	app.use(devIdentity(process.env.DEV_NETID));
 	const devLoginRouter = new DevLoginRouter();
 	app.use(PIPELINE_ROUTES.auth, devLoginRouter.getRouter());
 } else {

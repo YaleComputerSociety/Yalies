@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -10,6 +11,7 @@ export NVM_DIR="$HOME/.nvm"
 
 echo "Switching Node version..."
 cd "$SCRIPT_DIR/yalies-internal/yalies-data-pipeline" || exit 1
+nvm install
 nvm use
 
 echo ""

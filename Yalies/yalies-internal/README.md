@@ -159,7 +159,7 @@ Git, and be deleted when no longer needed.
 - **Admin access** — every real route 403s unless your netid is in the `admin` table. There's no UI/seed for this: `INSERT INTO admin (netid) VALUES ('yournetid');`.
 - **Local login without CAS** — set `AUTH_MODE=dev` + `NODE_ENV=development` + `DEV_NETID=<you>` to bypass Yale CAS.
 
-**Node:** pipeline & dashboard pin `20.13.0` (`.nvmrc`); the external backend uses 22 — don't assume one version across the monorepo.
+**Node:** the pipeline and external backend use Node 22; the dashboard pins `20.13.0` (`.nvmrc`). Use each package's `.nvmrc`.
 
 **CLI (no dashboard):** from `yalies-data-pipeline`, `npm start -- all --facebook-cookie-file <private-cookie-file> --directory-cookie <session>` (or run `facebook` / `photos` / `directory` / `load` / `validate` individually; `load` previews by default, `--apply` plus its printed plan token writes, and `--start-from N` resumes enrichment). Face Book authentication must come from the complete Cookie header of an exact successful request; a random bare `JSESSIONID` can refer to the wrong Yale app/path. See the [photo runbook](yalies-data-pipeline/PHOTO_RUNBOOK.md) for capture, repair, and verification.
 
