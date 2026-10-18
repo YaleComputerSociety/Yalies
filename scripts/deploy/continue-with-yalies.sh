@@ -27,7 +27,7 @@ if [[ "${1:-}" == rollback ]]; then
   exit "$RESULT"
 fi
 
-[[ "${1:-}" == deploy ]] || { echo 'Usage: bash scripts/deploy/continue-with-yalies.sh deploy | rollback [checkpoint-directory]'; exit 1; }
+[[ "${1:-}" == deploy || "${1:-}" == checkpoint ]] || { echo 'Usage: bash scripts/deploy/continue-with-yalies.sh checkpoint | deploy | rollback [checkpoint-directory]'; exit 1; }
 
 # Deploy the working tree deliberately; do not commit, reset, merge, or change branches.
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
@@ -51,6 +51,12 @@ CHANNEL="before-oidc-$(date -u +%Y%m%d-%H%M%S)-$$"
 printf '%s\n' "$CHANNEL" > "$CHECKPOINT/frontend-channel"
 printf '%s\n' "$CHECKPOINT" > "$STATE/last-checkpoint"
 echo "Rollback checkpoint: $CHECKPOINT (Hosting backup retained for 30 days)."
+
+# Allow routine redeploys to save rollback state without provisioning OIDC.
+if [[ "$1" == checkpoint ]]; then
+  echo "Rollback: bash scripts/deploy/continue-with-yalies.sh rollback '$CHECKPOINT'"
+  exit 0
+fi
 
 PROXY_PID=''
 cleanup() {
