@@ -13,8 +13,8 @@ Yalies API keys remain completely separate.
 
 ## Files and rollout
 
-Backend: `Yalies/yalies-external/yalies-backend`.
-Frontend: `Yalies/yalies-external/yalies-web`.
+Backend: `apps/api`.
+Frontend: `apps/web`.
 
 New backend `src/helpers/oidc/` contains configuration/routes, client/artifact models and adapter,
 secret/subject helpers, and the CAS continuation helper. The only existing auth changes are
@@ -76,7 +76,7 @@ older entries after the new first key.
 Apply once with the migration role, against the intended database:
 
 ```sh
-cd Yalies/yalies-external/yalies-backend
+cd apps/api
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/20260923_continue_with_yalies.sql
 ```
 
@@ -101,7 +101,7 @@ first; preserve tables unless intentionally invalidating all clients and outstan
 Use a separately generated **development** secret; the script never prints it or stores plaintext.
 
 ```sh
-cd Yalies/yalies-external/yalies-backend
+cd apps/api
 export DATABASE_URL='postgres://...local-development-database...'
 export OIDC_CLIENT_SECRET='your-random-development-secret-at-least-32-characters'
 npm run oidc:register -- --development
@@ -278,7 +278,7 @@ Repeatable isolated protocol tests (do not use a production database):
 ```sh
 docker run --rm -d --name yalies-oidc-test -e POSTGRES_PASSWORD=local-oidc-tests \
   -p 127.0.0.1:55439:5432 postgres:16-alpine
-cd Yalies/yalies-external/yalies-backend
+cd apps/api
 OIDC_TEST_DATABASE_URL=postgres://postgres:local-oidc-tests@localhost:55439/postgres npm run test:oidc
 docker stop yalies-oidc-test
 ```

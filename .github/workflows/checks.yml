@@ -1,0 +1,44 @@
+name: Local checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: yalies_test
+          POSTGRES_PASSWORD: test_only
+          POSTGRES_DB: yalies_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U yalies_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NEXT_PUBLIC_YALIES_API_URL: http://localhost:1337
+      NEXT_PUBLIC_SCRAPER_API_URL: http://localhost:8080
+      NEXT_PUBLIC_BACKEND_API_URL: http://localhost:1337
+      NEXT_TELEMETRY_DISABLED: "1"
+      OIDC_TEST_DATABASE_URL: postgres://yalies_test:test_only@127.0.0.1:5432/yalies_test
+      SEARCH_TEST_DATABASE_URL: postgres://yalies_test:test_only@127.0.0.1:5432/yalies_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - name: Check standalone Firebase packaging
+        run: |
+          node scripts/deploy/prepare-web.mjs "$RUNNER_TEMP/firebase-source"
+          npm ci --prefix "$RUNNER_TEMP/firebase-source"
+          npm run typecheck --prefix "$RUNNER_TEMP/firebase-source"
+      - run: psql "$SEARCH_TEST_DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm'
+      - run: npm run test:integration

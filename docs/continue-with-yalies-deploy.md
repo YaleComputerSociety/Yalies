@@ -3,12 +3,11 @@
 From this repository root, deploy **both Yalies frontend and backend** with:
 
 ```sh
-bash scripts/continue-with-yalies.sh deploy
+bash scripts/deploy/continue-with-yalies.sh deploy
 ```
 
 This is an explicit production operation when **you run it**. The script was prepared but not
-executed during implementation. It publishes the current working tree, including pre-existing
-local edits. It does not commit, push, merge or change branches. Tests are not run by the wrapper;
+executed during implementation. It stages tracked files from the current working tree. Commit new files before running it. It does not commit, push, merge or change branches. Tests are not run by the wrapper;
 the existing deploy commands still perform the builds needed to publish.
 
 Requirements: Node 22, authenticated `gcloud` and `firebase`, npm, Python 3, jq, cloud-sql-proxy
@@ -38,7 +37,7 @@ permissions. Never share or commit this directory.
 ## Roll back both
 
 ```sh
-bash scripts/continue-with-yalies.sh rollback
+bash scripts/deploy/continue-with-yalies.sh rollback
 ```
 
 This restores the API traffic, frontend SSR traffic and Firebase Hosting content/configuration
@@ -47,7 +46,7 @@ restorations even if one fails and returns nonzero on any failure. For a particu
 use the checkpoint path printed by that deployment:
 
 ```sh
-bash scripts/continue-with-yalies.sh rollback .config/continue-with-yalies/checkpoints/TIMESTAMP-PID
+bash scripts/deploy/continue-with-yalies.sh rollback .config/continue-with-yalies/checkpoints/TIMESTAMP-PID
 ```
 
 Do not delete the old Cloud Run revisions, Firebase SSR revision tags or the backup Hosting
