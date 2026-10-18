@@ -1,0 +1,56 @@
+.page {
+	min-height: 100svh;
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	padding: 24px 16px;
+	background: var(--color-background);
+}
+
+.card {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 408px;
+	padding: 28px;
+	border: 1px solid var(--color-border);
+	border-radius: 20px;
+	background: var(--color-surface);
+	box-shadow: var(--shadow-lg);
+
+	h1 { font-size: 25px; line-height: 1.2; letter-spacing: -0.6px; overflow-wrap: anywhere; }
+	p { line-height: 1.55; }
+	button { font: inherit; font-weight: 600; min-height: 46px; width: 100%; cursor: pointer; border-radius: 10px; }
+	button:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+	button[aria-disabled="true"] { opacity: 0.65; pointer-events: none; }
+}
+
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; color: var(--color-primary); font-size: 24px; font-weight: 750; letter-spacing: -0.8px; }
+.brand img { object-fit: contain; }
+.appLogo { object-fit: contain; border-radius: 10px; margin-bottom: 12px; }
+.subtitle { color: var(--color-text-secondary); margin-top: 10px; }
+.identity { display: flex; align-items: center; gap: 12px; padding: 16px 0; margin: 12px 0; border-bottom: 1px solid var(--color-border); }
+.identity strong { font-size: 15px; overflow-wrap: anywhere; }
+.identity p { color: var(--color-text-secondary); font-size: 13px; margin-top: 2px; }
+.avatar { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: var(--color-primary-subdued); color: var(--color-primary); font-size: 20px; font-weight: 600; }
+.permissions { margin: 16px 0 22px; }
+.permissions p { color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.permissions ul { list-style: none; padding: 0; margin: 10px 0 0; }
+.permissions li { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.permissions li span { color: var(--color-primary); }
+.continue { background: #00356b; color: #fff; border: 1px solid #00356b; }
+.continue:hover { background: #002548; }
+.cancel { margin-top: 6px; background: transparent; color: var(--color-text-secondary); border: 1px solid transparent; }
+.cancel:hover { background: var(--color-muted); color: var(--color-text); }
+.footer { margin-top: 20px; text-align: center; font-size: 11px; color: var(--color-text-secondary); }
+.message { padding: 24px 0; }
+.message p { margin-top: 14px; color: var(--color-text-secondary); }
+
+@media (max-width: 360px) {
+	.page { padding: 12px; }
+	.card { padding: 20px; }
+	.card h1 { font-size: 23px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.page, .card, .card * { animation: none; transition: none; }
+}

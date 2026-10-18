@@ -1,0 +1,42 @@
+@use "../shared.scss";
+
+.like_button {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px 8px;
+	border-radius: 6px;
+	transition: background 0.15s ease;
+
+	&:hover {
+		background: shared.$muted-color;
+	}
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+}
+
+.heart {
+	height: 18px;
+	color: shared.$secondary-color;
+	transition: color 0.15s ease, transform 0.15s ease;
+
+	&.liked {
+		color: #e74c3c;
+	}
+}
+
+.like_button:hover .heart:not(.liked) {
+	color: #e74c3c;
+}
+
+.count {
+	font-size: 13px;
+	color: shared.$secondary-color;
+	min-width: 12px;
+}

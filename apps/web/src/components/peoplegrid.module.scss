@@ -1,0 +1,291 @@
+@use "../shared.scss";
+
+.section_header {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 20px;
+	font-weight: 700;
+	color: shared.$accent-color;
+
+	svg {
+		height: 18px;
+	}
+}
+
+.people_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 380px);
+	justify-content: center;
+	gap: 24px;
+	padding: 30px 24px 40px;
+    .person {
+        width: 380px;
+		box-sizing: border-box;
+        text-align: left;
+		background: shared.$card-background-color;
+		border: 1px solid shared.$border-color;
+		border-radius: shared.$border-radius-lg;
+		padding: 20px;
+		color: shared.$foreground-color;
+		cursor: pointer;
+		box-shadow: shared.$shadow-sm;
+		transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
+		position: relative;
+
+		&:hover {
+			transform: translateY(-2px);
+			box-shadow: shared.$shadow-lg;
+		}
+
+        .info_box {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+
+			.profile_image_frame {
+                width: 105px;
+                height: 125px;
+                border-radius: 10px;
+                overflow: hidden;
+                min-width: 105px;
+                margin-right: 16px;
+				box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+				border: 1px solid shared.$border-color;
+
+				.profile_image {
+					display: block;
+					width: 100%;
+					height: 100%;
+					object-fit: cover;
+				}
+            }
+            .details {
+				min-width: 0;
+                white-space: nowrap;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                gap: 6px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				padding-top: 2px;
+
+				.name_row {
+					display: flex;
+					align-items: center;
+					gap: 4px;
+					margin-bottom: 4px;
+				}
+                .name {
+                    margin: 0;
+                    font-size: 16px;
+					font-weight: 700;
+					color: shared.$accent-color;
+					overflow: hidden;
+					text-overflow: ellipsis;
+                }
+                .row {
+					font-size: 13px;
+					color: shared.$secondary-color;
+					display: flex;
+					justify-content: flex-start;
+					align-items: center;
+					gap: 8px;
+					overflow: hidden;
+					text-overflow: ellipsis;
+
+					svg {
+						width: 12px;
+						flex-shrink: 0;
+						color: shared.$accent-color;
+						opacity: 0.5;
+					}
+					a {
+						color: shared.$accent-color;
+						text-decoration: none;
+						overflow: hidden;
+						text-overflow: ellipsis;
+						&:hover {
+							text-decoration: underline;
+						}
+					}
+					.college_shield {
+						width: 14px;
+						height: 14px;
+						flex-shrink: 0;
+					}
+
+					&:first-child {
+						color: shared.$foreground-color;
+						font-weight: 500;
+						svg {
+							opacity: 0.7;
+						}
+					}
+					&.birthday_today {
+						align-self: flex-start;
+						max-width: 100%;
+						width: fit-content;
+						border-radius: 4px;
+						padding: 2px 6px;
+						background: linear-gradient(90deg, rgba(45, 142, 232, 0.18), rgba(255, 198, 61, 0.22), rgba(238, 94, 132, 0.16));
+						color: shared.$foreground-color;
+						font-weight: 400;
+
+						svg {
+							color: shared.$accent-color;
+							opacity: 1;
+						}
+					}
+                }
+            }
+        }
+
+		.card_footer {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			padding-top: 12px;
+			margin-top: 12px;
+			border-top: 1px solid shared.$border-color;
+			font-size: 12px;
+			color: shared.$secondary-color;
+			line-height: 1.2;
+		}
+    }
+	@include shared.tablet() {
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+
+		.person {
+			width: 100%;
+		}
+	}
+
+	@include shared.responsive() {
+		padding: 16px 12px 30px;
+		grid-template-columns: 1fr;
+		gap: 12px;
+
+		.person {
+			width: 100%;
+			padding: 14px;
+
+			.info_box {
+				display: flex;
+				align-items: flex-start;
+
+				.profile_image_frame {
+					width: 105px;
+					height: 125px;
+					min-width: 105px;
+					max-width: 105px;
+					min-height: 125px;
+					max-height: 125px;
+					margin-right: 12px;
+					flex: 0 0 105px;
+				}
+				.details {
+					.name {
+						font-size: 15px;
+					}
+					.row {
+						font-size: 12px;
+					}
+				}
+			}
+
+			.card_footer {
+				padding-top: 10px;
+				margin-top: 10px;
+				font-size: 11px;
+			}
+		}
+	}
+
+	@include shared.small-mobile() {
+		padding: 10px 8px 24px;
+		gap: 10px;
+
+		.person {
+			padding: 12px;
+
+			.info_box {
+				.profile_image_frame {
+					margin-right: 10px;
+					border-radius: 8px;
+				}
+				.details {
+					gap: 4px;
+					.name {
+						font-size: 14px;
+					}
+					.row {
+						font-size: 11px;
+						gap: 5px;
+					}
+				}
+			}
+		}
+	}
+}
+
+.email_link {
+	--email-button-color: var(--color-primary);
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--email-button-color);
+	text-decoration: none;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+
+	&:hover {
+		text-decoration: none;
+	}
+
+	svg {
+		width: 12px;
+		flex-shrink: 0;
+		opacity: 0.65;
+	}
+}
+
+.card_socials {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+
+	a {
+		color: shared.$accent-color;
+		text-decoration: none;
+		line-height: 1;
+		transition: opacity 0.15s ease;
+
+		&:hover {
+			opacity: 0.7;
+		}
+	}
+
+	svg {
+		height: 15px;
+	}
+}
+
+.loading_icon_container {
+	grid-column: 1 / -1;
+}
+
+.loading_icon {
+	filter: grayscale(1) contrast(0.5) brightness(1.4);
+	display: block;
+	margin: 30px auto;
+	width: 25px;
+	height: 25px;
+}

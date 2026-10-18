@@ -1,0 +1,28 @@
+{
+  "name": "yalies",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "postinstall": "npm run build:shared",
+    "build:shared": "npm run build -w yalies-shared",
+    "build": "npm run build:shared && npm run build --workspaces --if-present",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test -w yalies-data-pipeline",
+    "test:integration": "npm run test:integration -w yalies-backend",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "doctor": "node scripts/dev/doctor.mjs",
+    "dev:web": "node scripts/dev/run.mjs web",
+    "dev:api": "node scripts/dev/run.mjs api",
+    "dev:dashboard": "node scripts/dev/run.mjs dashboard",
+    "dev:pipeline": "node scripts/dev/run.mjs pipeline"
+  }
+}

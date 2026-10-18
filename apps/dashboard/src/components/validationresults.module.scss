@@ -1,0 +1,68 @@
+@use "../shared" as *;
+
+.container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.list {
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	font-size: 0.75rem;
+	flex-shrink: 0;
+	margin-right: 8px;
+}
+
+.pass {
+	display: flex;
+	align-items: center;
+	font-size: 0.8125rem;
+	color: $success;
+
+	.icon {
+		background-color: rgba(46, 125, 50, 0.12);
+		color: $success;
+	}
+}
+
+.warning {
+	display: flex;
+	align-items: center;
+	font-size: 0.8125rem;
+	color: $warning;
+
+	.icon {
+		background-color: rgba(245, 124, 0, 0.12);
+		color: $warning;
+	}
+}
+
+.failure {
+	display: flex;
+	align-items: center;
+	font-size: 0.8125rem;
+	color: $destructive;
+
+	.icon {
+		background-color: rgba(198, 40, 40, 0.12);
+		color: $destructive;
+	}
+}
+
+.empty {
+	font-size: 0.8125rem;
+	color: $secondary;
+	font-style: italic;
+}

@@ -1,0 +1,107 @@
+@use "../shared" as *;
+
+.container {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 0;
+	margin-bottom: 32px;
+	overflow-x: auto;
+
+	@include responsive {
+		justify-content: flex-start;
+	}
+}
+
+.stepWrapper {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	position: relative;
+	flex: 1;
+	min-width: 100px;
+}
+
+.line {
+	position: absolute;
+	top: 16px;
+	right: 50%;
+	width: 100%;
+	height: 2px;
+	background-color: #e0e0e0;
+	z-index: 0;
+}
+
+.lineDone {
+	background-color: $success;
+}
+
+.circle {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.8125rem;
+	font-weight: 700;
+	z-index: 1;
+	background-color: #fff;
+	border: 2px solid #e0e0e0;
+	color: $secondary;
+	transition: all 0.2s;
+}
+
+.pending {
+	border-color: #e0e0e0;
+	color: $secondary;
+}
+
+.active,
+.running {
+	border-color: $accent;
+	color: $accent;
+}
+
+.running {
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+.done {
+	border-color: $success;
+	background-color: $success;
+	color: #fff;
+}
+
+.error {
+	border-color: $destructive;
+	background-color: $destructive;
+	color: #fff;
+}
+
+.current {
+	box-shadow: 0 0 0 3px rgba(0, 53, 107, 0.2);
+}
+
+.label {
+	margin-top: 8px;
+	font-size: 0.6875rem;
+	color: $secondary;
+	text-align: center;
+	line-height: 1.3;
+	max-width: 90px;
+}
+
+.labelCurrent {
+	color: $accent;
+	font-weight: 600;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}

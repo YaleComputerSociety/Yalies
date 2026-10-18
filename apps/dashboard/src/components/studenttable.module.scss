@@ -1,0 +1,45 @@
+@use "../shared" as *;
+
+.wrapper {
+	width: 100%;
+	overflow-x: auto;
+	border: 1px solid #e0e0e0;
+	border-radius: $border-radius-standard;
+	background-color: #fff;
+}
+
+.table {
+	width: 100%;
+	min-width: 600px;
+}
+
+.th {
+	text-align: left;
+	padding: 10px 14px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: $secondary;
+	background-color: #fafafa;
+	border-bottom: 1px solid #e0e0e0;
+}
+
+.td {
+	padding: 8px 14px;
+	font-size: 0.8125rem;
+	color: $foreground;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.zebra {
+	background-color: #fafafa;
+}
+
+.empty {
+	padding: 24px;
+	text-align: center;
+	font-size: 0.8125rem;
+	color: $secondary;
+	font-style: italic;
+}

@@ -1,0 +1,131 @@
+"use client";
+import { API_URL } from "@/consts";
+
+import styles from "./filters.module.scss";
+import Dropdown, { DropdownOption } from "./Dropdown";
+import { useCallback, useEffect, useState } from "react";
+import { API, YALE_COLLEGE } from "yalies-shared";
+
+export default function Filters({
+	filters,
+	setFilterValue,
+	reset,
+	filtersAreDefault,
+	open,
+}: {
+	filters: Record<string, string[]>;
+	setFilterValue: (key: string, newValue: string[]) => void;
+	reset: () => void;
+	filtersAreDefault: boolean;
+	open: boolean;
+}) {
+	const [schoolOptions, setSchoolOptions] = useState<DropdownOption[]>([
+		{ label: YALE_COLLEGE, value: YALE_COLLEGE },
+	]);
+	const [yearOptions, setYearOptions] = useState<DropdownOption[]>([]);
+	const [collegeOptions, setCollegeOptions] = useState<DropdownOption[]>([]);
+	const [majorOptions, setMajorOptions] = useState<DropdownOption[]>([]);
+
+	const getFilters = useCallback(async () => {
+		let response;
+		try {
+			response = await fetch(`${API_URL}${API.filters}`, {
+				headers: {
+					"Content-Type": "application/json",
+				},
+			});
+		} catch(e) {
+			console.error(e);
+			return;
+		}
+		if(!response) {
+			console.error("No response from server");
+			return;
+		}
+		if(!response.ok) {
+			console.error("Error fetching filters", response.status, response.statusText, await response.text());
+			return;
+		}
+		const filterOptions: Record<string, unknown[]> = await response?.json();
+
+		const filterToDropdownOption = (options: unknown[], sort?: (a: DropdownOption, b: DropdownOption) => number): DropdownOption[] => {
+			return (options as string[])
+				.map((option) => ({ label: option.toString(), value: option.toString() }))
+				.sort(sort || ((a, b) => a.label.localeCompare(b.label)));
+		};
+
+		const collegeToDropdownOption = (options: unknown[]): DropdownOption[] => {
+			const collegeOrderOverrides: Record<string, string> = {
+				"Benjamin Franklin": "Davenport~Benjamin Franklin",
+				"Ezra Stiles": "Silliman~Ezra Stiles",
+			};
+			const collegeSortKey = (option: DropdownOption) => collegeOrderOverrides[option.label] || option.label;
+			return (options as string[])
+				.map((option) => ({
+					label: option.toString().replace(/\s+College$/i, ""),
+					value: option.toString(),
+				}))
+				.sort((a, b) => collegeSortKey(a).localeCompare(collegeSortKey(b)));
+		};
+
+		const schoolSortFn = (a: DropdownOption, b: DropdownOption) => {
+			if(a.label === YALE_COLLEGE) return -1;
+			if(b.label === YALE_COLLEGE) return 1;
+			return a.label.localeCompare(b.label);
+		};
+		const yearSortFn = (a: DropdownOption, b: DropdownOption) => {
+			const stringA = a.label.toString();
+			const stringB = b.label.toString();
+			return -1 * stringA.localeCompare(stringB);
+		}
+
+		setSchoolOptions(filterToDropdownOption(filterOptions["school"], schoolSortFn));
+		setYearOptions(filterToDropdownOption(filterOptions["year"], yearSortFn));
+		setCollegeOptions(collegeToDropdownOption(filterOptions["college"]));
+		setMajorOptions(filterToDropdownOption(filterOptions["major"]));
+	}, []);
+
+	useEffect(() => {
+		getFilters();
+	}, [getFilters]);
+
+	if(!open) return null;
+
+	return (
+		<div className={styles.filters_panel}>
+			<div className={styles.filters_row}>
+				<Dropdown
+					label="School"
+					options={schoolOptions}
+					value={filters?.school || []}
+					onValueChange={(val) => setFilterValue("school", val)}
+				/>
+				<Dropdown
+					label="Year"
+					options={yearOptions}
+					value={filters?.year || []}
+					onValueChange={(val) => setFilterValue("year", val)}
+				/>
+				<Dropdown
+					label="College"
+					options={collegeOptions}
+					value={filters?.college || []}
+					onValueChange={(val) => setFilterValue("college", val)}
+				/>
+				<Dropdown
+					label="Major"
+					options={majorOptions}
+					value={filters?.major || []}
+					onValueChange={(val) => setFilterValue("major", val)}
+				/>
+				<button
+					className={`${styles.reset} ${!filtersAreDefault ? styles.active : ""}`}
+					onClick={reset}
+					disabled={filtersAreDefault}
+				>
+					Reset
+				</button>
+			</div>
+		</div>
+	);
+};
