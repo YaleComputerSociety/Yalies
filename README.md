@@ -18,6 +18,6 @@ Yale’s people directory: search classmates, view profiles, and connect apps th
 | `scripts/ops` | Data maintenance |
 | `docs` | Technical reference and operations |
 
-TypeScript, React/Next.js, Express, PostgreSQL/Sequelize, and Google Cloud Storage. npm workspaces share one lockfile. Node 22 is pinned in `.nvmrc`; Python is optional for photo processing.
+TypeScript, React/Next.js, Express, PostgreSQL/Sequelize, and Google Cloud Storage. npm workspaces share one lockfile. Node 22 is pinned in `.nvmrc`.
 
-Start with [ONBOARDING.md](ONBOARDING.md). Deployment is manual and separate from local development.
+Deployment is currently manual and separate from local development.
