@@ -2,7 +2,7 @@
 
 <img src="apps/web/src/app/icon2.svg" alt="Yalies" width="64">
 
-Yale’s people directory: search classmates, view profiles, and connect apps through Continue with Yalies.
+The Yale identity engine.
 
 [Onboarding](ONBOARDING.md) · [Contributing](CONTRIBUTING.md) · [Architecture](docs/architecture.md)
 
@@ -19,5 +19,3 @@ Yale’s people directory: search classmates, view profiles, and connect apps th
 | `docs` | Technical reference and operations |
 
 TypeScript, React/Next.js, Express, PostgreSQL/Sequelize, and Google Cloud Storage. npm workspaces share one lockfile. Node 22 is pinned in `.nvmrc`.
-
-Deployment is currently manual and separate from local development.
