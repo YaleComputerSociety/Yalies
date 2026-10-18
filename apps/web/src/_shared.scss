@@ -1,0 +1,103 @@
+// Yale-inspired modern palette backed by runtime CSS variables.
+
+$foreground-color: var(--color-text);
+$secondary-color: var(--color-text-secondary);
+$accent-color: var(--color-primary);
+$accent-color-light: var(--color-primary-light);
+$accent-color-hover: var(--color-primary-hover);
+$accent-color-soft: var(--color-primary-subdued);
+$background-color: var(--color-background);
+$background-color-disabled: var(--color-background-disabled);
+$card-background-color: var(--color-surface);
+$selection-color: #2563eb;
+$destructive-color: #dc2626;
+$border-color: var(--color-border);
+$muted-color: var(--color-muted);
+
+$chip-primary-color-fg: var(--color-chip-primary-fg);
+$chip-primary-color-bg: var(--color-chip-primary-bg);
+$chip-primary-color-border: var(--color-chip-primary-border);
+$chip-secondary-color-fg: var(--color-chip-secondary-fg);
+$chip-secondary-color-bg: var(--color-chip-secondary-bg);
+
+$border-radius-standard: 8px;
+$border-radius-lg: 12px;
+$border-radius-full: 9999px;
+
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+$shadow-xl: var(--shadow-xl);
+
+$MOBILE_WIDTH: 700px;
+$SMALL_MOBILE_WIDTH: 420px;
+$TABLET_WIDTH: 1024px;
+@mixin responsive() {
+    @media ( max-width: $MOBILE_WIDTH ) {
+        @content;
+    }
+}
+@mixin small-mobile() {
+    @media ( max-width: $SMALL_MOBILE_WIDTH ) {
+        @content;
+    }
+}
+@mixin tablet() {
+    @media ( min-width: $MOBILE_WIDTH + 1 ) and ( max-width: $TABLET_WIDTH ) {
+        @content;
+    }
+}
+
+@mixin rails() {
+    padding: 50px 30vw;
+
+	@include tablet(){
+        padding: 50px 10vw;
+    }
+
+	@include responsive(){
+        padding: 50px 4vw;
+    }
+}
+
+@mixin info_page() {
+	@include rails();
+	h1 {
+		text-align: center;
+		font-size: 50px;
+		margin-bottom: 50px;
+		color: $accent-color;
+	}
+	h2 {
+		font-size: 25px;
+		margin-bottom: 20px;
+		margin-top: 50px;
+		color: $accent-color;
+	}
+	h3 {
+		font-weight: 500;
+		font-size: 20px;
+		margin-top: 30px;
+		margin-bottom: 20px;
+	}
+	p {
+		margin-bottom: 20px;
+		font-size: 17px;
+	}
+	@include responsive() {
+		h1 {
+			font-size: 30px;
+			margin-bottom: 30px;
+		}
+		h2 {
+			font-size: 20px;
+			margin-top: 30px;
+		}
+		h3 {
+			font-size: 17px;
+		}
+		p {
+			font-size: 15px;
+		}
+	}
+}

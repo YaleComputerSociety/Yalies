@@ -1,0 +1,13 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=deploy/preview/Dockerfile
+      - --build-arg=PREVIEW_ORIGIN=${_PREVIEW_ORIGIN}
+      - --tag=${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+timeout: 1200s
+options:
+  machineType: E2_HIGHCPU_8

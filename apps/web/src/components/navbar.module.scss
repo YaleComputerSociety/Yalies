@@ -1,0 +1,394 @@
+@use "../shared.scss";
+
+#navbar {
+	width: 100%;
+	position: relative;
+}
+
+.navbar_top {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 14px;
+	width: 100%;
+	max-width: 1440px;
+	min-height: 96px;
+	margin: 0 auto;
+	padding: 0 1rem;
+	box-sizing: border-box;
+
+	@include shared.tablet() {
+		align-items: center;
+		min-height: 58px;
+		gap: 16px;
+		padding: 0 1rem;
+	}
+
+	@include shared.responsive() {
+		align-items: center;
+		flex-wrap: wrap;
+		min-height: 58px;
+		gap: 12px;
+		padding: 0 1rem;
+	}
+}
+
+.search_status {
+	position: absolute;
+	right: 1rem;
+	bottom: 17px;
+	color: shared.$secondary-color;
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+	text-align: right;
+}
+
+.navbar_top_compact {
+	align-items: center;
+	min-height: 54px;
+	padding: 0 1rem;
+
+	.logo_wrapper {
+		height: auto;
+	}
+
+	#logo {
+		min-height: 46px;
+		padding: 6px 0;
+	}
+
+	#links {
+		align-items: center;
+		padding-top: 0;
+		min-height: 46px;
+	}
+
+	.nav_text_links {
+		align-items: center;
+		padding-top: 0;
+	}
+
+	@include shared.tablet() {
+		min-height: 54px;
+	}
+
+	@include shared.responsive() {
+		min-height: 54px;
+	}
+}
+
+.logo_wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	height: 100%;
+	width: 112px;
+	flex-shrink: 0;
+
+	@include shared.tablet() {
+		width: auto;
+	}
+
+	@include shared.responsive() {
+		width: auto;
+	}
+}
+
+#logo {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	text-decoration: none;
+	color: shared.$accent-color;
+	gap: 7px;
+	width: 100px;
+	min-height: 50px;
+	padding: 10px 0 6px;
+	box-sizing: border-box;
+
+	img {
+		height: 30px;
+		width: 30px;
+	}
+
+	h2 {
+		font-size: 22px;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	@include shared.small-mobile() {
+		gap: 6px;
+		width: auto;
+		min-height: 54px;
+		img {
+			height: 30px;
+			width: 30px;
+		}
+		h2 {
+			font-size: 21px;
+		}
+	}
+}
+
+.random_button {
+	height: 46px;
+	margin: 0 0 0 24px;
+	padding: 0;
+	border: 0;
+	color: shared.$accent-color-light;
+	background: transparent;
+	display: flex;
+	align-items: center;
+	font-family: inherit;
+	font-size: 70%;
+	font-weight: 500;
+	line-height: 1.2;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		color: shared.$accent-color-hover;
+	}
+
+	@include shared.tablet() {
+		display: none;
+	}
+
+	@include shared.responsive() {
+		display: none;
+	}
+}
+
+.middle_content {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 96px;
+	padding: 5px 0 0;
+	box-sizing: border-box;
+
+	:global(.yalies_nav_search_meta) {
+		color: shared.$secondary-color;
+		font-size: 12px;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+}
+
+#links {
+	margin-left: auto;
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-end;
+	gap: 16px;
+	font-size: 14px;
+	font-weight: 500;
+	min-height: 50px;
+	padding-top: 0.5rem;
+	padding-right: 0;
+	white-space: nowrap;
+}
+
+.nav_text_links {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding-top: 9px;
+
+	a,
+	button {
+		text-decoration: none;
+		color: shared.$secondary-color;
+		display: flex;
+		align-items: center;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		font: inherit;
+		cursor: pointer;
+		transition: color 0.15s ease;
+
+		&:hover {
+			color: shared.$accent-color;
+		}
+	}
+
+	@include shared.tablet() {
+		display: none;
+	}
+
+	@include shared.responsive() {
+		display: none;
+	}
+}
+
+.active_nav_button {
+	color: shared.$accent-color !important;
+}
+
+.theme_toggle {
+	width: 18px;
+	height: 18px;
+	justify-content: center;
+}
+
+.mobile_theme_toggle {
+	display: none;
+	width: 30px;
+	height: 30px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 7px;
+	color: shared.$secondary-color;
+	background: transparent;
+	box-shadow: none;
+	cursor: pointer;
+	transition: color 0.15s ease, background-color 0.15s ease;
+
+	&:hover {
+		color: shared.$accent-color;
+		background: transparent;
+		box-shadow: none;
+	}
+
+	@include shared.tablet() {
+		display: grid;
+	}
+
+	@include shared.responsive() {
+		display: grid;
+		margin-left: auto;
+		margin-right: -4px;
+	}
+}
+
+.account_controls {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+
+	@include shared.responsive() {
+		display: contents;
+	}
+}
+
+#links {
+	@include shared.tablet() {
+		display: flex;
+		align-items: center;
+		min-height: 0;
+		padding-top: 0;
+	}
+
+	@include shared.responsive() {
+		display: contents;
+	}
+}
+
+.hamburger {
+	display: none;
+	flex-direction: column;
+	justify-content: center;
+	gap: 4px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	margin-left: auto;
+	margin-top: 11px;
+	height: 38px;
+	width: 38px;
+	border: 1px solid shared.$border-color;
+	border-radius: 4px;
+
+	@include shared.tablet() {
+		display: none;
+	}
+
+	@include shared.responsive() {
+		display: none;
+	}
+}
+
+.hamburger_line {
+	display: block;
+	width: 20px;
+	height: 2px;
+	background-color: shared.$accent-color;
+	border-radius: 1px;
+	transition: transform 0.2s ease, opacity 0.2s ease;
+
+	&.open {
+		&:first-child {
+			transform: translateY(6px) rotate(45deg);
+		}
+		&:nth-child(2) {
+			opacity: 0;
+		}
+		&:last-child {
+			transform: translateY(-6px) rotate(-45deg);
+		}
+	}
+}
+
+.mobile_menu {
+	display: none;
+
+	@include shared.tablet() {
+		display: flex;
+		flex-direction: column;
+		padding: 8px 0 4px;
+		border-top: 1px solid shared.$border-color;
+		margin: 0 18px;
+
+		a,
+		button {
+			text-decoration: none;
+			color: shared.$secondary-color;
+			font-size: 16px;
+			font-weight: 500;
+			padding: 12px 10px;
+			border: 0;
+			background: transparent;
+			font-family: inherit;
+			text-align: left;
+			cursor: pointer;
+			transition: color 0.15s ease;
+
+			&:hover {
+				color: shared.$accent-color;
+			}
+		}
+	}
+
+	@include shared.responsive() {
+		display: flex;
+		flex-direction: column;
+		padding: 8px 0 4px;
+		border-top: 1px solid shared.$border-color;
+		margin: 0 14px;
+
+		a,
+		button {
+			text-decoration: none;
+			color: shared.$secondary-color;
+			font-size: 16px;
+			font-weight: 500;
+			padding: 12px 10px;
+			border: 0;
+			background: transparent;
+			font-family: inherit;
+			text-align: left;
+			cursor: pointer;
+			transition: color 0.15s ease;
+
+			&:hover {
+				color: shared.$accent-color;
+			}
+		}
+	}
+}

@@ -1,0 +1,72 @@
+@use "../shared" as *;
+
+.container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: calc(100vh - 56px);
+}
+
+.card {
+	text-align: center;
+	padding: 48px;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	max-width: 400px;
+	width: 100%;
+}
+
+.title {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: $accent;
+	margin-bottom: 12px;
+}
+
+.text {
+	font-size: 0.9375rem;
+	color: $secondary;
+	margin-bottom: 24px;
+	line-height: 1.5;
+}
+
+.loginButton {
+	display: inline-block;
+	padding: 12px 32px;
+	background-color: $accent;
+	color: #fff;
+	font-weight: 600;
+	font-size: 0.9375rem;
+	border-radius: $border-radius-standard;
+	text-decoration: none;
+	transition: background-color 0.15s;
+
+	&:hover {
+		background-color: darken($accent, 8%);
+		text-decoration: none;
+		color: #fff;
+	}
+}
+
+.link {
+	display: inline-block;
+	font-size: 0.875rem;
+	color: $accent;
+}
+
+.spinner {
+	width: 32px;
+	height: 32px;
+	border: 3px solid #e0e0e0;
+	border-top-color: $accent;
+	border-radius: 50%;
+	animation: spin 0.6s linear infinite;
+	margin: 0 auto 16px;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
