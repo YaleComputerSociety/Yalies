@@ -11,6 +11,8 @@ cpSync("apps/web", destination, { recursive: true, filter: file => !excluded.has
 const [packed] = JSON.parse(execFileSync("npm", ["pack", "--workspace", "yalies-shared", "--json", "--pack-destination", resolve(destination)], { encoding: "utf8" }));
 const manifest = JSON.parse(readFileSync("apps/web/package.json", "utf8"));
 manifest.dependencies["yalies-shared"] = `file:./${packed.filename}`;
+// Firebase Functions requires an exact runtime major, not the npm range "22.x".
+manifest.engines = { ...manifest.engines, node: "22" };
 delete manifest.scripts.prebuild;
 delete manifest.scripts.predev;
 const original = JSON.parse(readFileSync("package-lock.json", "utf8"));
