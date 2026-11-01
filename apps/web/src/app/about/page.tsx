@@ -96,6 +96,12 @@ export default function AboutPage() {
 							image="/team/yavin_fickel.jpg"
 							linkedin="https://linkedin.com/in/yavin"
 						/>
+						<TeamMember
+							name="Kaitlyn Zhang"
+							role="Developer"
+							image="/team/kaitlyn_zhang.jpg"
+							linkedin="https://www.linkedin.com/in/kaitlynszhang"
+						/>
 					</div>
 
 					<h3>Yalies alumni</h3>
