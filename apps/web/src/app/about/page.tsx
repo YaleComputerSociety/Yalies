@@ -96,6 +96,13 @@ export default function AboutPage() {
 							image="/team/yavin_fickel.jpg"
 							linkedin="https://linkedin.com/in/yavin"
 						/>
+		
+						<TeamMember
+							name="Sean Donahue"
+							role="Yalies Developer"
+							image="/team/sean_donahue.jpg"
+							linkedin="https://linkedin.com/in/seandonahue1212"
+						/>
 					</div>
 
 					<h3>Yalies alumni</h3>
