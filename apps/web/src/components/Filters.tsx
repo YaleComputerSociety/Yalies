@@ -2,9 +2,33 @@
 import { API_URL } from "@/consts";
 
 import styles from "./filters.module.scss";
-import Dropdown, { DropdownOption } from "./Dropdown";
+import Dropdown, { DropdownOption, DropdownSubMenu } from "./Dropdown";
 import { useCallback, useEffect, useState } from "react";
-import { API, YALE_COLLEGE } from "yalies-shared";
+import { API, YALE_COLLEGE, US_STATES } from "yalies-shared";
+
+const MONTH_NAMES = [
+	"January", "February", "March", "April", "May", "June",
+	"July", "August", "September", "October", "November", "December",
+];
+// Leap-year lengths so Feb 29 birthdays can be found
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const BIRTH_MONTH_OPTIONS: DropdownOption[] = MONTH_NAMES.map((name, i) => ({ label: name, value: String(i + 1) }));
+
+const BIRTH_DAY_SUBMENUS: Record<string, DropdownSubMenu> = Object.fromEntries(
+	MONTH_NAMES.map((name, i) => [
+		String(i + 1),
+		{
+			label: name,
+			layout: "grid",
+			options: Array.from({ length: DAYS_IN_MONTH[i] }, (_, d) => ({
+				label: String(d + 1),
+				value: `${i + 1}-${d + 1}`,
+				chipLabel: `${name.slice(0, 3)} ${d + 1}`,
+			})),
+		},
+	])
+);
 
 export default function Filters({
 	filters,
@@ -25,6 +49,8 @@ export default function Filters({
 	const [yearOptions, setYearOptions] = useState<DropdownOption[]>([]);
 	const [collegeOptions, setCollegeOptions] = useState<DropdownOption[]>([]);
 	const [majorOptions, setMajorOptions] = useState<DropdownOption[]>([]);
+	const [countryOptions, setCountryOptions] = useState<DropdownOption[]>([]);
+	const [stateOptions, setStateOptions] = useState<DropdownOption[]>([]);
 
 	const getFilters = useCallback(async () => {
 		let response;
@@ -73,7 +99,12 @@ export default function Filters({
 			if(b.label === YALE_COLLEGE) return 1;
 			return a.label.localeCompare(b.label);
 		};
-		const yearSortFn = (a: DropdownOption, b: DropdownOption) => {
+		const countrySortFn = (a: DropdownOption, b: DropdownOption) => {
+			if(a.value === "United States") return -1;
+			if(b.value === "United States") return 1;
+			return a.label.localeCompare(b.label);
+		};
+		const yearSortFn =(a: DropdownOption, b: DropdownOption) => {
 			const stringA = a.label.toString();
 			const stringB = b.label.toString();
 			return -1 * stringA.localeCompare(stringB);
@@ -83,6 +114,12 @@ export default function Filters({
 		setYearOptions(filterToDropdownOption(filterOptions["year"], yearSortFn));
 		setCollegeOptions(collegeToDropdownOption(filterOptions["college"]));
 		setMajorOptions(filterToDropdownOption(filterOptions["major"]));
+		setCountryOptions(filterToDropdownOption(filterOptions["address_country"] ?? [], countrySortFn));
+		setStateOptions(
+			((filterOptions["address_state"] ?? []) as string[])
+				.map((code) => ({ label: US_STATES[code] ?? code, value: code }))
+				.sort((a, b) => a.label.localeCompare(b.label))
+		);
 	}, []);
 
 	useEffect(() => {
@@ -90,6 +127,11 @@ export default function Filters({
 	}, [getFilters]);
 
 	if(!open) return null;
+
+	// birth_date holds whole months ("2") and exact dates ("2-14") in one filter
+	const birthDateValues = filters?.birth_date || [];
+	const birthMonths = birthDateValues.filter((v) => !v.includes("-"));
+	const birthDates = birthDateValues.filter((v) => v.includes("-"));
 
 	return (
 		<div className={styles.filters_panel}>
@@ -117,6 +159,26 @@ export default function Filters({
 					options={majorOptions}
 					value={filters?.major || []}
 					onValueChange={(val) => setFilterValue("major", val)}
+				/>
+				<Dropdown
+					label="Location"
+					options={countryOptions}
+					value={filters?.address_country || []}
+					onValueChange={(val) => setFilterValue("address_country", val)}
+					subMenus={{
+						"United States": { label: "State", options: stateOptions },
+					}}
+					subValue={filters?.address_state || []}
+					onSubValueChange={(val) => setFilterValue("address_state", val)}
+				/>
+				<Dropdown
+					label="Birthday"
+					options={BIRTH_MONTH_OPTIONS}
+					value={birthMonths}
+					onValueChange={(val) => setFilterValue("birth_date", [...val, ...birthDates])}
+					subMenus={BIRTH_DAY_SUBMENUS}
+					subValue={birthDates}
+					onSubValueChange={(val) => setFilterValue("birth_date", [...birthMonths, ...val])}
 				/>
 				<button
 					className={`${styles.reset} ${!filtersAreDefault ? styles.active : ""}`}
