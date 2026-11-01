@@ -130,6 +130,11 @@ export default function AboutPage() {
 							x="https://x.com/erikboesen"
 						/>
 						<TeamMember
+							name="Kingsten Lin"
+							role="Developer"
+							image="/team/kingsten_lin.jpg"
+						/>
+						<TeamMember
 							name="Daniel Wang"
 							role="Alumni, Development"
 							image="/team/daniel_wang.jpg"
