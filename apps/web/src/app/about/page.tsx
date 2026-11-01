@@ -101,6 +101,12 @@ export default function AboutPage() {
 							role="Developer"
 							image="/team/cynthia_wen.jpg"
 							linkedin="https://www.linkedin.com/in/cynthia-wen-1ab5b5226/"
+            />
+            <TeamMember
+							name="Kaitlyn Zhang"
+							role="Developer"
+							image="/team/kaitlyn_zhang.jpg"
+							linkedin="https://www.linkedin.com/in/kaitlynszhang"
 						/>
 					</div>
 
