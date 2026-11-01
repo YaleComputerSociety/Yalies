@@ -95,13 +95,18 @@ export default function AboutPage() {
 							role="Yalies Lead"
 							image="/team/yavin_fickel.jpg"
 							linkedin="https://linkedin.com/in/yavin"
-						/>
-		
+						/>		
 						<TeamMember
 							name="Sean Donahue"
-							role="Yalies Developer"
+							role="Developer"
 							image="/team/sean_donahue.jpg"
 							linkedin="https://linkedin.com/in/seandonahue1212"
+						/>		
+						<TeamMember
+							name="Kaitlyn Zhang"
+							role="Developer"
+							image="/team/kaitlyn_zhang.jpg"
+							linkedin="https://www.linkedin.com/in/kaitlynszhang"
 						/>
 					</div>
 
@@ -129,6 +134,11 @@ export default function AboutPage() {
 							website="https://erikboesen.com/"
 							linkedin="https://linkedin.com/in/erikboesen"
 							x="https://x.com/erikboesen"
+						/>
+						<TeamMember
+							name="Kingsten Lin"
+							role="Developer"
+							image="/team/kingsten_lin.jpg"
 						/>
 						<TeamMember
 							name="Daniel Wang"
