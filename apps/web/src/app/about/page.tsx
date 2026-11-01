@@ -96,6 +96,12 @@ export default function AboutPage() {
 							image="/team/yavin_fickel.jpg"
 							linkedin="https://linkedin.com/in/yavin"
 						/>
+						<TeamMember
+							name="Cynthia Wen"
+							role="Developer"
+							image="/team/cynthia_wen.jpg"
+							linkedin="https://www.linkedin.com/in/cynthia-wen-1ab5b5226/"
+						/>
 					</div>
 
 					<h3>Yalies alumni</h3>
