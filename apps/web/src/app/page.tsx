@@ -26,6 +26,9 @@ const DEFAULT_FILTERS: Record<string, string[]> = {
 	year: [],
 	college: [],
 	major: [],
+	address_country: [],
+	address_state: [],
+	birth_date: [],
 };
 
 function getRandomBrowseSeed() {
@@ -44,7 +47,10 @@ function filtersAreDefaultBrowse(filters: Record<string, string[]> | null) {
 		filters.school[0] === YALE_COLLEGE &&
 		filters.year && filters.year.length === 0 &&
 		filters.college && filters.college.length === 0 &&
-		filters.major && filters.major.length === 0
+		filters.major && filters.major.length === 0 &&
+		(filters.address_country ?? []).length === 0 &&
+		(filters.address_state ?? []).length === 0 &&
+		(filters.birth_date ?? []).length === 0
 	);
 }
 

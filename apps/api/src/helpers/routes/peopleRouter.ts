@@ -21,9 +21,9 @@ function getCacheKey(netid: string | undefined, query: string, filters: Record<s
 }
 
 type SearchMode = "default" | "full_name" | "first_name" | "last_name" | "initials";
-type SyntheticFilterField = "is_friend" | "birthday";
+type SyntheticFilterField = "is_friend" | "birthday" | "birth_date";
 
-const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_friend", "birthday"]);
+const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_friend", "birthday", "birth_date"]);
 const BIRTHDAY_FILTER_DAYS: Record<string, number> = {
 	today: 0,
 	next_3_days: 3,
@@ -130,6 +130,25 @@ function buildBirthdayWhere(values: string[]): WhereOptions<PersonModel> | null 
 
 	return {
 		[Op.or]: [...dates.values()],
+	};
+}
+
+// Values are "M" for a whole month or "M-D" for an exact date; any match counts
+function buildBirthDateWhere(values: string[]): WhereOptions<PersonModel> | null {
+	const conditions = values.flatMap((value) => {
+		const match = /^(\d{1,2})(?:-(\d{1,2}))?$/.exec(value);
+		if(!match) return [];
+		const month = Number(match[1]);
+		const day = match[2] ? Number(match[2]) : null;
+		if(month < 1 || month > 12) return [];
+		if(day === null) return [{ birth_month: month }];
+		if(day < 1 || day > 31) return [];
+		return [{ birth_month: month, birth_day: day }];
+	});
+	if(conditions.length === 0) return null;
+
+	return {
+		[Op.or]: conditions,
 	};
 }
 
@@ -344,6 +363,11 @@ export default class PeopleRouter {
 		const birthdayWhere = buildBirthdayWhere(getFilterValues(filtersRaw, "birthday"));
 		if(birthdayWhere) {
 			where = andWhere(where, birthdayWhere);
+		}
+
+		const birthDateWhere = buildBirthDateWhere(getFilterValues(filtersRaw, "birth_date"));
+		if(birthDateWhere) {
+			where = andWhere(where, birthDateWhere);
 		}
 
 		if(getFilterValues(filtersRaw, "is_friend").includes("true")) {
