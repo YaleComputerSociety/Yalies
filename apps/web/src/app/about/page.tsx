@@ -95,7 +95,13 @@ export default function AboutPage() {
 							role="Yalies Lead"
 							image="/team/yavin_fickel.jpg"
 							linkedin="https://linkedin.com/in/yavin"
-						/>
+						/>		
+						<TeamMember
+							name="Sean Donahue"
+							role="Developer"
+							image="/team/sean_donahue.jpg"
+							linkedin="https://linkedin.com/in/seandonahue1212"
+						/>		
 						<TeamMember
 							name="Cynthia Wen"
 							role="Developer"
