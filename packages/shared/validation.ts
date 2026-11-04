@@ -28,7 +28,7 @@ export const VALIDATION_THRESHOLDS = {
 } as const;
 
 export const DEFAULT_FILTER_FIELDS = [
-	"school", "year", "college", "major", "address_country",
+	"school", "year", "college", "major", "address_country", "address_state",
 ] as const;
 
 export const PERSON_ALLOWED_FILTER_FIELDS = [

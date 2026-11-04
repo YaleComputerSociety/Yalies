@@ -144,6 +144,97 @@
 	&:hover {
 		background-color: shared.$accent-color-soft;
 	}
+	&.has_submenu {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+	&.submenu_open {
+		background-color: shared.$accent-color-soft;
+	}
+}
+
+.submenu_title {
+	padding: 12px 16px 8px;
+	font-size: 13px;
+	font-weight: 600;
+	color: shared.$secondary-color;
+}
+
+// Day picker: compact 7-wide grid instead of a long list
+.options_grid {
+	display: grid;
+	grid-template-columns: repeat(7, 34px);
+	gap: 2px;
+	padding: 6px 8px 8px;
+
+	.dropdown_option {
+		padding: 7px 0;
+		text-align: center;
+		font-size: 13px;
+		border-radius: 6px;
+	}
+
+	.no_options {
+		grid-column: 1 / -1;
+	}
+}
+
+.grid_selected {
+	background-color: shared.$accent-color;
+	color: white;
+	&:hover {
+		background-color: shared.$accent-color;
+	}
+}
+
+.submenu_arrow {
+	height: 12px;
+	padding: 0 4px;
+	color: shared.$secondary-color;
+}
+
+// Opens beside the main popup; anchored to it so the scrolling options list doesn't clip it
+.dropdown_submenu {
+	background: shared.$card-background-color;
+	border-radius: shared.$border-radius-lg;
+	border: 1px solid shared.$border-color;
+	box-shadow: shared.$shadow-lg;
+	position: absolute;
+	top: -1px;
+	left: calc(100% + 4px);
+
+	input {
+		width: 220px;
+		margin: 10px;
+	}
+
+	// No room (or hover) beside a full-width popup, so stack the states underneath
+	@include shared.tablet() {
+		position: static;
+		border: 0;
+		border-top: 1px solid shared.$border-color;
+		border-radius: 0;
+		box-shadow: none;
+
+		input {
+			width: calc(100% - 20px);
+			box-sizing: border-box;
+		}
+	}
+
+	@include shared.responsive() {
+		position: static;
+		border: 0;
+		border-top: 1px solid shared.$border-color;
+		border-radius: 0;
+		box-shadow: none;
+
+		input {
+			width: calc(100% - 20px);
+			box-sizing: border-box;
+		}
+	}
 }
 
 .chip_container {
