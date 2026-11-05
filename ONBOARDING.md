@@ -14,7 +14,26 @@ npm ci
 
 `npm ci` installs all workspaces and builds `yalies-shared`. Do not install dependencies separately in each app. Python is not required for web development.
 
-## Configure
+## Run locally with sample people
+
+For frontend/API work, no private config bundle, Google account, or production access is required.
+Install PostgreSQL server tools (on macOS: `brew install postgresql@16`), or start Docker Desktop, then:
+
+```sh
+npm run dev:local
+```
+
+Open `http://localhost:3000` and click **Log in**. You will be signed in as `dev1` and see 12 fictional people.
+This runs the real frontend, API, and PostgreSQL database, with local login instead of Yale CAS.
+It generates private settings under `.config/local`, and uses PostgreSQL on port `55432`.
+It does not use or replace your existing `.config/external` files or cloud proxy configuration.
+Data persists across restarts. Ctrl+C stops the apps and the database if this command started it.
+The API must be restarted after server source changes; the frontend reloads automatically.
+
+See [local development and database access](docs/local-development.md) for required files, shared development
+database access, and replacing sample people with a directory snapshot.
+
+## Configure a shared development database (optional)
 
 Get the development config bundle from a maintainer. Keep its filenames below. Templates in `config/examples` document the values; replace all placeholders before starting an app.
 

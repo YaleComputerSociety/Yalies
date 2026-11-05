@@ -5,6 +5,7 @@ import styles from "./filters.module.scss";
 import Dropdown, { DropdownOption, DropdownSubMenu } from "./Dropdown";
 import { useCallback, useEffect, useState } from "react";
 import { API, YALE_COLLEGE, US_STATES } from "yalies-shared";
+import { filterExclusionUpdate, filterSelectionUpdate, selectedFilterValues } from "@/helpers/filterSelection";
 
 const MONTH_NAMES = [
 	"January", "February", "March", "April", "May", "June",
@@ -20,6 +21,7 @@ const BIRTH_DAY_SUBMENUS: Record<string, DropdownSubMenu> = Object.fromEntries(
 		String(i + 1),
 		{
 			label: name,
+			allLabel: `All of ${name}`,
 			layout: "grid",
 			options: Array.from({ length: DAYS_IN_MONTH[i] }, (_, d) => ({
 				label: String(d + 1),
@@ -33,12 +35,14 @@ const BIRTH_DAY_SUBMENUS: Record<string, DropdownSubMenu> = Object.fromEntries(
 export default function Filters({
 	filters,
 	setFilterValue,
+	setFilterValues,
 	reset,
 	filtersAreDefault,
 	open,
 }: {
 	filters: Record<string, string[]>;
 	setFilterValue: (key: string, newValue: string[]) => void;
+	setFilterValues: (updates: Record<string, string[]>) => void;
 	reset: () => void;
 	filtersAreDefault: boolean;
 	open: boolean;
@@ -123,8 +127,8 @@ export default function Filters({
 	}, []);
 
 	useEffect(() => {
-		getFilters();
-	}, [getFilters]);
+		if (open) getFilters();
+	}, [getFilters, open]);
 
 	if(!open) return null;
 
@@ -132,6 +136,20 @@ export default function Filters({
 	const birthDateValues = filters?.birth_date || [];
 	const birthMonths = birthDateValues.filter((v) => !v.includes("-"));
 	const birthDates = birthDateValues.filter((v) => v.includes("-"));
+	const exclusionProps = (field: string) => ({
+		value: selectedFilterValues(filters, field),
+		excludedValue: filters[`exclude_${field}`] ?? [],
+		onValueChange: (selected: string[]) => setFilterValues(filterSelectionUpdate(filters, field, selected)),
+		onExcludeToggle: (value: string) => setFilterValues(filterExclusionUpdate(filters, field, value)),
+	});
+	const toggleCountryExclusion = (value: string) => {
+		const update = filterExclusionUpdate(filters, "address_country", value);
+		if (value === "United States" && update.exclude_address_country.includes(value)) {
+			update.address_state = [];
+			update.exclude_address_state = [];
+		}
+		setFilterValues(update);
+	};
 
 	return (
 		<div className={styles.filters_panel}>
@@ -145,40 +163,65 @@ export default function Filters({
 				<Dropdown
 					label="Year"
 					options={yearOptions}
-					value={filters?.year || []}
-					onValueChange={(val) => setFilterValue("year", val)}
+					{...exclusionProps("year")}
 				/>
 				<Dropdown
 					label="College"
 					options={collegeOptions}
-					value={filters?.college || []}
-					onValueChange={(val) => setFilterValue("college", val)}
+					{...exclusionProps("college")}
 				/>
 				<Dropdown
 					label="Major"
 					options={majorOptions}
-					value={filters?.major || []}
-					onValueChange={(val) => setFilterValue("major", val)}
+					{...exclusionProps("major")}
 				/>
 				<Dropdown
 					label="Location"
 					options={countryOptions}
-					value={filters?.address_country || []}
-					onValueChange={(val) => setFilterValue("address_country", val)}
-					subMenus={{
-						"United States": { label: "State", options: stateOptions },
+					{...exclusionProps("address_country")}
+					onExcludeToggle={toggleCountryExclusion}
+					onSubMenuExcludeToggle={(country) => {
+						const states = selectedFilterValues(filters, "address_state");
+						if (selectedFilterValues(filters, "address_country").includes(country) || states.length === 0) {
+							toggleCountryExclusion(country);
+							return;
+						}
+						const allExcluded = states.every(state => (filters.exclude_address_state ?? []).includes(state));
+						setFilterValues({ address_state: allExcluded ? states : [], exclude_address_state: allExcluded ? [] : states });
 					}}
-					subValue={filters?.address_state || []}
-					onSubValueChange={(val) => setFilterValue("address_state", val)}
+					onClear={() => setFilterValues({ address_country: [], exclude_address_country: [], address_state: [], exclude_address_state: [] })}
+					onClearSubMenu={(country) => setFilterValues({
+						address_country: (filters.address_country ?? []).filter(value => value !== country),
+						exclude_address_country: (filters.exclude_address_country ?? []).filter(value => value !== country),
+						address_state: [], exclude_address_state: [],
+					})}
+					subMenus={{
+						"United States": { label: "United States", allLabel: "Anywhere in United States", options: stateOptions },
+					}}
+					subValue={selectedFilterValues(filters, "address_state")}
+					excludedSubValue={filters.exclude_address_state ?? []}
+					onSubValueChange={(selected) => setFilterValues({
+						...filterSelectionUpdate(filters, "address_state", selected),
+						...(selected.length > 0 && { exclude_address_country: (filters.exclude_address_country ?? []).filter(value => value !== "United States") }),
+					})}
+					onSubExcludeToggle={(value) => setFilterValues({
+						...filterExclusionUpdate(filters, "address_state", value),
+						exclude_address_country: (filters.exclude_address_country ?? []).filter(country => country !== "United States"),
+					})}
 				/>
 				<Dropdown
 					label="Birthday"
 					options={BIRTH_MONTH_OPTIONS}
 					value={birthMonths}
-					onValueChange={(val) => setFilterValue("birth_date", [...val, ...birthDates])}
+					onValueChange={(val) => setFilterValue("birth_date", [
+						...val, ...birthDates.filter(date => !val.includes(date.split("-")[0])),
+					])}
+					onClear={() => setFilterValue("birth_date", [])}
 					subMenus={BIRTH_DAY_SUBMENUS}
 					subValue={birthDates}
-					onSubValueChange={(val) => setFilterValue("birth_date", [...birthMonths, ...val])}
+					onSubValueChange={(val) => setFilterValue("birth_date", [
+						...birthMonths.filter(month => !val.some(date => date.split("-")[0] === month)), ...val,
+					])}
 				/>
 				<button
 					className={`${styles.reset} ${!filtersAreDefault ? styles.active : ""}`}

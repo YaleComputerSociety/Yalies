@@ -7,6 +7,7 @@ import FriendshipModel from "../models/FriendshipModel.js";
 import { Op, Sequelize, WhereOptions, type Order, type OrderItem } from "sequelize";
 import CAS from "../cas.js";
 import { buildFuzzyNameSearch, buildInitialsSearch, normalizeInitials } from "../nameSearch.js";
+import { buildExcludedFiltersWhere, buildLocationIncludesWhere, parseExcludedFilters, type ExcludedFilters } from "../filterExclusions.js";
 
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
@@ -14,10 +15,10 @@ const RANDOM_ORDER_MODULUS = 2147483647;
 const RANDOM_ORDER_MULTIPLIER = 2654435761;
 const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
 
-function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, page: number, pageSize: number, randomSeed: number | null): string {
+function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, excludedFilters: ExcludedFilters, page: number, pageSize: number, randomSeed: number | null): string {
 	// netid is part of the key because the cached payload embeds per-user state
 	// (liked_by_me, directional friend status) — sharing it across users leaks data.
-	return JSON.stringify({ netid, query, filters, page, pageSize, randomSeed });
+	return JSON.stringify({ netid, query, filters, excludedFilters, page, pageSize, randomSeed });
 }
 
 type SearchMode = "default" | "full_name" | "first_name" | "last_name" | "initials";
@@ -258,6 +259,13 @@ export default class PeopleRouter {
 		const query = (req.body.query || "").trim();
 		const searchMode: SearchMode = isSearchMode(req.body.searchMode) ? req.body.searchMode : "default";
 		const filtersRaw = req.body.filters || {};
+		let excludedFilters: ExcludedFilters;
+		try {
+			excludedFilters = parseExcludedFilters(req.body.exclude_filters);
+		} catch(error) {
+			res.status(400).send(error instanceof Error ? error.message : "Invalid excluded filters");
+			return;
+		}
 		const page = req.body.page || 0;
 		const pageSize = req.body.page_size || 100;
 		const randomSeed = getRandomSeed(req.body.random_seed);
@@ -267,7 +275,7 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, page, pageSize, randomSeed);
+		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, excludedFilters, page, pageSize, randomSeed);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
 			return res.status(200).json(cached.data);
@@ -281,19 +289,8 @@ export default class PeopleRouter {
 				return;
 			}
 
-			if(field === "address_country") {
-				const countries = Array.isArray(filtersRaw[field]) ? filtersRaw[field] : [filtersRaw[field]];
-				const countryConditions = countries.map((c: string) => ({
-					[Op.or]: [
-						{ address_country: c },
-						{ address: { [Op.iLike]: `%${c}%` } },
-					],
-				}));
-				where = {
-					...where,
-					[Op.or]: countryConditions,
-				};
-			} else if(field === "year") {
+			if(field === "address_country" || field === "address_state") continue;
+			if(field === "year") {
 				const years = getFilterValues(filtersRaw, field)
 					.map((value) => Number(value))
 					.filter((value) => Number.isInteger(value));
@@ -319,6 +316,8 @@ export default class PeopleRouter {
 				};
 			}
 		}
+		where = andWhere(where, buildLocationIncludesWhere(filtersRaw));
+		where = andWhere(where, buildExcludedFiltersWhere(excludedFilters));
 
 		let searchOrder: Order | null = null;
 

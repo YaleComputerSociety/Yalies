@@ -114,6 +114,12 @@ export default class UserProfileRouter {
 
 	getRouter = () => {
 		const router = express.Router();
+		router.use("/me/photo", (_req, res, next) => {
+			if(process.env.PHOTO_STORAGE_ENABLED === "false") {
+				return res.status(503).json({ error: "Photo storage is disabled in this environment." });
+			}
+			return next();
+		});
 		router.get("/me/full", CAS.requireAuthenticationSessionOnly, this.getMyFullProfile);
 		router.get("/me", CAS.requireAuthenticationSessionOnly, this.getMyProfile);
 		router.put("/me", CAS.requireAuthenticationSessionOnly, this.updateMyProfile);

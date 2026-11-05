@@ -176,7 +176,7 @@ export default class WebServer {
 	};
 
 	serve = () => {
-		this.#app.listen(process.env.PORT, () => {
+		this.#app.listen(Number(process.env.PORT), process.env.HOST || "0.0.0.0", () => {
 			console.log(`App running on port ${process.env.PORT}`);
 		});
 	};

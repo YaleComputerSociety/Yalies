@@ -1,4 +1,5 @@
 import type { SearchMode } from "@/components/SearchModeToggle";
+import { splitFilterSelections } from "./filterSelection";
 
 const COLLEGE_EXPAND: Record<string, string> = {
 	BK: "Berkeley College",
@@ -20,7 +21,7 @@ const COLLEGE_EXPAND: Record<string, string> = {
 };
 
 export function parseSearch(query: string, searchMode: SearchMode, filters: Record<string, string[]>) {
-	const filterObject = Object.fromEntries(Object.entries(filters).filter(([, values]) => values.length > 0));
+	const { filterObject, excludedFilterObject } = splitFilterSelections(filters);
 	const words = query.trim().split(/\s+/);
 	let endOfName = words.length;
 	for (let i = 1; i < words.length; i++) {
@@ -50,5 +51,5 @@ export function parseSearch(query: string, searchMode: SearchMode, filters: Reco
 			resolvedSearchMode = "initials";
 		}
 	}
-	return { queryActual, resolvedSearchMode, filterObject };
+	return { queryActual, resolvedSearchMode, filterObject, excludedFilterObject };
 }

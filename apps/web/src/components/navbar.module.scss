@@ -177,6 +177,14 @@
 	}
 }
 
+// Match the compact layout before JavaScript has detected the viewport width.
+@media (max-width: shared.$TABLET_WIDTH) {
+	.middle_content,
+	.search_status {
+		display: none;
+	}
+}
+
 #links {
 	margin-left: auto;
 	display: flex;

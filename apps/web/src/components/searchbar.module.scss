@@ -94,3 +94,37 @@
 		color: shared.$accent-color;
 	}
 }
+
+.with_shortcut {
+	padding-right: 68px;
+}
+
+.shortcut_hint {
+	position: absolute;
+	right: 10px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 5px;
+	border: 1px solid shared.$border-color;
+	border-radius: 4px;
+	color: shared.$secondary-color;
+	font-size: 11px;
+	line-height: 1;
+	pointer-events: none;
+	user-select: none;
+	opacity: 1;
+	transition: opacity 0.16s ease;
+
+	kbd {
+		font: inherit;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
+}
+
+.search_input:focus ~ .shortcut_hint {
+	opacity: 0;
+}

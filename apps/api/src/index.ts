@@ -7,7 +7,7 @@ import DB from "./helpers/db.js";
 
 if (process.env.NODE_ENV === "development") {
 	const configDir = fileURLToPath(new URL("../../../.config/external", import.meta.url));
-	configDotenv({ path: path.join(configDir, ".env.backend.development"), override: true });
+	configDotenv({ path: process.env.YALIES_API_ENV_FILE || path.join(configDir, ".env.backend.development"), override: true });
 }
 
 if(process.env.NODE_ENV === "development") console.log("******\nRunning in development mode.\n******\n\n");

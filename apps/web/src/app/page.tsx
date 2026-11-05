@@ -12,6 +12,7 @@ import Searchbar from "@/components/Searchbar";
 import SearchModeToggle, { type SearchMode } from "@/components/SearchModeToggle";
 import BirthdaySection from "@/components/BirthdaySection";
 import PersonModal from "@/components/PersonModal";
+import MobileLoadingOverlay from "@/components/MobileLoadingOverlay";
 import styles from "./home.module.scss";
 import { sendGAEvent } from "@next/third-parties/google";
 import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHomeCache";
@@ -51,6 +52,7 @@ function filtersAreDefaultBrowse(filters: Record<string, string[]> | null) {
 		(filters.address_country ?? []).length === 0 &&
 		(filters.address_state ?? []).length === 0 &&
 		(filters.birth_date ?? []).length === 0
+		&& Object.entries(filters).every(([key, values]) => !key.startsWith("exclude_") || values.length === 0)
 	);
 }
 
@@ -68,12 +70,11 @@ export default function HomePage() {
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
 	const [searchMode, setSearchMode] = useState<SearchMode>(homeCache?.searchMode ?? "full_name");
-	const [isClient, setIsClient] = useState(false);
-	const [isSearching, setIsSearching] = useState(false);
+	const [isSearching, setIsSearching] = useState(!homeCache);
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [luckyPerson, setLuckyPerson] = useState<Person | null>(null);
 	const [resultsLabel, setResultsLabel] = useState(getResultsLabel(homeCache?.people.length ?? 0));
-	const [isCompact, setIsCompact] = useState(false);
+	const [isCompact, setIsCompact] = useState<boolean | null>(null);
 	const [compactFiltersOpen, setCompactFiltersOpen] = useState(false);
 	const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const restoredFromCache = useRef(!!homeCache);
@@ -84,10 +85,6 @@ export default function HomePage() {
 		const label = RESULT_LABEL_WORDS[Math.floor(Math.random() * RESULT_LABEL_WORDS.length)];
 		setResultsLabel(getResultsLabel(people.length, label));
 	}, [people.length]);
-
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
 
 	useEffect(() => {
 		const updateCompact = () => setIsCompact(window.innerWidth <= 1024);
@@ -107,7 +104,7 @@ export default function HomePage() {
 		const requestVersion = ++searchRequestVersion.current;
 		let response;
 
-		const { queryActual, resolvedSearchMode, filterObject } = parseSearch(query, searchMode, filters);
+		const { queryActual, resolvedSearchMode, filterObject, excludedFilterObject } = parseSearch(query, searchMode, filters);
 
 		if (currentPage === 0) {
 			setIsSearching(true);
@@ -126,6 +123,7 @@ export default function HomePage() {
 					query: queryActual.length > 0 ? queryActual : null,
 					searchMode: resolvedSearchMode,
 					filters: filterObject,
+					exclude_filters: excludedFilterObject,
 					page: currentPage,
 					page_size: PAGE_SIZE,
 					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
@@ -186,6 +184,7 @@ export default function HomePage() {
 					query: queryActual.length > 0 ? queryActual : null,
 					searchMode: resolvedSearchMode,
 					filters: filterObject,
+					exclude_filters: excludedFilterObject,
 					page: currentPage + 1,
 					page_size: PAGE_SIZE,
 					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
@@ -276,6 +275,7 @@ export default function HomePage() {
 	if(isUnauthenticated) {
 		return (
 			<>
+				<MobileLoadingOverlay ready={isCompact !== null} />
 				<Topbar>
 					<Navbar />
 				</Topbar>
@@ -324,18 +324,21 @@ export default function HomePage() {
 		if(person) setLuckyPerson(person);
 	};
 
-	const setFilterValue = (key: string, newValue: string[]) => {
+	const setFilterValues = (updates: Record<string, string[]>) => {
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
 		setBrowseSeed(getRandomBrowseSeed());
-		setFilters({ ...filters, [key]: newValue });
+		setFilters((previous) => ({ ...previous, ...updates }));
 	};
+	const setFilterValue = (key: string, newValue: string[]) => setFilterValues({ [key]: newValue });
 
 	const renderSearchbar = (wrapperClassName?: string) => (
 		<Searchbar
+			autoFocus
+			enableShortcut
 			placeholder={searchMode === "initials" ? "Search by initials" : "Search Yalies"}
 			value={searchboxText}
 			onChange={onQueryChange}
@@ -376,6 +379,7 @@ export default function HomePage() {
 			<Filters
 				filters={filters || {}}
 				setFilterValue={setFilterValue}
+				setFilterValues={setFilterValues}
 				reset={reset}
 				filtersAreDefault={filtersAreDefault}
 				open={true}
@@ -385,7 +389,7 @@ export default function HomePage() {
 
 	const compactSearchPanel = (
 		<div className={styles.compact_search_panel}>
-			<div className={styles.compact_card}>
+			<div className={`${styles.compact_card} ${styles.compact_card_ready}`}>
 				<div className={styles.compact_header}>
 					<div className={styles.compact_actions}>
 						<button
@@ -414,31 +418,50 @@ export default function HomePage() {
 					{renderSearchbar(styles.compact_searchbar)}
 					<SearchModeToggle value={searchMode} onChange={onSearchModeChange} />
 				</div>
-				<div className={`${styles.compact_filters} ${compactFiltersOpen ? styles.compact_filters_open : ""}`}>
+				<div className={`${styles.compact_filters} ${compactFiltersOpen ? styles.compact_filters_open : ""}`} aria-hidden={!compactFiltersOpen}>
 					<Filters
 						filters={filters || {}}
 						setFilterValue={setFilterValue}
+						setFilterValues={setFilterValues}
 						reset={reset}
 						filtersAreDefault={filtersAreDefault}
-						open={true}
+						open={compactFiltersOpen}
 					/>
 				</div>
 			</div>
 		</div>
 	);
 
+	const compactSearchPlaceholder = (
+		<div className={styles.compact_search_panel} aria-hidden="true">
+			<div className={styles.compact_card}>
+				<div className={`${styles.compact_header} ${styles.placeholder_header}`}>
+					<span className={styles.placeholder_actions} />
+					<span className={styles.placeholder_count} />
+				</div>
+				<div className={styles.compact_search}>
+					<div className={`${styles.compact_searchbar} ${styles.placeholder_search}`} />
+					<div className={styles.placeholder_modes} />
+				</div>
+				<div className={styles.compact_filters} />
+			</div>
+		</div>
+	);
+
 	return (
 		<>
+			<MobileLoadingOverlay ready={isCompact !== null && !isSearching} />
 			<Topbar>
 				<Navbar
-					middleContent={isCompact ? undefined : searchWithFilters}
-					searchStatus={isCompact ? undefined : (isSearching ? "Searching..." : resultsLabel)}
+					// Keep desktop controls mounted from the first paint; CSS hides them on compact screens.
+					middleContent={isCompact !== true ? searchWithFilters : undefined}
+					searchStatus={isCompact !== true ? (isSearching ? "Searching..." : resultsLabel) : undefined}
 					isAuthenticated={true}
 					onLogoClick={reset}
 					onFeelingLucky={onFeelingLucky}
 				/>
 			</Topbar>
-			{isClient && isCompact && compactSearchPanel}
+			{isCompact === null ? compactSearchPlaceholder : isCompact && compactSearchPanel}
 			{searchError && (
 				<div style={{ textAlign: "center", padding: "20px", color: "#dc3545" }}>
 					{searchError}
