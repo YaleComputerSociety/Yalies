@@ -281,6 +281,18 @@ export default class PeopleRouter {
 			return res.status(200).json(cached.data);
 		}
 
+		if(query) {
+			try {
+				await PersonModel.sequelize!.query(`
+					INSERT INTO recents (netid, name, query)
+					VALUES (CAST($netid AS TEXT), (SELECT concat_ws(' ', first_name, last_name) FROM person
+						WHERE LOWER(netid) = LOWER($netid) LIMIT 1), $query)
+				`, { bind: { netid: req.netid, query } });
+			} catch {
+				console.error("Failed to save recent search");
+			}
+		}
+
 		let where: WhereOptions<PersonModel> = {};
 		for(const field of Object.keys(filtersRaw)) {
 			if(SYNTHETIC_FILTER_FIELDS.has(field as SyntheticFilterField)) continue;

@@ -61,6 +61,16 @@ export default class DB {
 				);
 			`);
 			await this.#sql.query(`
+				CREATE TABLE IF NOT EXISTS recents (
+					id BIGSERIAL PRIMARY KEY,
+					netid VARCHAR(255) NOT NULL,
+					name TEXT,
+					query TEXT NOT NULL,
+					timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+					clear BOOLEAN NOT NULL DEFAULT FALSE
+				);
+			`);
+			await this.#sql.query(`
 				ALTER TABLE user_profile
 				ADD COLUMN IF NOT EXISTS description TEXT,
 				ADD COLUMN IF NOT EXISTS interests TEXT[];

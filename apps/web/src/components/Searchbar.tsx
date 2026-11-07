@@ -12,6 +12,7 @@ export default function Searchbar({
 	placeholder = "Search Yalies",
 	autoFocus = false,
 	enableShortcut = false,
+	isSearching = false,
 }: {
 	value: string;
 	onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -21,10 +22,21 @@ export default function Searchbar({
 	placeholder?: string;
 	autoFocus?: boolean;
 	enableShortcut?: boolean;
+	isSearching?: boolean;
 }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [isMac, setIsMac] = useState<boolean | null>(null);
 	const [showKeyboardHint, setShowKeyboardHint] = useState(false);
+	const [progressVisible, setProgressVisible] = useState(isSearching);
+
+	useEffect(() => {
+		if (isSearching) {
+			setProgressVisible(true);
+			return;
+		}
+		const timeout = setTimeout(() => setProgressVisible(false), 550);
+		return () => clearTimeout(timeout);
+	}, [isSearching]);
 	const showClear = value.length > 0 && !!onClear;
 	const showShortcut = enableShortcut && isMac !== null && showKeyboardHint && !showClear;
 
@@ -90,6 +102,11 @@ export default function Searchbar({
 					</span>
 				)}
 			</div>
+			{(isSearching || progressVisible) && (
+				<div className={styles.search_progress} aria-hidden="true">
+					<div className={isSearching ? styles.progress_loading : styles.progress_complete} />
+				</div>
+			)}
 		</div>
 	);
 }
