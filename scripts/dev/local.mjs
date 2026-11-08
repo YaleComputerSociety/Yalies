@@ -151,7 +151,9 @@ try {
   }
   if (!ready || stopping) throw new Error("Local startup stopped");
   run("npm", ["run", "build", "-w", "yalies-backend"], { stdio: "inherit" });
-  const netid = await seedLocal(databaseUrl);
+  const preferredNetid = process.env.DEV_NETID
+    || (existsSync(envFile) && parseEnv(readFileSync(envFile, "utf8")).DEV_NETID);
+  const netid = await seedLocal(databaseUrl, preferredNetid || undefined);
   const sessionSecret = (existsSync(envFile) && parseEnv(readFileSync(envFile, "utf8")).SESSION_SECRET)
     || randomBytes(32).toString("hex");
   writeFileSync(envFile, [

@@ -132,6 +132,7 @@ export default function HomePage() {
 			});
 		} catch(e) {
 			if(e instanceof DOMException && e.name === "AbortError") return;
+			if(requestVersion !== searchRequestVersion.current) return;
 			console.error(e);
 			setSearchError("Failed to connect to the server. Please try again.");
 			setIsSearching(false);
@@ -159,7 +160,16 @@ export default function HomePage() {
 			setIsSearching(false);
 			return;
 		}
-		const newPeople: Person[] = await response?.json();
+		let newPeople: Person[];
+		try {
+			newPeople = await response.json();
+		} catch(e) {
+			if(requestVersion !== searchRequestVersion.current) return;
+			if(e instanceof DOMException && e.name === "AbortError") return;
+			setSearchError("Something went wrong. Please try again.");
+			setIsSearching(false);
+			return;
+		}
 		if(requestVersion !== searchRequestVersion.current) return;
 		if(newPeople.length === 0) {
 			setHasReachedEnd(true);
@@ -255,7 +265,7 @@ export default function HomePage() {
 			if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters, query, searchMode]);
+	}, [filters, query, searchMode, browseSeed]);
 
 	useEffect(() => {
 		if (filters && !isSearching && (people.length > 0 || hasReachedEnd)) {
@@ -293,7 +303,7 @@ export default function HomePage() {
 	};
 
 	const onSubmit = () => {
-		if(searchboxText === query) return;
+		setIsSearching(true);
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);
@@ -306,6 +316,7 @@ export default function HomePage() {
 
 	const onSearchModeChange = (mode: SearchMode) => {
 		if (mode === searchMode) return;
+		setIsSearching(true);
 		invalidateHomeCache();
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
@@ -325,6 +336,7 @@ export default function HomePage() {
 	};
 
 	const setFilterValues = (updates: Record<string, string[]>) => {
+		setIsSearching(true);
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);
@@ -337,12 +349,18 @@ export default function HomePage() {
 
 	const renderSearchbar = (wrapperClassName?: string) => (
 		<Searchbar
+			isSearching={isSearching}
 			autoFocus
 			enableShortcut
 			placeholder={searchMode === "initials" ? "Search by initials" : "Search Yalies"}
 			value={searchboxText}
 			onChange={onQueryChange}
 			onClear={() => {
+				if (!query) {
+					setSearchboxText("");
+					return;
+				}
+				setIsSearching(true);
 				activeSearchRequest.current?.abort();
 				searchRequestVersion.current++;
 				setSearchboxText("");
@@ -358,6 +376,7 @@ export default function HomePage() {
 	);
 
 	const reset = () => {
+		setIsSearching(true);
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);

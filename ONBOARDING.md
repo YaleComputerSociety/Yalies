@@ -29,6 +29,9 @@ It generates private settings under `.config/local`, and uses PostgreSQL on port
 It does not use or replace your existing `.config/external` files or cloud proxy configuration.
 Data persists across restarts. Ctrl+C stops the apps and the database if this command started it.
 The API must be restarted after server source changes; the frontend reloads automatically.
+To use a different person from your local directory, set `DEV_NETID` in
+`.config/local/backend.env` and restart. The selected login persists across restarts;
+you can also override it for a run with `DEV_NETID=your_netid npm run dev:local`.
 
 See [local development and database access](docs/local-development.md) for required files, shared development
 database access, and replacing sample people with a directory snapshot.

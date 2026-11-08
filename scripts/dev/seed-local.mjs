@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 const require = createRequire(new URL("../../apps/api/package.json", import.meta.url));
 const { Sequelize, Op } = require("sequelize");
 
-export async function seedLocal(databaseUrl) {
+export async function seedLocal(databaseUrl, preferredNetid) {
   const target = new URL(databaseUrl);
   if (target.hostname !== "127.0.0.1" || target.port !== "55432" || target.pathname !== "/yalies_dev") {
     throw new Error("Local seeding requires 127.0.0.1:55432/yalies_dev");
@@ -19,8 +19,11 @@ export async function seedLocal(databaseUrl) {
       models[name] = Model;
     }
     if (await models.Person.count() !== 0) {
-      const person = await models.Person.findOne({ where: { netid: "dev1" } })
-        || await models.Person.findOne({ where: { netid: { [Op.ne]: null, [Op.notIn]: [""] } }, order: [["id", "ASC"]] });
+      const person = preferredNetid
+        ? await models.Person.findOne({ where: { netid: preferredNetid } })
+        : await models.Person.findOne({ where: { netid: "dev1" } })
+          || await models.Person.findOne({ where: { netid: { [Op.ne]: null, [Op.notIn]: [""] } }, order: [["id", "ASC"]] });
+      if (preferredNetid && !person) throw new Error(`Development login ${preferredNetid} is not in the local directory`);
       if (!person || !/^[a-z][a-z0-9]*$/i.test(person.netid)) throw new Error("Local people need a valid NetID for dev login");
       console.log("Local database already has people; keeping existing data.");
       return person.netid;

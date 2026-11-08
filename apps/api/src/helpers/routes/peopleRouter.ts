@@ -4,9 +4,10 @@ import { NETID_REGEX } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
 import ProfileLikeModel from "../models/ProfileLikeModel.js";
 import FriendshipModel from "../models/FriendshipModel.js";
-import { Op, Sequelize, WhereOptions, type Order, type OrderItem } from "sequelize";
+import { Op, Sequelize, WhereOptions, type OrderItem } from "sequelize";
 import CAS from "../cas.js";
-import { buildFuzzyNameSearch, buildInitialsSearch, normalizeInitials } from "../nameSearch.js";
+import { findNameSearchIds, buildInitialsSearch, normalizeInitials, type NameSearchCandidate } from "../nameSearch.js";
+import { searchProximity, type SearchPerson } from "../searchProximity.js";
 import { buildExcludedFiltersWhere, buildLocationIncludesWhere, parseExcludedFilters, type ExcludedFilters } from "../filterExclusions.js";
 
 const SEARCH_CACHE_MAX = 150;
@@ -93,7 +94,7 @@ function getSearchOrder(query: string): OrderItem[] {
 	];
 }
 
-function getInitialsOrder(): Order {
+function getInitialsOrder(): OrderItem[] {
 	return [
 		["last_name", "ASC"],
 		["first_name", "ASC"],
@@ -195,12 +196,17 @@ export default class PeopleRouter {
 		};
 	};
 
-	getSuggestionsFromDatabase = async (query: string, limit: number = 8) => {
+	getSearchViewer = async (netid?: string): Promise<SearchPerson | null> => netid
+		? await PersonModel.findOne({ where: { netid }, attributes: ["year", "college"], raw: true })
+		: null;
+
+	getSuggestionsFromDatabase = async (query: string, limit: number = 8, netid?: string) => {
 		try {
+			const viewer = await this.getSearchViewer(netid);
 			const people = await PersonModel.findAll({
 				where: this.buildNameSearchWhere(query),
 				attributes: ["netid", "first_name", "last_name", "image", "college", "year", "school"],
-				order: getSearchOrder(query),
+				order: [...searchProximity(viewer).sqlOrder(PersonModel.sequelize!), ...getSearchOrder(query)],
 				limit,
 			});
 			return people.map((p) => ({
@@ -247,7 +253,7 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const suggestions = await this.getSuggestionsFromDatabase(query, 8);
+		const suggestions = await this.getSuggestionsFromDatabase(query, 8, req.netid);
 		res.status(200).json(suggestions);
 	};
 
@@ -319,7 +325,7 @@ export default class PeopleRouter {
 		where = andWhere(where, buildLocationIncludesWhere(filtersRaw));
 		where = andWhere(where, buildExcludedFiltersWhere(excludedFilters));
 
-		let searchOrder: Order | null = null;
+		let searchOrder: OrderItem[] | null = null;
 
 		if(query) {
 			if(searchMode === "first_name") {
@@ -346,10 +352,7 @@ export default class PeopleRouter {
 				}
 
 			} else if(searchMode === "full_name") {
-				const nameSearch = buildFuzzyNameSearch(PersonModel.sequelize!, query);
-				where = andWhere(where, nameSearch.where);
-				const order = getSearchOrder(query);
-				searchOrder = [order[0], nameSearch.similarityOrder, ...order.slice(1)];
+				// Resolve progressive matching below, once ALL filters are applied.
 			} else if(searchMode === "default" && query.match(/^[a-z]{2}$/i)) {
 				where = andWhere(where, this.constructInitialsQuery(query));
 				searchOrder = getInitialsOrder();
@@ -368,6 +371,8 @@ export default class PeopleRouter {
 		if(birthDateWhere) {
 			where = andWhere(where, birthDateWhere);
 		}
+		const isBirthdaySearch = Boolean(birthdayWhere || birthDateWhere
+			|| getFilterValues(filtersRaw, "birth_month").length || getFilterValues(filtersRaw, "birth_day").length);
 
 		if(getFilterValues(filtersRaw, "is_friend").includes("true")) {
 			if(!req.netid) {
@@ -384,11 +389,29 @@ export default class PeopleRouter {
 
 		let people: PersonModel[];
 		try {
+			let offset = page * pageSize;
+			const viewer = query || isBirthdaySearch ? await this.getSearchViewer(req.netid) : null;
+			if(query && searchMode === "full_name") {
+				const ids = await findNameSearchIds(PersonModel.sequelize!, query, async (condition, attributes) =>
+					await PersonModel.findAll({
+						where: andWhere(where, condition), attributes, raw: true,
+					}) as unknown as NameSearchCandidate[],
+					viewer,
+				);
+				const pageIds = ids.slice(offset, offset + Number(pageSize));
+				where = andWhere(where, { id: { [Op.in]: pageIds } });
+				searchOrder = pageIds.length ? [[Sequelize.fn("array_position",
+					Sequelize.literal(`ARRAY[${pageIds.map(id => PersonModel.sequelize!.escape(id)).join(",")}]::integer[]`),
+					Sequelize.col("id")), "ASC"]] : getInitialsOrder();
+				offset = 0;
+			} else if(query || isBirthdaySearch) {
+				searchOrder = [...searchProximity(viewer).sqlOrder(PersonModel.sequelize!), ...(searchOrder ?? getInitialsOrder())];
+			}
 			people = await PersonModel.findAll({
 				where,
 				order: searchOrder ?? getPeopleOrder(randomSeed),
 				limit: pageSize,
-				offset: page * pageSize,
+				offset,
 			});
 		} catch(e) {
 			console.error(e);
@@ -483,6 +506,20 @@ export default class PeopleRouter {
 				...(friendData && { friend_data: friendData }),
 			};
 		});
+
+		if(query) {
+			// Legacy two-letter queries use initials even without an explicit mode.
+			const recordedSearchMode = searchMode === "default" && /^[a-z]{2}$/i.test(query) ? "initials" : searchMode;
+			try {
+				await PersonModel.sequelize!.query(`
+					INSERT INTO recents (netid, name, query, search_mode, results)
+					VALUES (CAST($netid AS TEXT), (SELECT concat_ws(' ', first_name, last_name) FROM person
+						WHERE LOWER(netid) = LOWER($netid) LIMIT 1), $query, $searchMode, CAST($results AS TEXT[]))
+				`, { bind: { netid: req.netid, query, searchMode: recordedSearchMode, results: netids } });
+			} catch {
+				console.error("Failed to save recent search");
+			}
+		}
 
 		searchCache.set(cacheKey, { data: json, timestamp: Date.now() });
 		pruneCache();
