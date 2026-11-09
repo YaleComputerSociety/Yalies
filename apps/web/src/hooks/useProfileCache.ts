@@ -1,5 +1,5 @@
 import { API_URL } from "@/consts";
-import { Person, UserProfile, API } from "yalies-shared";
+import { Person, UserProfile, API, YaleMojiAvatar } from "yalies-shared";
 
 export type PendingPhotoRequest = {
 	id: number;
@@ -11,6 +11,7 @@ export type PendingPhotoRequest = {
 type CachedProfile = {
 	profile: UserProfile;
 	person: Person | null;
+	yalemoji: YaleMojiAvatar | null;
 	photoRequest: PendingPhotoRequest | null;
 	timestamp: number;
 };
@@ -26,10 +27,11 @@ async function fetchFullProfile(): Promise<CachedProfile | null> {
 			headers: { "Content-Type": "application/json" },
 		});
 		if (!response.ok) return null;
-		const { profile, person, photo_request } = await response.json();
+		const { profile, person, photo_request, yalemoji } = await response.json();
 		const result: CachedProfile = {
 			profile,
 			person,
+			yalemoji: yalemoji ?? null,
 			photoRequest: photo_request ?? null,
 			timestamp: Date.now(),
 		};

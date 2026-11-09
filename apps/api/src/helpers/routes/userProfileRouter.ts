@@ -11,6 +11,7 @@ import PersonModel from "../models/PersonModel.js";
 import DataChangeRequestModel from "../models/DataChangeRequestModel.js";
 import { detectFace, compareFaces, shouldRunFacecheck } from "../facecheck.js";
 import { CHANGE_REQUEST_ALLOWED_FIELDS } from "yalies-shared";
+import { getYaleMojiAvatar } from "../yalemojiAvatar.js";
 
 const GCS_BUCKET_NAME = "yalies-photos";
 // On Cloud Run we authenticate via the attached runtime service account
@@ -133,13 +134,14 @@ export default class UserProfileRouter {
 
 	getMyFullProfile = async (req: Request, res: Response) => {
 		try {
-			const [profile, person, pendingRequests] = await Promise.all([
+			const [profile, person, pendingRequests, yalemoji] = await Promise.all([
 				UserProfileModel.findByPk(req.netid),
 				PersonModel.findOne({ where: { netid: req.netid } }),
 				DataChangeRequestModel.findAll({
 					where: { requester_netid: req.netid, status: "pending" },
 					order: [["created_at", "DESC"]],
 				}),
+				getYaleMojiAvatar(req.netid),
 			]);
 			const pendingPhotoRequest = pendingRequests.find((request) => {
 				const image = request.requested_changes?.image;
@@ -148,6 +150,7 @@ export default class UserProfileRouter {
 			return res.status(200).json({
 				profile: profile ? profile.toSanitizedObject() : { netid: req.netid },
 				person: person ? person.toSanitizedObject() : null,
+				yalemoji,
 				photo_request: pendingPhotoRequest ? {
 					id: pendingPhotoRequest.id,
 					status: pendingPhotoRequest.status,

@@ -74,6 +74,13 @@ export type UserProfile = {
 	updated_at?: Date;
 };
 
+export type YaleMojiAvatar = {
+	version: number;
+	png_url: string;
+	svg_url: string;
+	background_url: string;
+};
+
 export type ValidationResult = {
 	passes: string[];
 	warnings: string[];

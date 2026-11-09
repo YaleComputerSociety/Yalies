@@ -14,8 +14,11 @@
 	justify-content: center;
 	border: 0;
 	border-radius: 9px;
+	overflow: hidden;
+	padding: 0;
 	color: #ffffff;
 	background: shared.$accent-color;
+	background-size: 100% 100%;
 	font-size: 1rem;
 	font-weight: 700;
 	font-family: inherit;
@@ -41,6 +44,43 @@
 
 .profile_fallback_icon {
 	font-size: 0.95rem;
+}
+
+.button_avatar {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.header_avatar {
+	width: 80px;
+	height: 80px;
+	object-fit: contain;
+}
+
+.header_edit {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+	width: 28px;
+	height: 28px;
+	display: grid;
+	place-items: center;
+	color: #ffffff;
+
+	&:hover .header_edit_icon,
+	&:focus-visible .header_edit_icon {
+		filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+	}
+}
+
+.header_edit_icon {
+	display: block;
+	width: 20px;
+	height: auto;
+	opacity: 1;
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+	transition: filter 0.12s ease;
 }
 
 .dropdown {
@@ -90,6 +130,7 @@
 
 .identity_header {
 	position: relative;
+	box-sizing: border-box;
 	min-height: 108px;
 	padding: 0.7rem 1rem 0.8rem;
 	display: flex;
@@ -98,6 +139,7 @@
 	justify-content: center;
 	color: #ffffff;
 	background: shared.$accent-color;
+	background-size: 100% 100%;
 }
 
 .header_initials {

@@ -156,10 +156,15 @@ try {
   const netid = await seedLocal(databaseUrl, preferredNetid || undefined);
   const sessionSecret = (existsSync(envFile) && parseEnv(readFileSync(envFile, "utf8")).SESSION_SECRET)
     || randomBytes(32).toString("hex");
+  const previousEnv = existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")) : {};
+  const yalemojiEnv = ["YALEMOJI_API_KEY", "YALEMOJI_API_URL"].flatMap(name => {
+    const value = process.env[name] || previousEnv[name];
+    return value ? [`${name}=${JSON.stringify(value)}`] : [];
+  });
   writeFileSync(envFile, [
     `DATABASE_URL=${databaseUrl}`, `SESSION_SECRET=${sessionSecret}`, "PORT=1337", "HOST=127.0.0.1", "NODE_ENV=development",
     "AUTH_MODE=dev", `DEV_NETID=${netid}`, `ADMIN_NETIDS=${netid}`, "FRONTEND_URL=http://localhost:3000",
-    "OIDC_ENABLED=false", "FACECHECK_ENABLED=false", "PHOTO_STORAGE_ENABLED=false", "PREVIEW_READ_ONLY=false", "",
+    "OIDC_ENABLED=false", "FACECHECK_ENABLED=false", "PHOTO_STORAGE_ENABLED=false", "PREVIEW_READ_ONLY=false", ...yalemojiEnv, "",
   ].join("\n"), { mode: 0o600 });
   console.log("Local PostgreSQL ready at 127.0.0.1:55432/yalies_dev (no cloud credentials used).");
   if (mode === "--setup") {
