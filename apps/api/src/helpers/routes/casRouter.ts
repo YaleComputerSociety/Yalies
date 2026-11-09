@@ -1,7 +1,8 @@
 import express, { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import { RequestUser } from "../types";
-import { createSignedAuthAssertion, isValidYaleMojiState, YaleMojiAuthError } from "../yalemojiAuth.js";
+import { createSignedAuthAssertion, getYaleMojiFirstName, isValidYaleMojiState, YaleMojiAuthError } from "../yalemojiAuth.js";
+import PersonModel from "../models/PersonModel.js";
 
 import { takeOidcContinuation, finishLogin } from "../oidc/continuation.js";
 
@@ -74,11 +75,22 @@ export default class CasRouter {
 			const netid = userWithData.netId?.trim().toLowerCase();
 			if(!netid) return this.redirectYaleMojiError(res, errorCallbackUrl, "identity_unavailable", state);
 
-			return req.logIn(user, (loginError) => {
+			return req.logIn(user, async (loginError) => {
 				if(loginError) return this.redirectYaleMojiError(res, errorCallbackUrl, "session_failed", state);
 				req.session.netid = netid;
 
-				const assertion = createSignedAuthAssertion(netid, state, secret);
+				let firstName: string | undefined;
+				try {
+					const person = await PersonModel.findOne({
+						where: { netid },
+						attributes: ["preferred_name", "first_name"],
+					});
+					firstName = getYaleMojiFirstName(person);
+				} catch(error) {
+					console.warn("Could not load YaleMoji greeting name", error);
+				}
+
+				const assertion = createSignedAuthAssertion(netid, state, secret, undefined, firstName);
 				callbackUrl.searchParams.set("assertion", assertion);
 				return res.redirect(callbackUrl.toString());
 			});

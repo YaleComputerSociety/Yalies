@@ -15,6 +15,7 @@ export type YaleMojiAuthAssertionPayload = {
 	iss: "yalies";
 	aud: "yalemoji";
 	netid: string;
+	firstName?: string;
 	iat: number;
 	exp: number;
 	state: string;
@@ -27,11 +28,16 @@ export const isValidYaleMojiState = (state: unknown): state is string => {
 		&& /^[A-Za-z0-9._~-]+$/.test(state);
 };
 
+export const getYaleMojiFirstName = (person: { preferred_name?: string | null; first_name?: string | null } | null): string | undefined => {
+	return (person?.preferred_name?.trim() || person?.first_name?.trim() || "").slice(0, 80) || undefined;
+};
+
 export const createSignedAuthAssertion = (
 	netid: string,
 	state: string,
 	secret: string,
 	now = Math.floor(Date.now() / 1000),
+	firstName?: string,
 ) => {
 	const normalizedNetid = netid.trim().toLowerCase();
 	if(!normalizedNetid) throw new Error("Cannot sign an assertion without a NetID");
@@ -43,6 +49,7 @@ export const createSignedAuthAssertion = (
 		iss: "yalies",
 		aud: "yalemoji",
 		netid: normalizedNetid,
+		...(firstName?.trim() ? { firstName: firstName.trim().slice(0, 80) } : {}),
 		iat: now,
 		exp: now + YALEMOJI_ASSERTION_TTL_SECONDS,
 		state,
