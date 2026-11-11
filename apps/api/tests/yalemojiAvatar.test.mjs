@@ -63,7 +63,7 @@ test("rejects malformed avatars and unsafe asset URLs", async () => {
   }
 });
 
-test("permits a local YaleMoji server in development and refuses insecure remote endpoints", async () => {
+test("permits a local Yalemoji server in development and refuses insecure remote endpoints", async () => {
   const fetch = respond({ avatar });
   process.env.NODE_ENV = "development";
   process.env.YALEMOJI_API_URL = "http://localhost:3002";

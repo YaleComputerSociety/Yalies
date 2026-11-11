@@ -115,7 +115,6 @@ export default function ProfileButton({
 	const [open, setOpen] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const [person, setPerson] = useState<Person | null>(null);
-	const [netid, setNetid] = useState("");
 	const [avatar, setAvatar] = useState<YaleMojiAvatar | null>(null);
 	const [cachedIdentity, setCachedIdentity] = useState<CachedProfileIdentity | null>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
@@ -166,7 +165,6 @@ export default function ProfileButton({
 		if(!isAuthenticated) {
 			setAvatar(null);
 			setPerson(null);
-			setNetid("");
 			invalidateProfileCache();
 			return;
 		}
@@ -176,7 +174,6 @@ export default function ProfileButton({
 			if(!active || !result) return;
 			setAvatar(result.yalemoji);
 			setPerson(result.person);
-			setNetid(result.profile.netid);
 			if(result.person) {
 				const identity = getProfileIdentity(result.person);
 				if(identity) {
@@ -208,7 +205,6 @@ export default function ProfileButton({
 		return "";
 	}, [cachedIdentity, person]);
 
-	const firstName = getFirstName(person) || netid || cachedIdentity?.firstName || "";
 	const avatarStyle = avatar ? { backgroundImage: `url("${avatar.background_url}")` } : undefined;
 
 	if (isAuthenticated) {
@@ -234,24 +230,33 @@ export default function ProfileButton({
 				{open && (
 					<div className={`${styles.dropdown} ${closing ? styles.closing : ""}`}>
 						<div className={styles.identity_header} style={avatarStyle}>
-							<YaleMojiLink
+							{avatar && <YaleMojiLink
 								className={styles.header_edit}
-								href={`https://yalemoji.com/${avatar ? "editor" : "create"}?ref=yalies`}
+								href="https://yalemoji.com/editor?ref=yalies"
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={avatar ? "Edit your YaleMoji" : "Build your YaleMoji"}
-								title={avatar ? "Edit your YaleMoji" : "Build your YaleMoji"}
+								aria-label="Edit your Yalemoji"
+								title="Edit your Yalemoji"
 							>
 								<img src="/icons/yalemoji.svg" alt="" className={styles.header_edit_icon} width={20} height={16} />
-							</YaleMojiLink>
+							</YaleMojiLink>}
 							{avatar ? (
-								<img src={avatar.png_url} alt="Your YaleMoji" className={styles.header_avatar} onError={() => setAvatar(null)} />
+								<img src={avatar.png_url} alt="Your Yalemoji" className={styles.header_avatar} onError={() => setAvatar(null)} />
 							) : (
 								<div className={styles.header_initials} suppressHydrationWarning>
 									{initials || <FontAwesomeIcon icon={faUser} className={styles.header_fallback_icon} />}
 								</div>
 							)}
-							{!avatar && firstName && <span className={styles.greeting}>Hello, {firstName}</span>}
+							{!avatar && (
+								<YaleMojiLink
+									className={styles.create_yalemoji}
+									href="https://yalemoji.com/create?ref=yalies"
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Make your Yalemoji
+								</YaleMojiLink>
+							)}
 						</div>
 						<div className={styles.menu_items}>
 							{showCompactNavLinks && (

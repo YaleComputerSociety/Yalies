@@ -43,7 +43,7 @@ const apps: AppLink[] = [
 		color: "#468ff2",
 	},
 	{
-		name: "YaleMoji",
+		name: "Yalemoji",
 		href: "https://yalemoji.com?ref=yalies",
 		image: "/apps-panel/yalemoji-waffle.png",
 		imageSize: "large",
@@ -138,7 +138,7 @@ export default function AppsDropdown() {
 				<div className={`${styles.dropdown} ${closing ? styles.closing : ""}`}>
 					<div className={styles.app_grid}>
 						{apps.map((app) => {
-							const LinkElement = app.name === "YaleMoji" ? YaleMojiLink : "a";
+							const LinkElement = app.name === "Yalemoji" ? YaleMojiLink : "a";
 							return <LinkElement
 								key={app.name}
 								className={styles.app_tile}

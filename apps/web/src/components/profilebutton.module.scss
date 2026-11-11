@@ -18,7 +18,8 @@
 	padding: 0;
 	color: #ffffff;
 	background: shared.$accent-color;
-	background-size: 100% 100%;
+	background-size: 38px 38px;
+	background-position: center;
 	font-size: 1rem;
 	font-weight: 700;
 	font-family: inherit;
@@ -139,7 +140,9 @@
 	justify-content: center;
 	color: #ffffff;
 	background: shared.$accent-color;
-	background-size: 100% 100%;
+	// Yalemoji SVGs use preserveAspectRatio="none", so the tile must be square.
+	background-size: 220px 220px;
+	background-position: center;
 }
 
 .header_initials {
@@ -156,10 +159,24 @@
 	font-size: 1.9rem;
 }
 
-.greeting {
-	margin-top: 0.4rem;
+.create_yalemoji {
+	margin-top: 0.65rem;
+	padding: 0.4rem 0.85rem;
+	border: 1px solid #ffffff;
+	border-radius: 999px;
+	background: #ffffff;
+	color: shared.$accent-color;
 	font-size: 0.78rem;
 	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	transition: background-color 0.3s ease, color 0.3s ease;
+
+	&:hover,
+	&:focus-visible {
+		background: transparent;
+		color: #ffffff;
+	}
 }
 
 .menu_items {
@@ -267,6 +284,11 @@
 		border-radius: 24px;
 	}
 
+	.header_avatar {
+		width: 104px;
+		height: 104px;
+	}
+
 	.menu_items {
 		padding: 1.15rem 1.25rem 0.85rem;
 	}
@@ -279,6 +301,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+	.create_yalemoji {
+		transition: none;
+	}
+
 	.dropdown {
 		animation: none;
 	}

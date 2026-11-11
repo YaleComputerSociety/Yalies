@@ -56,22 +56,22 @@ Seeding only runs when `person` is empty. Restarting keeps your test edits. Afte
 restart `dev:local`; Next.js and shared package changes reload/watch automatically. Ports 1337 and 3000
 must be free. When switching Node versions for an existing checkout, run `nvm use` before launching.
 
-## YaleMoji avatars in the local profile menu
+## Yalemoji avatars in the local profile menu
 
-The optional integration calls YaleMoji from the API server using `YALEMOJI_API_KEY`.
+The optional integration calls Yalemoji from the API server using `YALEMOJI_API_KEY`.
 The browser receives only the public avatar and background URLs. A saved avatar appears
 in the profile button and dropdown; missing avatars or lookup failures use initials.
-Returning to the tab after editing a YaleMoji refreshes the profile.
+Returning to the tab after editing a Yalemoji refreshes the profile.
 
 Add `YALEMOJI_API_KEY` to the private `.config/local/backend.env`, or supply it in the
 environment when running `npm run dev:local`. The launcher preserves it across restarts.
 The default API host is `https://www.yalemoji.com`; optionally set `YALEMOJI_API_URL`
-to a local YaleMoji server (for example `http://localhost:3002`) in development.
-YaleMoji authenticates the key regardless of the caller's origin, including localhost.
+to a local Yalemoji server (for example `http://localhost:3002`) in development.
+Yalemoji authenticates the key regardless of the caller's origin, including localhost.
 Never use a `NEXT_PUBLIC_` variable for this key.
 
 The Yalies app key is stored as `yalemoji-yalies-api-key` in Secret Manager in both
-Google Cloud projects, `yalies` and `yalemoji`. The YaleMoji `apiKeys` collection holds
+Google Cloud projects, `yalies` and `yalemoji`. The Yalemoji `apiKeys` collection holds
 only its SHA-256 hash. Future deployments can bind the Yalies secret to
 `YALEMOJI_API_KEY` with Cloud Run's `--update-secrets` flag; local setup does not deploy
 or change the live service configuration.
