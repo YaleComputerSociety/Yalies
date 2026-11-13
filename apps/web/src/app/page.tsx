@@ -4,9 +4,8 @@ import { parseSearch } from "@/helpers/searchQuery";
 import PeopleGrid from "@/components/PeopleGrid";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
-import Navbar from "@/components/Navbar";
+import { NavbarContent, useSession } from "@/components/NavigationShell";
 import Filters from "@/components/Filters";
-import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
 import Searchbar from "@/components/Searchbar";
 import SearchModeToggle, { type SearchMode } from "@/components/SearchModeToggle";
@@ -57,6 +56,7 @@ function filtersAreDefaultBrowse(filters: Record<string, string[]> | null) {
 }
 
 export default function HomePage() {
+	const { setAuthenticated } = useSession();
 	const homeCache = getHomeCache();
 
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
@@ -147,6 +147,7 @@ export default function HomePage() {
 		}
 		if(!response.ok) {
 			if(response.status === 401) {
+				setAuthenticated(false);
 				setUnauthenticated(true);
 				setIsSearching(false);
 				return;
@@ -160,6 +161,7 @@ export default function HomePage() {
 			setIsSearching(false);
 			return;
 		}
+		setAuthenticated(true);
 		let newPeople: Person[];
 		try {
 			newPeople = await response.json();
@@ -202,7 +204,7 @@ export default function HomePage() {
 			}).catch(() => {});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed]);
+	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed, setAuthenticated]);
 
 	const getTodaysBirthdays = async () => {
 		let response;
@@ -286,9 +288,6 @@ export default function HomePage() {
 		return (
 			<>
 				<MobileLoadingOverlay ready={isCompact !== null} />
-				<Topbar>
-					<Navbar />
-				</Topbar>
 				<Splash />
 			</>
 		);
@@ -470,16 +469,13 @@ export default function HomePage() {
 	return (
 		<>
 			<MobileLoadingOverlay ready={isCompact !== null && !isSearching} />
-			<Topbar>
-				<Navbar
-					// Keep desktop controls mounted from the first paint; CSS hides them on compact screens.
-					middleContent={isCompact !== true ? searchWithFilters : undefined}
-					searchStatus={isCompact !== true ? (isSearching ? "Searching..." : resultsLabel) : undefined}
-					isAuthenticated={true}
-					onLogoClick={reset}
-					onFeelingLucky={onFeelingLucky}
-				/>
-			</Topbar>
+			<NavbarContent
+				// Keep desktop controls mounted from the first paint; CSS hides them on compact screens.
+				middleContent={isCompact !== true ? searchWithFilters : undefined}
+				searchStatus={isCompact !== true ? (isSearching ? "Searching..." : resultsLabel) : undefined}
+				onLogoClick={reset}
+				onFeelingLucky={onFeelingLucky}
+			/>
 			{isCompact === null ? compactSearchPlaceholder : isCompact && compactSearchPanel}
 			{searchError && (
 				<div style={{ textAlign: "center", padding: "20px", color: "#dc3545" }}>

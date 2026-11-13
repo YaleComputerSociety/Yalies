@@ -2,8 +2,7 @@
 import { API_URL, COLLEGE_SHIELDS } from "@/consts";
 
 import styles from "./profile.module.scss";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
+import { useSession } from "@/components/NavigationShell";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { Lexend_Deca } from "next/font/google";
@@ -22,6 +21,7 @@ import { getSocialUrlError, normalizeSocialUrl } from "@/utils/externalUrl";
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
 export default function ProfilePage() {
+	const { setAuthenticated } = useSession();
 	const router = useRouter();
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
 	const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -64,10 +64,12 @@ export default function ProfilePage() {
 		try {
 			const cached = await getProfile();
 			if(cached) {
+				setAuthenticated(true);
 				applyProfileData(cached.profile, cached.person, cached.photoRequest);
 				return;
 			}
 
+			setAuthenticated(false);
 			setUnauthenticated(true);
 		} catch(e) {
 			console.error(e);
@@ -366,9 +368,6 @@ export default function ProfilePage() {
 	if(isUnauthenticated) {
 		return (
 			<>
-				<Topbar>
-					<Navbar />
-				</Topbar>
 				<div id={styles.profile_page} className={logoFont.className}>
 					<p>Please sign in to view your profile.</p>
 				</div>
@@ -383,9 +382,6 @@ export default function ProfilePage() {
 
 	return (
 		<>
-			<Topbar>
-				<Navbar isAuthenticated={true} />
-			</Topbar>
 			<div id={styles.profile_page} className={logoFont.className}>
 				{showDataChangeBanner && (
 					<div className={styles.banner}>Your change request has been submitted!</div>

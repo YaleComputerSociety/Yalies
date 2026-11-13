@@ -3,8 +3,10 @@ import { API_URL } from "@/consts";
 
 import styles from "./profilebutton.module.scss";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import YaleMojiLink from "./YaleMojiLink";
 import { getProfile, prefetchProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
+import { clearYaleMojiCache, subscribeYaleMoji } from "@/hooks/yalemojiCache";
 import { API, Person, YaleMojiAvatar } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
@@ -112,6 +114,7 @@ export default function ProfileButton({
 	isAuthenticated?: boolean;
 	showCompactNavLinks?: boolean;
 }) {
+	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const [person, setPerson] = useState<Person | null>(null);
@@ -119,6 +122,12 @@ export default function ProfileButton({
 	const [cachedIdentity, setCachedIdentity] = useState<CachedProfileIdentity | null>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		setOpen(false);
+		setClosing(false);
+	}, [pathname]);
 
 	const openDropdown = useCallback(() => {
 		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -169,10 +178,11 @@ export default function ProfileButton({
 			return;
 		}
 		let active = true;
+		let unsubscribeAvatar: (() => void) | undefined;
 		const load = async () => {
 			const result = await getProfile();
 			if(!active || !result) return;
-			setAvatar(result.yalemoji);
+			unsubscribeAvatar = subscribeYaleMoji(result.profile.netid, setAvatar);
 			setPerson(result.person);
 			if(result.person) {
 				const identity = getProfileIdentity(result.person);
@@ -182,18 +192,10 @@ export default function ProfileButton({
 				}
 			}
 		};
-		const refresh = () => {
-			if(document.visibilityState === "hidden") return;
-			invalidateProfileCache();
-			void load();
-		};
 		void load();
-		window.addEventListener("focus", refresh);
-		document.addEventListener("visibilitychange", refresh);
 		return () => {
 			active = false;
-			window.removeEventListener("focus", refresh);
-			document.removeEventListener("visibilitychange", refresh);
+			unsubscribeAvatar?.();
 		};
 	}, [isAuthenticated]);
 
@@ -272,6 +274,7 @@ export default function ProfileButton({
 								icon={faArrowRightFromBracket}
 								iconClassName={styles.icon_red}
 								onClick={() => {
+									clearYaleMojiCache();
 									window.location.href = API_URL + API.logout;
 								}}
 							>

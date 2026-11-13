@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import styles from "./appsdropdown.module.scss";
 import YaleMojiLink from "./YaleMojiLink";
 
@@ -79,10 +80,17 @@ function normalizeHostname(hostname: string) {
 const DROPDOWN_ANIMATION_MS = 180;
 
 export default function AppsDropdown() {
+	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		setOpen(false);
+		setClosing(false);
+	}, [pathname]);
 
 	const openDropdown = useCallback(() => {
 		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);

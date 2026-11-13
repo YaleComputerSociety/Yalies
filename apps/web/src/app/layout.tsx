@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.scss";
 import mainStyle from "./main.module.scss";
 import RouteAnalytics from "../components/RouteAnalytics";
+import NavigationShell from "../components/NavigationShell";
 
 export const metadata: Metadata = {
 	title: "Yalies",
@@ -29,7 +30,7 @@ export default function RootLayout({
 			</head>
 			<body>
 				<div id={mainStyle.content}>
-					{children}
+					<NavigationShell>{children}</NavigationShell>
 				</div>
 			</body>
 			{process.env.YALIES_PREVIEW !== "true" && <RouteAnalytics />}

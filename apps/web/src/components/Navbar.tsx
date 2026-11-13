@@ -15,19 +15,21 @@ const logoFont = Lexend_Deca({ subsets: ["latin"] });
 const THEME_STORAGE_KEY = "yalies-theme";
 type Theme = "light" | "dark";
 
+export type NavbarProps = {
+	middleContent?: React.ReactNode;
+	isAuthenticated?: boolean;
+	onLogoClick?: () => void;
+	onFeelingLucky?: () => void;
+	searchStatus?: React.ReactNode;
+};
+
 export default function Navbar({
 	middleContent,
 	isAuthenticated,
 	onLogoClick,
 	onFeelingLucky,
 	searchStatus,
-}: {
-	middleContent?: React.ReactNode;
-	isAuthenticated?: boolean;
-	onLogoClick?: () => void;
-	onFeelingLucky?: () => void;
-	searchStatus?: React.ReactNode;
-}) {
+}: NavbarProps) {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [theme, setTheme] = useState<Theme>("light");
 	const pathname = usePathname();
@@ -35,6 +37,8 @@ export default function Navbar({
 	const profileActive = pathname === "/profile" || pathname.startsWith("/profile/");
 	const useCompactTopNav = !middleContent && pathname !== "/";
 	const topNavClassName = useCompactTopNav ? `${styles.navbar_top} ${styles.navbar_top_compact}` : styles.navbar_top;
+
+	useEffect(() => setMenuOpen(false), [pathname]);
 
 	useEffect(() => {
 		const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);

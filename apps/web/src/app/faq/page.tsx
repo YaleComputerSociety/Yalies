@@ -1,14 +1,10 @@
 "use client";
 
-import { API_URL } from "@/consts";
 import styles from "../about/about.module.scss";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
 import { Lexend_Deca } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { API } from "yalies-shared";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
@@ -26,23 +22,8 @@ function FaqItem({ question, children }: { question: string; children: React.Rea
 }
 
 export default function FaqPage() {
-	const [isAuthenticated, setAuthenticated] = useState(false);
-
-	useEffect(() => {
-		const checkAuth = async () => {
-			const res = await fetch(`${API_URL}${API.profileMe}`, {
-				credentials: "include",
-			});
-			setAuthenticated(res.ok);
-		};
-		checkAuth();
-	}, []);
-
 	return (
 		<>
-			<Topbar>
-				<Navbar isAuthenticated={isAuthenticated} />
-			</Topbar>
 			<div id={styles.about_page} className={logoFont.className}>
 				<h1>FAQ</h1>
 				<div className={styles.faq_list}>

@@ -122,6 +122,7 @@ export default class UserProfileRouter {
 			return next();
 		});
 		router.get("/me/full", CAS.requireAuthenticationSessionOnly, this.getMyFullProfile);
+		router.get("/me/yalemoji", CAS.requireAuthenticationSessionOnly, this.getMyYaleMoji);
 		router.get("/me", CAS.requireAuthenticationSessionOnly, this.getMyProfile);
 		router.put("/me", CAS.requireAuthenticationSessionOnly, this.updateMyProfile);
 		router.post("/me/photo", CAS.requireAuthenticationSessionOnly, uploadPhotoMiddleware, this.uploadPhoto);
@@ -134,14 +135,13 @@ export default class UserProfileRouter {
 
 	getMyFullProfile = async (req: Request, res: Response) => {
 		try {
-			const [profile, person, pendingRequests, yalemoji] = await Promise.all([
+			const [profile, person, pendingRequests] = await Promise.all([
 				UserProfileModel.findByPk(req.netid),
 				PersonModel.findOne({ where: { netid: req.netid } }),
 				DataChangeRequestModel.findAll({
 					where: { requester_netid: req.netid, status: "pending" },
 					order: [["created_at", "DESC"]],
 				}),
-				getYaleMojiAvatar(req.netid),
 			]);
 			const pendingPhotoRequest = pendingRequests.find((request) => {
 				const image = request.requested_changes?.image;
@@ -150,7 +150,6 @@ export default class UserProfileRouter {
 			return res.status(200).json({
 				profile: profile ? profile.toSanitizedObject() : { netid: req.netid },
 				person: person ? person.toSanitizedObject() : null,
-				yalemoji,
 				photo_request: pendingPhotoRequest ? {
 					id: pendingPhotoRequest.id,
 					status: pendingPhotoRequest.status,
@@ -162,6 +161,11 @@ export default class UserProfileRouter {
 			console.error(e);
 			return res.status(500).send("Error fetching full profile");
 		}
+	};
+
+	getMyYaleMoji = async (req: Request, res: Response) => {
+		res.set("Cache-Control", "no-store");
+		return res.status(200).json({ netid: req.netid, yalemoji: await getYaleMojiAvatar(req.netid) });
 	};
 
 	getMyProfile = async (req: Request, res: Response) => {

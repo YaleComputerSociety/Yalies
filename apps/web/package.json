@@ -10,6 +10,7 @@
     "deploy": "bash ../../scripts/deploy/web.sh",
     "preview": "bash ../../deploy/preview/deploy.sh",
     "typecheck": "tsc --noEmit",
+    "test:yalemoji": "node --test tests/yalemojiCache.test.mjs",
     "prebuild": "npm run build:shared --prefix ../..",
     "predev": "npm run build:shared --prefix ../.."
   },

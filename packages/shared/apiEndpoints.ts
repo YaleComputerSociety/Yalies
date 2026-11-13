@@ -14,6 +14,7 @@ export const API = {
 
 	profileMe: `${API_PREFIX}/profile/me`,
 	profileMeFull: `${API_PREFIX}/profile/me/full`,
+	profileMeYaleMoji: `${API_PREFIX}/profile/me/yalemoji`,
 	profileMePhoto: `${API_PREFIX}/profile/me/photo`,
 	profileMePhotoDownload: `${API_PREFIX}/profile/me/photo/download`,
 	profileMeChangeRequest: `${API_PREFIX}/profile/me/change-request`,

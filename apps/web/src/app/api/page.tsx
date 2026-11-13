@@ -2,8 +2,7 @@
 import { API_URL } from "@/consts";
 
 import styles from "../about/about.module.scss";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
+import { useSession } from "@/components/NavigationShell";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { Lexend_Deca } from "next/font/google";
@@ -16,7 +15,7 @@ import { sendGAEvent } from "@next/third-parties/google";
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
 export default function ApiPage() {
-	const [isAuthenticated, setAuthenticated] = useState(false);
+	const { isAuthenticated, setAuthenticated } = useSession();
 	const [keys, setKeys] = useState<ApiKey[]>([]);
 	const [keyDescription, setKeyDescription] = useState("");
 
@@ -28,21 +27,16 @@ export default function ApiPage() {
 				headers: { "Content-Type": "application/json" },
 			});
 			if(response.ok) setKeys(await response.json());
+			else if(response.status === 401) setAuthenticated(false);
 		} catch(e) {
 			console.error(e);
 		}
 	};
 
 	useEffect(() => {
-		const checkAuth = async () => {
-			const res = await fetch(`${API_URL}${API.profileMe}`, {
-				credentials: "include",
-			});
-			setAuthenticated(res.ok);
-			if(res.ok) fetchApiKeys();
-		};
-		checkAuth();
-	}, []);
+		if(isAuthenticated) void fetchApiKeys();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated]);
 
 	const createApiKey = async () => {
 		try {
@@ -82,9 +76,6 @@ export default function ApiPage() {
 
 	return (
 		<>
-			<Topbar>
-				<Navbar isAuthenticated={isAuthenticated} />
-			</Topbar>
 			<div id={styles.about_page} className={logoFont.className}>
 				<h1>API</h1>
 				<div className={styles.api_section}>

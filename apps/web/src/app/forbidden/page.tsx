@@ -1,15 +1,10 @@
 import { API_URL } from "@/consts";
 import Button from "@/components/Button";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
 import { API } from "yalies-shared";
 
 export default function ForbiddenPage() {
 	return (
 		<>
-			<Topbar>
-				<Navbar />
-			</Topbar>
 			<div style={{ textAlign: "center", padding: "60px 20px" }}>
 				<h1>Forbidden</h1>
 				<p>You must be in the Yale Directory to access this page.</p>
