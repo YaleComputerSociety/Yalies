@@ -633,6 +633,9 @@ export default class DatabaseRouter {
 			if (isNaN(id)) { res.status(400).send("Invalid id"); return; }
 
 			const { status, admin_notes, modified_changes } = req.body;
+			if (admin_notes != null && (typeof admin_notes !== "string" || admin_notes.length > 4000)) {
+				res.status(400).json({ error: "Review notes must be text, up to 4000 characters" }); return;
+			}
 			if (status !== "approved" && status !== "denied") {
 				res.status(400).send("Status must be 'approved' or 'denied'"); return;
 			}
@@ -762,6 +765,19 @@ export default class DatabaseRouter {
 					transaction,
 				},
 			);
+
+			if (status === "approved" && approvedPhotoObject) {
+				const [approver] = await sequelize.query<{ first_name: string | null }>(
+					"SELECT first_name FROM person WHERE lower(netid) = :netid LIMIT 1",
+					{ replacements: { netid: req.netid }, type: QueryTypes.SELECT, transaction },
+				);
+				const label = approver?.first_name?.trim() || req.netid || "An admin";
+				await sequelize.query(`INSERT INTO notification ("to", subject, message, color)
+					VALUES (:to, :subject, :message, 'green')`, {
+					replacements: { to: request.target_netid, subject: `${label} approved your new picture`, message: admin_notes?.trim() || "" },
+					transaction,
+				});
+			}
 
 			await transaction.commit();
 			transaction = undefined;

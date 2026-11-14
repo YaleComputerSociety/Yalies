@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import AdminModel from "../models/AdminModel.js";
+import { normalizeNetid } from "../helpers/adminAccess.js";
 
 type RequestUser = {
 	netId?: string;
@@ -24,16 +25,21 @@ export default class CasRouter {
 				}
 				if (!user) return res.status(401).send("No user");
 				const userWithData = user as RequestUser;
+				const netid = normalizeNetid(userWithData.netId);
+				if (!netid) return res.status(401).send("No NetID in Yale login");
 
-				const admin = await AdminModel.findOne({ where: { netid: userWithData.netId } });
+				const admin = await AdminModel.findOne({ where: { netid } });
 				if (!admin) {
 					return res.redirect(process.env.DASHBOARD_URL + "/?error=not_admin");
 				}
 
-				return req.logIn(user, (err) => {
+				return req.logIn({ netId: netid }, (err) => {
 					if (err) return res.status(500).send("Could not log in");
-					req.session.netid = userWithData.netId;
-					return res.redirect(process.env.DASHBOARD_URL + "/");
+					req.session.netid = netid;
+					return req.session.save((saveError) => {
+						if (saveError) return res.status(500).send("Could not save login");
+						return res.redirect(process.env.DASHBOARD_URL + "/");
+					});
 				});
 			} catch (e) {
 				console.error("CAS login error:", e);
@@ -50,7 +56,7 @@ export default class CasRouter {
 			}
 
 			const user = req.user as RequestUser;
-			const netid = user.netId || req.session.netid;
+			const netid = normalizeNetid(user.netId);
 			if (!netid) {
 				return res.status(401).json({ authenticated: false });
 			}
@@ -68,8 +74,9 @@ export default class CasRouter {
 	};
 
 	logout = (req: Request, res: Response) => {
-		req.session.destroy(() => {
-			req.logout({}, () => {
+		req.logout({}, () => {
+			req.session.destroy(() => {
+				res.clearCookie("yalies.pipeline.sid");
 				res.redirect(process.env.DASHBOARD_URL + "/");
 			});
 		});

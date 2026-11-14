@@ -119,7 +119,9 @@ npm run dev:web
 The [Cloud SQL Auth Proxy documentation](https://docs.cloud.google.com/sql/docs/postgres/connect-auth-proxy)
 describes the IAM and connection prerequisites. The local proxy script refuses `DEV_MODE=production`.
 Do not use that setting for development. The optional dashboard/pipeline additionally need
-`.config/internal/.env.dashboard` and `.config/internal/.env.data-pipeline`, plus an admin-table entry.
+`.config/internal/.env.dashboard` and `.config/internal/.env.data-pipeline`.
+The pipeline seeds `yef3` as its only admin on first startup; use `DEV_NETID=yef3`
+for development bypass. Additional admins can be managed on the **Access** page.
 
 ## Testing with a copy of the real directory
 

@@ -18,6 +18,8 @@ function LayoutInner({ children }: { children: ReactNode }) {
 				<nav className={mainStyle.headerNav}>
 					<Link href="/">Pipeline</Link>
 					<Link href="/database">Database</Link>
+					{state === "authenticated" && <Link href="/messages">Messages</Link>}
+					{state === "authenticated" && <Link href="/access">Access</Link>}
 					<AuthGate />
 				</nav>
 			</header>

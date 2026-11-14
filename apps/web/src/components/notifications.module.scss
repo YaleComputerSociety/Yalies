@@ -1,0 +1,83 @@
+.notifications {
+	padding: 0 24px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 380px);
+	justify-content: center;
+	column-gap: 24px;
+}
+
+.row {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-rows: 1fr;
+	padding-top: 16px;
+	opacity: 1;
+	transition: grid-template-rows 360ms cubic-bezier(0.22, 1, 0.36, 1), padding-top 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+
+	&[data-closing="true"] {
+		grid-template-rows: 0fr;
+		padding-top: 0;
+		opacity: 0;
+		pointer-events: none;
+	}
+}
+
+.clip { min-height: 0; overflow: hidden; }
+.error { grid-column: 1 / -1; }
+
+.notice {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 16px;
+	border: 1px solid #a7dbb8;
+	border-radius: 12px;
+	background: #d9f2e1;
+	color: #14532d;
+	font-size: 14px;
+	line-height: 1.5;
+
+	&[data-color="blue"] { background: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+	&[data-color="grey"] { background: #e5e7eb; color: #374151; border-color: #c1c7d0; }
+	&[data-color="amber"] { background: #fef3c7; color: #78350f; border-color: #fcd34d; }
+	&[data-color="red"] { background: #fee2e2; color: #7f1d1d; border-color: #fca5a5; }
+
+	button {
+		flex-shrink: 0;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: inherit;
+		width: 32px;
+		height: 32px;
+		font-size: 24px;
+		cursor: pointer;
+		&:hover { background: rgb(20 83 45 / 10%); }
+		&:disabled { opacity: 0.5; cursor: wait; }
+		&:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+	}
+}
+
+.text { overflow-wrap: anywhere; }
+.body { white-space: pre-wrap; }
+
+@media (max-width: 1024px) {
+	.notifications { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+	.row { padding-top: 12px; }
+	.notice { align-items: flex-start; padding: 10px 12px; }
+	.separator { display: none; }
+	.body { display: block; margin-top: 2px; }
+}
+
+@media (max-width: 700px) {
+	.notifications { padding-inline: 12px; grid-template-columns: 1fr; }
+}
+
+@media (max-width: 420px) {
+	.notifications { padding-inline: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.row { transition: none; }
+}

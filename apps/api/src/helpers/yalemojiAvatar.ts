@@ -11,9 +11,10 @@ function isAssetUrl(value: unknown): value is string {
 }
 
 // Only the backend sends the app key. Browsers receive public, opaque asset URLs.
-export async function getYaleMojiAvatar(netid: string): Promise<YaleMojiAvatar | null> {
+// null means Yalemoji confirmed no avatar; undefined means the lookup was unavailable.
+export async function getYaleMojiAvatar(netid: string): Promise<YaleMojiAvatar | null | undefined> {
 	const key = process.env.YALEMOJI_API_KEY;
-	if(!key || !/^[a-z][a-z0-9]*$/i.test(netid)) return null;
+	if(!key || !/^[a-z][a-z0-9]*$/i.test(netid)) return undefined;
 	try {
 		const origin = new URL(process.env.YALEMOJI_API_URL || "https://www.yalemoji.com");
 		const local = ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
@@ -42,6 +43,6 @@ export async function getYaleMojiAvatar(netid: string): Promise<YaleMojiAvatar |
 	} catch {
 		// An optional avatar service must not prevent profile/login from working.
 		console.warn("[Yalemoji] Avatar lookup unavailable; using profile initials.");
-		return null;
+		return undefined;
 	}
 }

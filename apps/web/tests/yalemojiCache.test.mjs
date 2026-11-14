@@ -27,7 +27,7 @@ function events() {
 			listeners.get(name).add(fn);
 		},
 		removeEventListener: (name, fn) => listeners.get(name)?.delete(fn),
-		emit: (name) => [...(listeners.get(name) ?? [])].forEach((fn) => fn()),
+		emit: (name, event) => [...(listeners.get(name) ?? [])].forEach((fn) => fn(event)),
 	};
 }
 
@@ -40,24 +40,27 @@ function setup({ cached, netid = "abc123", localStorage = storage(), sessionStor
 	let nextTimer = 0;
 	let nextResponse = { netid: "abc123", yalemoji: avatar };
 	let fail = false;
+	let status = 200;
 	const calls = [];
 	const api = {};
 	runInNewContext(source, {
 		exports: api, window, document, URL,
 		require: (id) => id === "@/consts" ? { API_URL: "https://api.example" } : { API: { profileMeYaleMoji: "/v3/profile/me/yalemoji" } },
 		performance: { now: () => now, getEntriesByType: () => [{ loadEventEnd: loading ? 0 : 100 }] },
+		Date: { now: () => now },
 		setTimeout: (fn, delay) => { timers.set(++nextTimer, { fn, due: now + delay }); return nextTimer; },
 		clearTimeout: (id) => timers.delete(id),
 		fetch: async (...args) => {
 			calls.push(args);
 			if(fail) throw new Error("offline");
-			return { ok: true, json: async () => nextResponse };
+			return { ok: status === 200, json: async () => nextResponse };
 		},
 	});
 	return {
 		api, calls, window, document, localStorage, sessionStorage,
 		respond: (result) => { nextResponse = result; },
 		fail: () => { fail = true; },
+		status: (value) => { status = value; },
 		async tick(ms = 0) {
 			now += ms;
 			for(const [id, timer] of timers) {
@@ -196,4 +199,126 @@ test("cached lookups wait for page load before starting the five-second delay", 
 	assert.equal(env.calls.length, 0);
 	await env.tick(1);
 	assert.equal(env.calls.length, 1);
+});
+
+test("the banner starts hidden even with cached absence and opens only after confirmed absence", async () => {
+	const env = setup({ cached: null });
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	assert.equal(visible, false);
+	await env.tick();
+	assert.equal(visible, true);
+	assert.equal(env.calls.length, 1);
+});
+
+test("failures, incomplete results and another user's results cannot open the banner", async () => {
+	for(const scenario of ["offline", "unavailable", "incomplete", "malformed", "other-user", "avatar"]) {
+		const env = setup({ cached: null });
+		if(scenario === "offline") env.fail();
+		if(scenario === "unavailable") env.status(503);
+		if(scenario === "incomplete") env.respond({ netid: "abc123" });
+		if(scenario === "malformed") env.respond({ netid: "abc123", yalemoji: false });
+		if(scenario === "other-user") env.respond({ netid: "other123", yalemoji: null });
+		let visible;
+		env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+		await env.tick();
+		assert.equal(visible, false, scenario);
+		await env.tick(600000);
+		assert.equal(visible, false, scenario);
+	}
+});
+
+test("a visit hides the banner until a new API response confirms no avatar", async () => {
+	const env = setup();
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	const unsubscribe = env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	await env.tick();
+	assert.equal(visible, true);
+	env.api.markYaleMojiVisit();
+	assert.equal(visible, false);
+	await env.tick(600000);
+	assert.equal(visible, false);
+	assert.equal(env.calls.length, 1);
+	// Navigation cannot reuse the previous missing-avatar result.
+	unsubscribe();
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	assert.equal(visible, false);
+	env.window.emit("focus");
+	assert.equal(visible, false);
+	await env.tick();
+	assert.equal(env.calls.length, 2);
+	assert.equal(visible, true);
+});
+
+test("a failed lookup after a visit keeps the banner hidden", async () => {
+	const env = setup();
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	await env.tick();
+	env.api.markYaleMojiVisit();
+	env.status(503);
+	env.window.emit("focus");
+	await env.tick(600000);
+	assert.equal(visible, false);
+	assert.equal(env.calls.length, 2);
+});
+
+test("a reload waits for fresh confirmation and ignores old snooze timestamps", async () => {
+	const localStorage = storage();
+	localStorage.setItem("yalies-yalemoji-banner-until:abc123", "600100");
+	const env = setup({ cached: null, localStorage });
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	assert.equal(visible, false);
+	await env.tick();
+	assert.equal(visible, true);
+});
+
+test("finding an avatar on return keeps the banner hidden", async () => {
+	const env = setup();
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	await env.tick();
+	env.api.markYaleMojiVisit();
+	env.respond({ netid: "abc123", yalemoji: avatar });
+	env.window.emit("focus");
+	await env.tick();
+	assert.equal(visible, false);
+	await env.tick(600000);
+	assert.equal(visible, false);
+});
+
+test("cross-tab avatar updates hide the banner and cached absence cannot reopen it", async () => {
+	const env = setup();
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	await env.tick();
+	assert.equal(visible, true);
+	env.localStorage.setItem("yalies-yalemoji", JSON.stringify({ netid: "abc123", avatar }));
+	env.window.emit("storage", { key: "yalies-yalemoji" });
+	assert.equal(visible, false);
+	env.localStorage.setItem("yalies-yalemoji", JSON.stringify({ netid: "abc123", avatar: null }));
+	env.window.emit("storage", { key: "yalies-yalemoji" });
+	assert.equal(visible, false);
+});
+
+test("visit and confirmation behavior works when storage is disabled", async () => {
+	const disabledStorage = { getItem() { throw new Error("disabled"); }, setItem() { throw new Error("disabled"); }, removeItem() { throw new Error("disabled"); } };
+	const env = setup({ localStorage: disabledStorage, sessionStorage: disabledStorage });
+	env.respond({ netid: "abc123", yalemoji: null });
+	let visible;
+	env.api.subscribeYaleMojiBanner("abc123", value => { visible = value; });
+	await env.tick();
+	assert.equal(visible, true);
+	env.api.markYaleMojiVisit();
+	assert.equal(visible, false);
+	env.window.emit("focus");
+	await env.tick();
+	assert.equal(visible, true);
 });

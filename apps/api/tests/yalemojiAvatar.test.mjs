@@ -32,9 +32,9 @@ test("looks up the signed-in NetID using a server-only bearer key and returns on
 
 test("no configured key or invalid NetID skips the lookup", async () => {
   const fetch = respond({ avatar });
-  assert.equal(await getYaleMojiAvatar("../someone"), null);
+  assert.equal(await getYaleMojiAvatar("../someone"), undefined);
   delete process.env.YALEMOJI_API_KEY;
-  assert.equal(await getYaleMojiAvatar("abc123"), null);
+  assert.equal(await getYaleMojiAvatar("abc123"), undefined);
   assert.equal(fetch.mock.callCount(), 0);
 });
 
@@ -49,17 +49,17 @@ test("auth errors, rate limits and service failures do not break the profile", a
   const fetch = respond({});
   for (const status of [401, 429, 503]) {
     fetch.mock.mockImplementation(async () => Response.json({ error: "unavailable" }, { status }));
-    assert.equal(await getYaleMojiAvatar("abc123"), null);
+    assert.equal(await getYaleMojiAvatar("abc123"), undefined);
   }
   fetch.mock.mockImplementation(async () => { throw new DOMException("Timed out", "TimeoutError"); });
-  assert.equal(await getYaleMojiAvatar("abc123"), null);
+  assert.equal(await getYaleMojiAvatar("abc123"), undefined);
 });
 
 test("rejects malformed avatars and unsafe asset URLs", async () => {
   const fetch = respond({});
   for (const invalid of [null, {}, { ...avatar, version: 0 }, { ...avatar, png_url: "javascript:alert(1)" }, { ...avatar, background_url: "http://cdn/background.svg" }]) {
     fetch.mock.mockImplementation(async () => Response.json({ avatar: invalid }));
-    assert.equal(await getYaleMojiAvatar("abc123"), null);
+    assert.equal(await getYaleMojiAvatar("abc123"), undefined);
   }
 });
 
@@ -70,9 +70,9 @@ test("permits a local Yalemoji server in development and refuses insecure remote
   assert.deepEqual(await getYaleMojiAvatar("abc123"), avatar);
   assert.equal(String(fetch.mock.calls[0].arguments[0]), "http://localhost:3002/api/v1/users/abc123");
   process.env.YALEMOJI_API_URL = "http://yalemoji.com";
-  assert.equal(await getYaleMojiAvatar("abc123"), null);
+  assert.equal(await getYaleMojiAvatar("abc123"), undefined);
   process.env.NODE_ENV = "production";
   process.env.YALEMOJI_API_URL = "http://localhost:3002";
-  assert.equal(await getYaleMojiAvatar("abc123"), null);
+  assert.equal(await getYaleMojiAvatar("abc123"), undefined);
   assert.equal(fetch.mock.callCount(), 1);
 });

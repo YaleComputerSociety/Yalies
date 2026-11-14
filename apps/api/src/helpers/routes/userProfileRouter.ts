@@ -165,7 +165,9 @@ export default class UserProfileRouter {
 
 	getMyYaleMoji = async (req: Request, res: Response) => {
 		res.set("Cache-Control", "no-store");
-		return res.status(200).json({ netid: req.netid, yalemoji: await getYaleMojiAvatar(req.netid) });
+		const yalemoji = await getYaleMojiAvatar(req.netid);
+		if(yalemoji === undefined) return res.status(503).json({ error: "Yalemoji lookup unavailable" });
+		return res.status(200).json({ netid: req.netid, yalemoji });
 	};
 
 	getMyProfile = async (req: Request, res: Response) => {

@@ -1462,13 +1462,14 @@ function ReviewRequestModal({
 					</fieldset>
 
 					<fieldset className={styles.formSection}>
-						<legend className={styles.formLegend}>Admin Notes</legend>
+						<legend className={styles.formLegend}>{request.requested_changes.image ? "Message to user (optional)" : "Admin Notes"}</legend>
 						<textarea
 							className={styles.fieldInput}
 							rows={3}
 							value={adminNotes}
 							onChange={(e) => setAdminNotes(e.target.value)}
-							placeholder="Optional notes about this decision..."
+							maxLength={4000}
+							placeholder={request.requested_changes.image ? "e.g. Looks good! (sent to the user on approval)" : "Optional notes about this decision..."}
 							style={{ resize: "vertical", width: "100%", boxSizing: "border-box" }}
 						/>
 					</fieldset>

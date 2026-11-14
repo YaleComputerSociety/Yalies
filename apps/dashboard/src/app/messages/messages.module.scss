@@ -1,0 +1,33 @@
+@use "../../shared" as *;
+
+.page { display: grid; gap: 20px; h1 { font-size: 1.75rem; } > p { color: $secondary; } }
+.controls {
+	display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+	input { flex: 1; min-width: 200px; }
+	input, select, button { padding: 9px 12px; border: 1px solid $border; border-radius: 8px; background: $card-bg; }
+	button { cursor: pointer; &:disabled { opacity: 0.5; cursor: default; } }
+}
+.table {
+	overflow-x: auto; border: 1px solid $border; border-radius: 10px; background: $card-bg;
+	table { width: 100%; text-align: left; }
+	th, td { padding: 14px 16px; vertical-align: top; border-bottom: 1px solid $border; }
+	th { white-space: nowrap; }
+	td:nth-child(2) { min-width: 260px; overflow-wrap: anywhere; }
+	time { white-space: nowrap; font-size: 0.875rem; }
+}
+.body { white-space: pre-wrap; margin-top: 4px; }
+.empty { padding: 24px; color: $secondary; }
+.error { color: $destructive; }
+.sent { color: $success; }
+.compose {
+	background: $card-bg; border: 1px solid $border; border-radius: 10px; padding: 24px;
+	display: grid; gap: 16px;
+	h2 { font-size: 1.125rem; }
+	fieldset { display: grid; gap: 8px; border: 0; min-width: 0; }
+	label { font-weight: 600; }
+	input, textarea, select { width: 100%; padding: 9px 12px; border: 1px solid $border; border-radius: 8px; margin-bottom: 8px; }
+	textarea { resize: vertical; }
+	select { max-width: 200px; }
+	button { justify-self: start; border: 0; border-radius: 8px; padding: 10px 18px; background: $accent; color: white; cursor: pointer; }
+	fieldset:disabled { opacity: 0.65; button { cursor: wait; } }
+}

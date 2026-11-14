@@ -54,8 +54,8 @@
 }
 
 .header_avatar {
-	width: 80px;
-	height: 80px;
+	width: 104px;
+	height: 104px;
 	object-fit: contain;
 }
 
@@ -143,6 +143,10 @@
 	// Yalemoji SVGs use preserveAspectRatio="none", so the tile must be square.
 	background-size: 220px 220px;
 	background-position: center;
+
+	&:has(.header_avatar) {
+		padding: 2px 1rem;
+	}
 }
 
 .header_initials {
@@ -285,8 +289,8 @@
 	}
 
 	.header_avatar {
-		width: 104px;
-		height: 104px;
+		width: 160px;
+		height: 160px;
 	}
 
 	.menu_items {

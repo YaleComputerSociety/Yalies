@@ -82,13 +82,18 @@ The launchers do not start a database proxy automatically. This keeps database s
 
 ```sh
 npm run doctor -- --all
-npm run add-admin -w yalies-data-pipeline -- YOUR_NETID
 npm run dev:pipeline
 # In another terminal:
 npm run dev:dashboard
 ```
 
-Admin bootstrap writes to the configured database. Verify the development target first. Open `http://localhost:3001`; pipeline health is `http://localhost:8080/health`. The dashboard’s CAS flow is a known branch issue and was not exercised during this refactor.
+Verify the development database target before starting the pipeline. Its first
+startup resets the `admin` table to `yef3` only and records the migration; later
+starts preserve changes. Set `DEV_NETID=yef3` for development bypass. Open
+`http://localhost:3001`; pipeline health is `http://localhost:8080/health`. The
+**Access** page manages additional administrators. For recovery, run
+`npm run add-admin -w yalies-data-pipeline -- YOUR_NETID` against the intended
+database. Production uses Yale CAS; see [deployment](docs/deployment.md#admin-dashboard).
 
 ## Checks
 

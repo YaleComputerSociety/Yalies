@@ -1,6 +1,7 @@
 "use client";
 import { API_URL } from "@/consts";
 import { parseSearch } from "@/helpers/searchQuery";
+import Notifications from "@/components/Notifications";
 import PeopleGrid from "@/components/PeopleGrid";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
@@ -476,6 +477,7 @@ export default function HomePage() {
 				onLogoClick={reset}
 				onFeelingLucky={onFeelingLucky}
 			/>
+			<Notifications />
 			{isCompact === null ? compactSearchPlaceholder : isCompact && compactSearchPanel}
 			{searchError && (
 				<div style={{ textAlign: "center", padding: "20px", color: "#dc3545" }}>

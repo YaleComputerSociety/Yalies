@@ -7,6 +7,7 @@ const REFRESH_DELAY_MS = 5000;
 type Listener = (avatar: YaleMojiAvatar | null) => void;
 type Entry = {
 	avatar: YaleMojiAvatar | null;
+	confirmed: boolean;
 	listeners: Set<Listener>;
 	inflight?: Promise<void>;
 	cancelDelay?: () => void;
@@ -40,8 +41,9 @@ function refresh(netid: string, entry: Entry): Promise<void> {
 			const response = await fetch(`${API_URL}${API.profileMeYaleMoji}`, { credentials: "include", cache: "no-store" });
 			if(!response.ok) return;
 			const result = await response.json();
-			if(result.netid !== netid || entries.get(netid) !== entry) return;
-			entry.avatar = result.yalemoji ?? null;
+			if(result.netid !== netid || entries.get(netid) !== entry || result.yalemoji === undefined) return;
+			entry.avatar = result.yalemoji;
+			entry.confirmed = true;
 			try {
 				window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ netid, avatar: entry.avatar }));
 			} catch { /* Keep the in-memory cache when storage is unavailable. */ }
@@ -71,6 +73,12 @@ function refreshOnReturn() {
 
 export function markYaleMojiVisit() {
 	returningFromYaleMoji = true;
+	entries.forEach(entry => {
+		// A visit invalidates the previous missing-avatar result. Only a new
+		// successful API response can make the banner eligible again.
+		entry.confirmed = false;
+		entry.listeners.forEach(listener => listener(entry.avatar));
+	});
 	try {
 		window.sessionStorage.setItem(RETURN_KEY, "true");
 	} catch { /* The in-memory flag covers new-tab visits. */ }
@@ -96,7 +104,7 @@ export function subscribeYaleMoji(netid: string, listener: Listener): () => void
 	let entry = entries.get(netid);
 	const isNew = !entry;
 	if(!entry) {
-		entry = { avatar: readCachedAvatar(netid), listeners: new Set() };
+		entry = { avatar: readCachedAvatar(netid), confirmed: false, listeners: new Set() };
 		entries.set(netid, entry);
 	}
 	const current = entry;
@@ -123,4 +131,27 @@ export function subscribeYaleMoji(netid: string, listener: Listener): () => void
 	}
 	// Delayed refreshes survive unmounts during navigation.
 	return () => { current.listeners.delete(listener); };
+}
+
+export function subscribeYaleMojiBanner(netid: string, listener: (visible: boolean) => void): () => void {
+	const notify = () => {
+		const entry = entries.get(netid);
+		listener(!!entry?.confirmed && entry.avatar === null);
+	};
+	const onStorage = (event: StorageEvent) => {
+		if(event.key === STORAGE_KEY) {
+			const avatar = readCachedAvatar(netid);
+			const entry = entries.get(netid);
+			if(avatar && entry) {
+				entry.avatar = avatar;
+				entry.listeners.forEach(listener => listener(avatar));
+			}
+		}
+	};
+	window.addEventListener("storage", onStorage);
+	const unsubscribe = subscribeYaleMoji(netid, notify);
+	return () => {
+		unsubscribe();
+		window.removeEventListener("storage", onStorage);
+	};
 }

@@ -1,15 +1,15 @@
 import { fileURLToPath } from "node:url";
 import { configDotenv } from "dotenv";
-configDotenv({ path: fileURLToPath(new URL("../../../.config/internal/.env.data-pipeline", import.meta.url)), override: true });
+configDotenv({ path: process.env.YALIES_PIPELINE_ENV_FILE || fileURLToPath(new URL("../../../.config/internal/.env.data-pipeline", import.meta.url)), override: true });
 
 import { Sequelize, QueryTypes } from "sequelize";
+import { initializeAdminAccess, normalizeNetid } from "./helpers/adminAccess.js";
 
-// Grants a netid access to the internal dashboard by inserting it into the
-// `admin` table. Without this there is no way to bootstrap the first admin —
-// every dashboard route 403s until a netid is present.
+// Recovery tool for the dashboard's admin table. Normal grants and revocations
+// happen on the dashboard's Access page after the initial yef3-only migration.
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
-	const netid = args.find((arg) => !arg.startsWith("--"))?.toLowerCase();
+	const netid = normalizeNetid(args.find((arg) => !arg.startsWith("--")));
 	const onlyAdmin = args.includes("--only");
 	if (!netid) {
 		console.log("Usage: npm run add-admin -- <netid> [--only]");
@@ -23,6 +23,7 @@ async function main(): Promise<void> {
 	const sequelize = new Sequelize(process.env.DATABASE_URL, { logging: false });
 	try {
 		await sequelize.authenticate();
+		await initializeAdminAccess(sequelize);
 		await sequelize.transaction(async (transaction) => {
 			await sequelize.query(
 				"CREATE TABLE IF NOT EXISTS admin (netid VARCHAR(255) PRIMARY KEY, added_at TIMESTAMP DEFAULT NOW())",

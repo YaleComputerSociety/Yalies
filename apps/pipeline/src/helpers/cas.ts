@@ -1,11 +1,7 @@
-import { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import { Strategy } from "passport-cas";
-import AdminModel from "../models/AdminModel.js";
-
-type RequestUser = {
-	netId?: string;
-};
+import requireAdmin from "./requireAdmin.js";
+import { normalizeNetid } from "./adminAccess.js";
 
 export default class CAS {
 	constructor() {
@@ -18,9 +14,11 @@ export default class CAS {
 				{
 					version: "CAS2.0",
 					ssoBaseURL: "https://secure.its.yale.edu/cas",
+					serverBaseURL: process.env.PIPELINE_URL || (process.env.NODE_ENV === "production" ? process.env.DASHBOARD_URL : undefined),
 				},
 				async (profile, done) => {
-					return done(null, { netId: profile.user?.toLowerCase() });
+					const netId = normalizeNetid(profile.user);
+					return done(null, netId ? { netId } : false);
 				},
 			),
 		);
@@ -32,23 +30,5 @@ export default class CAS {
 		});
 	};
 
-	static requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-		if (!req.isAuthenticated() || !req.user) return res.status(401).send("Unauthorized");
-		const user = req.user as RequestUser;
-		if (!user.netId) return res.status(401).send("No netId associated with logged-in user");
-		req.netid = user.netId;
-
-		let admin: AdminModel | null;
-		try {
-			admin = await AdminModel.findOne({
-				where: { netid: user.netId },
-			});
-		} catch (e) {
-			console.error(e);
-			return res.status(500).send("Error checking admin status");
-		}
-		if (!admin) return res.status(403).send("Not an admin");
-
-		return next();
-	};
+	static requireAdmin = requireAdmin;
 }

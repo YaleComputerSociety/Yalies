@@ -1,0 +1,46 @@
+@use "../../shared" as *;
+
+.page {
+	display: grid;
+	gap: 20px;
+	h1 { font-size: 1.75rem; }
+	h2 { font-size: 1.125rem; }
+	p { color: $secondary; }
+}
+
+.card {
+	background: $card-bg;
+	border: 1px solid $border;
+	border-radius: 8px;
+	padding: 24px;
+	display: grid;
+	gap: 16px;
+	label { font-weight: 600; }
+	button {
+		background: $accent;
+		color: white;
+		border: 1px solid $accent;
+		border-radius: $border-radius-standard;
+		padding: 9px 16px;
+		cursor: pointer;
+		&:disabled { opacity: 0.5; cursor: default; }
+	}
+	button.remove { background: white; color: $destructive; border-color: $border; }
+}
+
+.formRow {
+	display: flex;
+	gap: 12px;
+	input { flex: 1; min-width: 0; border: 1px solid $border; border-radius: $border-radius-standard; padding: 9px 12px; }
+	@include responsive { flex-direction: column; }
+}
+
+.list {
+	list-style: none;
+	li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid $border; }
+	p, span { font-size: 0.875rem; color: $secondary; }
+}
+
+.hint { font-size: 0.875rem; }
+.error { color: $destructive !important; }
+.notice { color: $success !important; }
