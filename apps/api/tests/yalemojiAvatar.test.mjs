@@ -1,6 +1,6 @@
 import { test, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
-import { getYaleMojiAvatar } from "../build/helpers/yalemojiAvatar.js";
+import { getYaleMojiAvatar, getYaleMojiAvatars, withYaleMojiAvatars } from "../build/helpers/yalemojiAvatar.js";
 
 const originalEnv = { ...process.env };
 const avatar = {
@@ -75,4 +75,69 @@ test("permits a local Yalemoji server in development and refuses insecure remote
   process.env.YALEMOJI_API_URL = "http://localhost:3002";
   assert.equal(await getYaleMojiAvatar("abc123"), undefined);
   assert.equal(fetch.mock.callCount(), 1);
+});
+
+
+test("batch lookup deduplicates valid NetIDs and returns only requested public assets", async () => {
+  const fetch = respond({ users: { abc123: { ...avatar, private_data: "hidden" }, zz99: null, other: avatar } });
+  const result = await getYaleMojiAvatars(["ABC123", " abc123 ", "zz99", "../someone"]);
+  assert.deepEqual([...result], [["abc123", avatar], ["zz99", null]]);
+  assert.equal(fetch.mock.callCount(), 1);
+  const [url, options] = fetch.mock.calls[0].arguments;
+  assert.equal(String(url), "https://www.yalemoji.com/api/v1/lookup");
+  assert.equal(options.method, "POST");
+  assert.equal(options.headers.Authorization, "Bearer test-server-only-key");
+  assert.equal(options.headers["Content-Type"], "application/json");
+  assert.deepEqual(JSON.parse(options.body), { netids: ["abc123", "zz99"] });
+  assert.equal(options.redirect, "error");
+  assert.ok(options.signal instanceof AbortSignal);
+});
+
+test("batch lookup respects the 100-NetID limit and skips empty or unconfigured lookups", async () => {
+  const fetch = respond({ users: {} });
+  await getYaleMojiAvatars([]);
+  await getYaleMojiAvatars(["invalid!"]);
+  assert.equal(fetch.mock.callCount(), 0);
+  await getYaleMojiAvatars(Array.from({ length: 101 }, (_, i) => `u${i}`));
+  assert.deepEqual(fetch.mock.calls.map(call => JSON.parse(call.arguments[1].body).netids.length), [100, 1]);
+  delete process.env.YALEMOJI_API_KEY;
+  await getYaleMojiAvatars(["abc123"]);
+  assert.equal(fetch.mock.callCount(), 2);
+});
+
+test("batch errors, timeouts, omitted users and malformed assets preserve search results", async () => {
+  const people = [{ netid: "abc123", first_name: "Alex", last_name: "Morgan", image: "https://photo.example/a.jpg" }];
+  const fetch = respond({ users: {} });
+  const missing = [{ ...people[0], yalemoji: null }];
+  for (const body of [{}, { users: null }, { users: [] }, { users: {} }, { users: { abc123: { ...avatar, png_url: "javascript:alert(1)" } } }]) {
+    fetch.mock.mockImplementation(async () => Response.json(body));
+    assert.deepEqual(await withYaleMojiAvatars(people), missing);
+  }
+  for (const status of [401, 429, 503]) {
+    fetch.mock.mockImplementation(async () => Response.json({}, { status }));
+    assert.deepEqual(await withYaleMojiAvatars(people), missing);
+  }
+  fetch.mock.mockImplementation(async () => { throw new DOMException("Timed out", "TimeoutError"); });
+  assert.deepEqual(await withYaleMojiAvatars(people), missing);
+  fetch.mock.mockImplementation(async () => Response.json({ users: { abc123: avatar } }));
+  assert.deepEqual(await withYaleMojiAvatars(people), [{ ...people[0], yalemoji: avatar }]);
+  assert.equal(people[0].yalemoji, undefined);
+});
+
+test("enriches every search result, including people without photos or NetIDs, and refreshes reused rows", async () => {
+  const people = [
+    { netid: "ABC123", first_name: "Alex", last_name: "Morgan" },
+    { netid: "zz99", first_name: "Sam", last_name: "Rivera", image: "https://photo.example/s.jpg" },
+    { first_name: "Taylor", last_name: "Patel" },
+  ];
+  const fetch = respond({ users: { abc123: avatar, zz99: null } });
+  assert.deepEqual(await withYaleMojiAvatars(people), [
+    { ...people[0], yalemoji: avatar }, { ...people[1], yalemoji: null }, { ...people[2], yalemoji: null },
+  ]);
+  fetch.mock.mockImplementation(async () => Response.json({ users: { abc123: null, zz99: avatar } }));
+  assert.deepEqual(await withYaleMojiAvatars(people), [
+    { ...people[0], yalemoji: null }, { ...people[1], yalemoji: avatar }, { ...people[2], yalemoji: null },
+  ]);
+  assert.equal(fetch.mock.callCount(), 2);
+  assert.ok(people.every(person => person.yalemoji === undefined));
 });

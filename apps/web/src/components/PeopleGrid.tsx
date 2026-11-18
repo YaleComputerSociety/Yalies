@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Person } from "yalies-shared";
 import styles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
+import PersonCardShell from "./PersonCardShell";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { faBook, faCake, faGraduationCap, faHouse, faUsers } from "@fortawesome/free-solid-svg-icons";
@@ -58,12 +59,14 @@ export default function PeopleGrid({
 	hasReachedEnd,
 	isSearching,
 	sectionTitle,
+	showDefaultAvatars = false,
 }: {
 	people: Person[];
 	loadMoreFunction: () => void;
 	hasReachedEnd: boolean;
 	isSearching?: boolean;
 	sectionTitle?: string;
+	showDefaultAvatars?: boolean;
 }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
@@ -108,7 +111,6 @@ export default function PeopleGrid({
 
 		const linkedinUrl = normalizeExternalUrl(person.user_profile?.linkedin_url);
 		const instagramUrl = normalizeExternalUrl(person.user_profile?.instagram_url);
-		const hasFooter = person.email || linkedinUrl || instagramUrl;
 
 		const cardContent = (
 			<>
@@ -130,48 +132,46 @@ export default function PeopleGrid({
 						{detailRows}
 					</div>
 				</div>
-				{hasFooter && (
-					<div className={styles.card_footer}>
-						{person.email && (
-							<EmailCopyButton
-								className={styles.email_link}
-								email={person.email}
-								stopPropagation
-							/>
+				<div className={styles.card_footer}>
+					<div className={styles.card_socials}>
+						{linkedinUrl && (
+							<a
+								href={linkedinUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={e => e.stopPropagation()}
+								aria-label="LinkedIn"
+							>
+								<FontAwesomeIcon icon={faLinkedin as IconProp} />
+							</a>
 						)}
-						<div className={styles.card_socials}>
-							{linkedinUrl && (
-								<a
-									href={linkedinUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									onClick={e => e.stopPropagation()}
-									aria-label="LinkedIn"
-								>
-									<FontAwesomeIcon icon={faLinkedin as IconProp} />
-								</a>
-							)}
-							{instagramUrl && (
-								<a
-									href={instagramUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									onClick={e => e.stopPropagation()}
-									aria-label="Instagram"
-								>
-									<FontAwesomeIcon icon={faInstagram as IconProp} />
-								</a>
-							)}
-						</div>
+						{instagramUrl && (
+							<a
+								href={instagramUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={e => e.stopPropagation()}
+								aria-label="Instagram"
+							>
+								<FontAwesomeIcon icon={faInstagram as IconProp} />
+							</a>
+						)}
 					</div>
-				)}
+					{person.email && (
+						<EmailCopyButton
+							className={styles.email_link}
+							email={person.email}
+							stopPropagation
+						/>
+					)}
+				</div>
 			</>
 		);
 
 		return (
-			<div key={person.netid} className={styles.person} onClick={() => setSelectedPerson(person)}>
+			<PersonCardShell key={person.netid} person={person} showDefaultAvatar={showDefaultAvatars} onOpen={() => setSelectedPerson(person)}>
 				{cardContent}
-			</div>
+			</PersonCardShell>
 		);
 	});
 

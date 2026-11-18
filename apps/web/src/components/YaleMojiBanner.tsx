@@ -42,7 +42,7 @@ export default function YaleMojiBanner({ isAuthenticated }: { isAuthenticated?: 
 			<div className={styles.clip}>
 				<div className={styles.content}>
 					<YaleMojiLink className={styles.link} href="https://yalemoji.com/create?ref=yalies" target="_blank" rel="noopener noreferrer" tabIndex={open ? 0 : -1}>
-						<span className={styles.description}>Your personalized Yale avatar</span>
+						<span className={styles.description}>Your avatar across Yale</span>
 						<span className={styles.action}>Make your Yalemoji <span aria-hidden="true">↗</span></span>
 					</YaleMojiLink>
 				</div>

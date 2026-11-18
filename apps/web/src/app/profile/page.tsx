@@ -532,9 +532,6 @@ export default function ProfilePage() {
 					{photoMessage && <div className={styles.photo_message} role="status">{photoMessage}</div>}
 					{hasContactRow && (
 						<div className={styles.contact_section}>
-							{person?.email && (
-								<EmailCopyButton className={styles.contact_email} email={person.email} />
-							)}
 							<div className={styles.contact_socials}>
 								{linkedinHref && (
 									<a href={linkedinHref} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
@@ -547,6 +544,9 @@ export default function ProfilePage() {
 									</a>
 								)}
 							</div>
+							{person?.email && (
+								<EmailCopyButton className={styles.contact_email} email={person.email} />
+							)}
 						</div>
 					)}
 				</div>

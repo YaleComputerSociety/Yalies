@@ -1,6 +1,6 @@
 import express, {Request, Response} from "express";
 import PersonModel, { PERSON_ALLOWED_FILTER_FIELDS } from "../models/PersonModel.js";
-import { NETID_REGEX } from "yalies-shared";
+import { NETID_REGEX, type Person } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
 import ProfileLikeModel from "../models/ProfileLikeModel.js";
 import FriendshipModel from "../models/FriendshipModel.js";
@@ -10,11 +10,13 @@ import { findNameSearchIds, buildInitialsSearch, normalizeInitials, type NameSea
 import { searchProximity, type SearchPerson } from "../searchProximity.js";
 import { buildExcludedFiltersWhere, buildLocationIncludesWhere, parseExcludedFilters, type ExcludedFilters } from "../filterExclusions.js";
 
+import { withYaleMojiAvatars } from "../yalemojiAvatar.js";
+
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
 const RANDOM_ORDER_MODULUS = 2147483647;
 const RANDOM_ORDER_MULTIPLIER = 2654435761;
-const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
+const searchCache = new Map<string, { data: Person[]; timestamp: number }>();
 
 function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, excludedFilters: ExcludedFilters, page: number, pageSize: number, randomSeed: number | null): string {
 	// netid is part of the key because the cached payload embeds per-user state
@@ -284,7 +286,7 @@ export default class PeopleRouter {
 		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, excludedFilters, page, pageSize, randomSeed);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
-			return res.status(200).json(cached.data);
+			return res.status(200).json(await withYaleMojiAvatars(cached.data));
 		}
 
 		let where: WhereOptions<PersonModel> = {};
@@ -524,6 +526,6 @@ export default class PeopleRouter {
 		searchCache.set(cacheKey, { data: json, timestamp: Date.now() });
 		pruneCache();
 
-		res.status(200).json(json);
+		res.status(200).json(await withYaleMojiAvatars(json));
 	};
 };

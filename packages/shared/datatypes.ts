@@ -51,6 +51,7 @@ export type Person = {
     education?: string;
     publications?: string;
 
+    yalemoji?: YaleMojiAvatar | null;
     user_profile?: UserProfile;
     like_data?: { like_count: number; liked_by_me: boolean };
     friend_data?: { status: string; count: number };

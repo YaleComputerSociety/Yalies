@@ -487,6 +487,7 @@ export default function HomePage() {
 			{showBirthdays && <BirthdaySection people={birthdayPeople} />}
 			<PeopleGrid
 				people={people}
+				showDefaultAvatars={query.trim().length > 0}
 				loadMoreFunction={getPeople}
 				hasReachedEnd={hasReachedEnd}
 				isSearching={isSearching}
