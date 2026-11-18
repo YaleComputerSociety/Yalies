@@ -6,6 +6,28 @@ import { normalizeNetid } from "../helpers/adminAccess.js";
 // Mounted behind the same database-backed admin gate as photo review.
 export function messageRouter(sql: Sequelize): Router {
 	const router = Router();
+	router.patch("/:id", async (req: Request, res: Response) => {
+		const id = req.params.id;
+		if (typeof id !== "string" || !/^[1-9][0-9]{0,18}$/.test(id) || BigInt(id) > 9223372036854775807n) {
+			res.status(400).json({ error: "Invalid message ID" }); return;
+		}
+		const { subject, message, color } = req.body ?? {};
+		if (typeof subject !== "string" || !subject.trim() || subject.length > 200
+			|| typeof message !== "string" || message.length > 4000 || ![...NOTIFICATION_COMPOSE_COLORS, "amber", "red"].includes(color)) {
+			res.status(400).json({ error: "Enter a subject (up to 200 characters), message (up to 4000 characters), and valid color." }); return;
+		}
+		try {
+			const rows = await sql.query(`UPDATE notification SET subject = :subject, message = :message, color = :color
+				WHERE id = :id RETURNING id, "to", subject, message, timestamp, color, viewed_at`, {
+				replacements: { id, subject: subject.trim(), message: message.trim(), color }, type: QueryTypes.SELECT,
+			});
+			if (!rows.length) { res.status(404).json({ error: "Message not found" }); return; }
+			res.json(rows[0]);
+		} catch (error) {
+			console.error("Edit message error:", error);
+			res.status(500).json({ error: "Could not save message" });
+		}
+	});
 	router.post("/", async (req: Request, res: Response) => {
 		const to = normalizeNetid(req.body?.to);
 		const { subject, message = "", color } = req.body ?? {};
@@ -35,7 +57,7 @@ export function messageRouter(sql: Sequelize): Router {
 			res.status(400).json({ error: "Invalid message search parameters" }); return;
 		}
 		const where = ["TRUE"];
-		if (search.trim()) where.push(`("to" ILIKE :search ESCAPE '\\' OR subject ILIKE :search ESCAPE '\\' OR message ILIKE :search ESCAPE '\\')`);
+		if (search.trim()) where.push("(\"to\" ILIKE :search ESCAPE '\\' OR subject ILIKE :search ESCAPE '\\' OR message ILIKE :search ESCAPE '\\')");
 		if (status === "viewed") where.push("viewed_at IS NOT NULL");
 		if (status === "unviewed") where.push("viewed_at IS NULL");
 		const replacements = { search: `%${search.trim().replace(/[\\%_]/g, "\\$&")}%`, offset: (page - 1) * 50 };

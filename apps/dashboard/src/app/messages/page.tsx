@@ -29,6 +29,29 @@ export default function MessagesPage() {
 	const sendingRef = useRef(false);
 	const [sendError, setSendError] = useState("");
 	const [sent, setSent] = useState("");
+	const [editing, setEditing] = useState<Message | null>(null);
+	const [saving, setSaving] = useState(false);
+	const savingRef = useRef(false);
+	const [editError, setEditError] = useState("");
+	const editFormRef = useRef<HTMLFormElement>(null);
+	const save = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		if (!editing || savingRef.current) return;
+		savingRef.current = true;
+		setSaving(true); setEditError(""); setSent("");
+		try {
+			const response = await fetch(`${API_URL}${PIPELINE_API.messages}/${encodeURIComponent(editing.id)}`, {
+				method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ subject: editing.subject, message: editing.message, color: editing.color }),
+			});
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error || "Could not save message");
+			setSent(`Message to ${result.to} updated.`);
+			setEditing(null); setRefresh(value => value + 1);
+		} catch (err) {
+			setEditError(err instanceof Error && err.message !== "Failed to fetch" ? err.message : "Could not confirm saving. Refresh message history before retrying.");
+		} finally { savingRef.current = false; setSaving(false); }
+	};
 	const send = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		if (sendingRef.current) return;
@@ -86,6 +109,25 @@ export default function MessagesPage() {
 			{sendError && <p className={styles.error} role="alert">{sendError}</p>}
 			{sent && <p className={styles.sent} role="status">{sent}</p>}
 		</form>
+		{editing && <form ref={editFormRef} className={styles.compose} onSubmit={save}>
+			<h2>Edit message to {editing.to}</h2>
+			<p>Changes keep the original sent time and viewed status.</p>
+			<fieldset disabled={saving}>
+				<label htmlFor="edit-subject">Subject</label>
+				<input id="edit-subject" required maxLength={200} value={editing.subject} onChange={event => setEditing({ ...editing, subject: event.target.value })} />
+				<label htmlFor="edit-body">Message</label>
+				<textarea id="edit-body" rows={3} maxLength={4000} value={editing.message} onChange={event => setEditing({ ...editing, message: event.target.value })} />
+				<label htmlFor="edit-color">Color</label>
+				<select id="edit-color" value={editing.color} onChange={event => setEditing({ ...editing, color: event.target.value })}>
+					{[...NOTIFICATION_COMPOSE_COLORS, "amber", "red"].map(value => <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}
+				</select>
+				<div className={styles.controls}>
+					<button type="submit">{saving ? "Saving…" : "Save changes"}</button>
+					<button type="button" onClick={() => { setEditing(null); setEditError(""); }}>Cancel</button>
+				</div>
+			</fieldset>
+			{editError && <p className={styles.error} role="alert">{editError}</p>}
+		</form>}
 		<div className={styles.controls}>
 			<input aria-label="Search messages" placeholder="Search NetID, subject, or message…" value={search} maxLength={500} onChange={event => { setSearch(event.target.value); setPage(1); }} />
 			<select aria-label="Viewed status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
@@ -97,11 +139,18 @@ export default function MessagesPage() {
 		{loading ? <p role="status">Loading messages…</p> : !error && <>
 			<p>{total} {total === 1 ? "message" : "messages"}</p>
 			<div className={styles.table}><table>
-				<thead><tr><th>To</th><th>Subject / message</th><th>Color</th><th>Sent (ET)</th><th>Viewed (ET)</th></tr></thead>
+				<thead><tr><th>To</th><th>Subject / message</th><th>Color</th><th>Sent (ET)</th><th>Viewed (ET)</th><th>Actions</th></tr></thead>
 				<tbody>{messages.map(message => <tr key={message.id}>
 					<td>{message.to}</td><td><strong>{message.subject}</strong>{message.message && <p className={styles.body}>{message.message}</p>}</td>
 					<td>{message.color}</td><td><time dateTime={message.timestamp}>{formatTime(message.timestamp)}</time></td>
 					<td>{message.viewed_at ? <time dateTime={message.viewed_at}>{formatTime(message.viewed_at)}</time> : "Not viewed"}</td>
+					<td><button className={styles.edit} disabled={saving} aria-label={`Edit message to ${message.to}: ${message.subject}`} onClick={() => {
+						setEditing({ ...message }); setEditError(""); setSent("");
+						requestAnimationFrame(() => {
+							editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+							editFormRef.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+						});
+					}}>Edit</button></td>
 				</tr>)}</tbody>
 			</table>{!messages.length && <p className={styles.empty}>No messages match your search.</p>}</div>
 			<div className={styles.controls}><button disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Previous</button>

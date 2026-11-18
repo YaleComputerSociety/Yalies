@@ -19,6 +19,10 @@
 .empty { padding: 24px; color: $secondary; }
 .error { color: $destructive; }
 .sent { color: $success; }
+.edit {
+	padding: 8px 12px; border: 1px solid $border; border-radius: 8px; background: $card-bg; cursor: pointer;
+	&:disabled { opacity: 0.5; cursor: default; }
+}
 .compose {
 	background: $card-bg; border: 1px solid $border; border-radius: 10px; padding: 24px;
 	display: grid; gap: 16px;
