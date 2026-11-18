@@ -59,14 +59,12 @@ export default function PeopleGrid({
 	hasReachedEnd,
 	isSearching,
 	sectionTitle,
-	showDefaultAvatars = false,
 }: {
 	people: Person[];
 	loadMoreFunction: () => void;
 	hasReachedEnd: boolean;
 	isSearching?: boolean;
 	sectionTitle?: string;
-	showDefaultAvatars?: boolean;
 }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
@@ -169,7 +167,7 @@ export default function PeopleGrid({
 		);
 
 		return (
-			<PersonCardShell key={person.netid} person={person} showDefaultAvatar={showDefaultAvatars} onOpen={() => setSelectedPerson(person)}>
+			<PersonCardShell key={person.netid} person={person} onOpen={() => setSelectedPerson(person)}>
 				{cardContent}
 			</PersonCardShell>
 		);

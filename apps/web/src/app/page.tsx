@@ -3,7 +3,7 @@ import { API_URL } from "@/consts";
 import { parseSearch } from "@/helpers/searchQuery";
 import Notifications from "@/components/Notifications";
 import PeopleGrid from "@/components/PeopleGrid";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
 import { NavbarContent, useSession } from "@/components/NavigationShell";
 import Filters from "@/components/Filters";
@@ -18,6 +18,7 @@ import { sendGAEvent } from "@next/third-parties/google";
 import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHomeCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
+import { prioritizeYaleMojis, prioritizeYaleMojisWithinYear, spreadYaleMojis } from "@/helpers/yalemojiOrdering";
 
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
 const PAGE_SIZE = 20;
@@ -81,6 +82,12 @@ export default function HomePage() {
 	const restoredFromCache = useRef(!!homeCache);
 	const activeSearchRequest = useRef<AbortController | null>(null);
 	const searchRequestVersion = useRef(0);
+	const displayedPeople = useMemo(() => {
+		if(query.length === 0 && filtersAreDefaultBrowse(filters)) return people;
+		const isBirthdaySearch = ["birthday", "birth_date", "birth_month", "birth_day"]
+			.some(field => (filters?.[field]?.length ?? 0) > 0);
+		return isBirthdaySearch ? prioritizeYaleMojis(people) : prioritizeYaleMojisWithinYear(people);
+	}, [people, query, filters]);
 
 	useEffect(() => {
 		const label = RESULT_LABEL_WORDS[Math.floor(Math.random() * RESULT_LABEL_WORDS.length)];
@@ -180,10 +187,10 @@ export default function HomePage() {
 			return;
 		}
 		setPeople((prev) => {
-			if(currentPage === 0) return newPeople;
+			if(currentPage === 0) return shouldUseRandomBrowseOrder ? spreadYaleMojis(newPeople) : newPeople;
 			const seenNetids = new Set(prev.map(person => person.netid).filter(Boolean));
 			const uniqueNewPeople = newPeople.filter(person => !person.netid || !seenNetids.has(person.netid));
-			return [...prev, ...uniqueNewPeople];
+			return [...prev, ...(shouldUseRandomBrowseOrder ? spreadYaleMojis(uniqueNewPeople) : uniqueNewPeople)];
 		});
 		setCurrentPage((prev) => prev + 1);
 		setIsSearching(false);
@@ -486,8 +493,7 @@ export default function HomePage() {
 			)}
 			{showBirthdays && <BirthdaySection people={birthdayPeople} />}
 			<PeopleGrid
-				people={people}
-				showDefaultAvatars={query.trim().length > 0}
+				people={displayedPeople}
 				loadMoreFunction={getPeople}
 				hasReachedEnd={hasReachedEnd}
 				isSearching={isSearching}

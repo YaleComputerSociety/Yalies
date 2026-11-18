@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Person } from "yalies-shared";
 import styles from "./birthdaysection.module.scss";
 import gridStyles from "./peoplegrid.module.scss";
@@ -13,6 +13,7 @@ import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { COLLEGE_SHIELDS } from "@/consts";
 import EmailCopyButton from "./EmailCopyButton";
 import { normalizeExternalUrl } from "@/utils/externalUrl";
+import { prioritizeYaleMojis } from "@/helpers/yalemojiOrdering";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -48,6 +49,7 @@ function isBirthdayToday(person: Person) {
 
 export default function BirthdaySection({ people }: { people: Person[] }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+	const orderedPeople = useMemo(() => prioritizeYaleMojis(people), [people]);
 
 	if (people.length === 0) return null;
 
@@ -58,7 +60,7 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 					<FontAwesomeIcon icon={faCake} />
 					<span>Birthdays Today</span>
 				</div>
-				{people.map(person => {
+				{orderedPeople.map(person => {
 					const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
 					const collegeYearText = formatCollegeYear(person);
 					const hometownText = formatHometown(person);

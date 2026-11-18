@@ -5,13 +5,15 @@ import { type Person } from "yalies-shared";
 import CardYaleMoji from "./CardYaleMoji";
 import { getExpandedYaleMoji, setExpandedYaleMoji, subscribeExpandedYaleMoji } from "@/hooks/expandedYaleMoji";
 import styles from "./peoplegrid.module.scss";
+import { useSession } from "./NavigationShell";
 
-export default function PersonCardShell({ person, onOpen, children, showDefaultAvatar = false }: {
+export default function PersonCardShell({ person, onOpen, children }: {
 	person: Person;
 	onOpen: () => void;
 	children: ReactNode;
-	showDefaultAvatar?: boolean;
 }) {
+	const { netid } = useSession();
+	const showDefaultAvatar = Boolean(netid && person.netid === netid);
 	const cardId = useId();
 	const activeCard = useSyncExternalStore(subscribeExpandedYaleMoji, getExpandedYaleMoji, () => null);
 	const expanded = activeCard === cardId;

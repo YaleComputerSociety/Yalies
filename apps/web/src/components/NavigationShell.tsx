@@ -13,6 +13,7 @@ type RegisterNavbarContent = (pathname: string, props: NavbarContentProps) => ()
 const NavbarContentContext = createContext<RegisterNavbarContent | null>(null);
 type Session = {
 	isAuthenticated: boolean | undefined;
+	netid: string | undefined;
 	setAuthenticated: (authenticated: boolean) => void;
 };
 const SessionContext = createContext<Session | null>(null);
@@ -38,19 +39,23 @@ export default function NavigationShell({ children }: { children: React.ReactNod
 	const pathname = usePathname();
 	const showNavbar = NAVBAR_ROUTES.has(pathname);
 	const [isAuthenticated, setAuthenticated] = useState<boolean>();
+	const [netid, setNetid] = useState<string>();
 	const [content, setContent] = useState<NavbarContentState | null>(null);
 	const register = useCallback<RegisterNavbarContent>((pathname, props) => {
 		const owner = Symbol();
 		setContent({ owner, pathname, props });
 		return () => setContent(current => current?.owner === owner ? null : current);
 	}, []);
-	const session = useMemo(() => ({ isAuthenticated, setAuthenticated }), [isAuthenticated]);
+	const session = useMemo(() => ({ isAuthenticated, setAuthenticated, netid: isAuthenticated ? netid : undefined }), [isAuthenticated, netid]);
 
 	useEffect(() => {
 		if(!showNavbar) return;
 		let active = true;
 		void getProfile().then(profile => {
-			if(active) setAuthenticated(!!profile);
+			if(active) {
+				setAuthenticated(!!profile);
+				setNetid(profile?.profile.netid);
+			}
 		});
 		return () => { active = false; };
 	}, [showNavbar]);
