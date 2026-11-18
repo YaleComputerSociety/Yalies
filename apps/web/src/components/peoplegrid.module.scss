@@ -21,12 +21,13 @@
 	gap: 24px;
 	padding: 30px 24px 40px;
     .person {
+		--person-card-radius: 20px;
         width: 380px;
 		box-sizing: border-box;
         text-align: left;
 		background: shared.$card-background-color;
 		border: 1px solid shared.$border-color;
-		border-radius: shared.$border-radius-lg;
+		border-radius: var(--person-card-radius);
 		padding: 20px;
 		color: shared.$foreground-color;
 		cursor: pointer;
@@ -283,6 +284,7 @@
 
 	svg {
 		height: 15px;
+		opacity: 0.7;
 	}
 }
 
@@ -320,10 +322,11 @@
 	position: absolute;
 	inset: 0;
 	z-index: -1;
-	border-radius: shared.$border-radius-lg;
-	background-size: cover;
+	border-radius: var(--person-card-radius);
+	// Match the identity header: square SVG tiles preserve circles and patterns.
+	background-size: 220px 220px;
 	background-position: center;
-	background-repeat: no-repeat;
+	background-repeat: repeat;
 	opacity: 0.22;
 	pointer-events: none;
 	transition: opacity 480ms ease;
@@ -346,18 +349,21 @@
 	border-radius: 50%;
 	background: transparent;
 	cursor: pointer;
-	// Exported PNGs include transparent margins; preserve the visible head size.
-	transform: translate(0, 0) scale(1.5);
+	transform: translate(0, 0) scale(1);
 	transition: right 420ms cubic-bezier(0.22, 1, 0.36, 1), bottom 420ms cubic-bezier(0.22, 1, 0.36, 1), transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 	-webkit-tap-highlight-color: transparent;
 
 	.yalemoji {
-		position: static;
-		display: block;
+		position: absolute;
+		// Keep the full export visible while measurement loads or is unavailable.
+		width: 100%;
+		height: 100%;
+		left: 0;
+		top: 0;
 	}
 
 	&:hover {
-		transform: translate(0, -3px) scale(1.5);
+		transform: translate(0, -3px) scale(1);
 	}
 
 	&:focus-visible {
@@ -367,7 +373,7 @@
 }
 
 .person[data-yalemoji-expanded="true"] {
-	cursor: default;
+	cursor: pointer;
 
 	.card_content {
 		opacity: 0;
@@ -382,10 +388,10 @@
 	.yalemoji_button {
 		right: 50%;
 		bottom: 50%;
-		transform: translate(50%, 50%) scale(3);
+		transform: translate(50%, 50%) scale(2.2);
 
 		&:hover {
-			transform: translate(50%, calc(50% - 2px)) scale(3);
+			transform: translate(50%, calc(50% - 2px)) scale(2.2);
 		}
 	}
 }
@@ -465,4 +471,38 @@
 
 .person[data-has-yalemoji="false"] .card_footer {
 	padding-right: 0;
+}
+
+.yalemoji_viewport {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+// A feathered 10px perimeter softens only the focused card's edges.
+.person::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	border-radius: inherit;
+	pointer-events: none;
+	opacity: 0;
+	-webkit-backdrop-filter: blur(5px);
+	backdrop-filter: blur(5px);
+	--edge-blur-mask: linear-gradient(to right, #000, transparent 10px, transparent calc(100% - 10px), #000), linear-gradient(to bottom, #000, transparent 10px, transparent calc(100% - 10px), #000);
+	-webkit-mask-image: var(--edge-blur-mask);
+	mask-image: var(--edge-blur-mask);
+	transition: opacity 250ms ease;
+}
+
+.person[data-yalemoji-expanded="true"]::after {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.person::after {
+		transition: none;
+	}
 }

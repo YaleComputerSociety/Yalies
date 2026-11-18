@@ -55,8 +55,8 @@ export default function Notifications() {
 	return <section className={styles.notifications} aria-label="Notifications" aria-live="polite">
 		{messages.map(message => <div key={message.id} className={styles.row} data-closing={dismissing.includes(message.id)} aria-hidden={dismissing.includes(message.id)}>
 			<div className={styles.clip}><div className={styles.notice} data-color={message.color}>
-			<div className={styles.text}><strong>{message.subject}</strong>{message.message && <><span className={styles.separator} aria-hidden="true"> | </span><span className={styles.body}>{message.message}</span></>}</div>
-			<button type="button" aria-label={`Dismiss ${message.subject}`} disabled={dismissing.includes(message.id)} onClick={() => void dismiss(message.id)}>×</button>
+				<div className={styles.text}><strong>{message.subject}</strong>{message.message && <><span className={styles.separator} aria-hidden="true"> | </span><span className={styles.body}>{message.message}</span></>}</div>
+				<button type="button" aria-label={`Dismiss ${message.subject}`} disabled={dismissing.includes(message.id)} onClick={() => void dismiss(message.id)}>×</button>
 			</div></div>
 		</div>)}
 		{error && <p className={styles.error} role="alert">{error}</p>}

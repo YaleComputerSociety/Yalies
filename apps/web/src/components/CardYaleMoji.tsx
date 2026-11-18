@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { type Person } from "yalies-shared";
 import styles from "./peoplegrid.module.scss";
+import { useYaleMojiImageFit } from "@/hooks/useYaleMojiImageFit";
 
 const DEFAULT_AVATAR = "https://www.yalemoji.com/assets/default-avatar.png?v=3";
 
@@ -26,10 +27,12 @@ export default function CardYaleMoji({ person, expanded, onExpandedChange, showD
 	const avatarSource = person.yalemoji?.png_url;
 	const isDefault = !avatarSource || avatarSource === failedSource;
 	const source = isDefault ? DEFAULT_AVATAR : avatarSource;
+	const imageFit = useYaleMojiImageFit(isDefault ? undefined : avatarSource);
 	if(isDefault && !showDefaultAvatar) return null;
 	const image = <img
 		className={`${styles.yalemoji} ${isDefault ? styles.yalemoji_default : ""}`}
 		src={source}
+		style={isDefault ? undefined : imageFit}
 		alt=""
 		width={isDefault ? 56 : 64}
 		height={isDefault ? 56 : 64}
@@ -57,6 +60,10 @@ export default function CardYaleMoji({ person, expanded, onExpandedChange, showD
 				aria-describedby={showDefaultTooltip ? tooltipId : undefined}
 				onClick={event => {
 					event.stopPropagation();
+					if(showDefaultTooltip) {
+						hideDefaultTooltip();
+						return;
+					}
 					if(tooltipTimer.current) clearTimeout(tooltipTimer.current);
 					setShowDefaultTooltip(true);
 					tooltipTimer.current = setTimeout(() => setShowDefaultTooltip(false), 2500);
@@ -96,7 +103,7 @@ export default function CardYaleMoji({ person, expanded, onExpandedChange, showD
 				}
 			}}
 		>
-			{image}
+			<span className={styles.yalemoji_viewport}>{image}</span>
 		</button>}
 	</>;
 }

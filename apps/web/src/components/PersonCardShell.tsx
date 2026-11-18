@@ -21,7 +21,10 @@ export default function PersonCardShell({ person, onOpen, children, showDefaultA
 		className={styles.person}
 		data-yalemoji-expanded={expanded}
 		data-has-yalemoji={!!person.yalemoji?.png_url || showDefaultAvatar}
-		onClick={() => { if(!expanded) onOpen(); }}
+		onClick={() => {
+			if(expanded) setExpanded(false);
+			else onOpen();
+		}}
 	>
 		<div
 			className={styles.card_content}
