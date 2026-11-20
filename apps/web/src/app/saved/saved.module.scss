@@ -1,0 +1,160 @@
+@use "../../shared.scss";
+
+.saved_header {
+	max-width: 1236px;
+	margin: 0 auto;
+	box-sizing: border-box;
+	padding: 28px 24px 0;
+
+	@include shared.responsive() {
+		padding: 20px 12px 0;
+	}
+}
+
+.title_row {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 6px 14px;
+	margin-bottom: 18px;
+
+	h1 {
+		margin: 0;
+		font-size: 32px;
+		color: shared.$accent-color;
+	}
+}
+
+.subtitle {
+	font-size: 14px;
+	color: shared.$secondary-color;
+}
+
+.list_chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+	padding: 7px 14px;
+	border: 1px solid shared.$border-color;
+	border-radius: shared.$border-radius-full;
+	background: shared.$card-background-color;
+	color: shared.$foreground-color;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+	&:hover {
+		border-color: shared.$accent-color;
+	}
+
+	&.active {
+		border-color: shared.$accent-color;
+		background: shared.$accent-color-soft;
+		color: shared.$accent-color;
+	}
+
+	svg {
+		height: 12px;
+	}
+}
+
+.count {
+	font-size: 12px;
+	font-weight: 600;
+	color: shared.$secondary-color;
+}
+
+.new_list_chip {
+	border-style: dashed;
+	color: shared.$secondary-color;
+}
+
+.inline_form {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+
+	input {
+		width: 200px;
+		max-width: 100%;
+		box-sizing: border-box;
+		padding: 7px 12px;
+		border: 1px solid shared.$accent-color;
+		border-radius: shared.$border-radius-full;
+		background: shared.$card-background-color;
+		color: shared.$foreground-color;
+		font-family: inherit;
+		font-size: 14px;
+		outline: none;
+	}
+}
+
+.list_actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.primary_action,
+.secondary_action {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: shared.$border-radius-standard;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+	svg {
+		height: 12px;
+	}
+}
+
+.primary_action {
+	border: 1px solid shared.$accent-color;
+	background: shared.$accent-color;
+	color: #ffffff;
+
+	&:hover {
+		background: shared.$accent-color-hover;
+	}
+}
+
+.secondary_action {
+	border: 1px solid shared.$border-color;
+	background: shared.$card-background-color;
+	color: shared.$secondary-color;
+
+	&:hover {
+		border-color: shared.$accent-color;
+		color: shared.$accent-color;
+	}
+
+	&.delete_action:hover {
+		border-color: shared.$destructive-color;
+		background-color: rgba(shared.$destructive-color, 0.06);
+		color: shared.$destructive-color;
+	}
+}
+
+.message {
+	margin: 12px 0 0;
+	font-size: 14px;
+	color: shared.$destructive-color;
+}

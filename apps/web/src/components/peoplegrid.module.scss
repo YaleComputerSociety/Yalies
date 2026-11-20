@@ -39,6 +39,17 @@
 			box-shadow: shared.$shadow-lg;
 		}
 
+		&:has([data-menu-open="true"]) {
+			z-index: 10;
+		}
+
+		.save_to_list {
+			position: absolute;
+			top: 16px;
+			right: 16px;
+			z-index: 2;
+		}
+
         .info_box {
             display: flex;
             flex-direction: row;
@@ -77,6 +88,7 @@
 					align-items: center;
 					gap: 4px;
 					margin-bottom: 4px;
+					padding-right: 58px;
 				}
                 .name {
                     margin: 0;
@@ -172,6 +184,11 @@
 		.person {
 			width: 100%;
 			padding: 14px;
+
+			.save_to_list {
+				top: 12px;
+				right: 12px;
+			}
 
 			.info_box {
 				display: flex;

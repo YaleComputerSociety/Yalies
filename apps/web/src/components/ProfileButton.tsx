@@ -7,7 +7,7 @@ import { getProfile, prefetchProfile } from "@/hooks/useProfileCache";
 import { API, Person } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faAddressBook, faArrowRightFromBracket, faCircleInfo, faCode, faQuestionCircle, faRightToBracket, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faAddressBook, faArrowRightFromBracket, faBookmark, faCircleInfo, faCode, faQuestionCircle, faRightToBracket, faUser } from "@fortawesome/free-solid-svg-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const PROFILE_IDENTITY_STORAGE_KEY = "yalies-profile-identity";
@@ -223,6 +223,7 @@ export default function ProfileButton({
 							{showCompactNavLinks && (
 								<div className={styles.compact_nav_items}>
 									<DropdownItem href="/" icon={faAddressBook}>Directory</DropdownItem>
+									<DropdownItem href="/saved" icon={faBookmark}>Saved</DropdownItem>
 									<DropdownItem href="/profile" icon={faUser}>Profile</DropdownItem>
 								</div>
 							)}

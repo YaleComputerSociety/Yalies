@@ -10,6 +10,7 @@ import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { COLLEGE_SHIELDS } from "@/consts";
 import EmailCopyButton from "./EmailCopyButton";
+import SaveToListButton from "./SaveToListButton";
 import { normalizeExternalUrl } from "@/utils/externalUrl";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
@@ -58,12 +59,14 @@ export default function PeopleGrid({
 	hasReachedEnd,
 	isSearching,
 	sectionTitle,
+	emptyMessage = "No results found. Try a different search or adjust your filters.",
 }: {
 	people: Person[];
 	loadMoreFunction: () => void;
 	hasReachedEnd: boolean;
 	isSearching?: boolean;
 	sectionTitle?: string;
+	emptyMessage?: string;
 }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
@@ -170,6 +173,7 @@ export default function PeopleGrid({
 
 		return (
 			<div key={person.netid} className={styles.person} onClick={() => setSelectedPerson(person)}>
+				{person.netid && <SaveToListButton person={person} className={styles.save_to_list} />}
 				{cardContent}
 			</div>
 		);
@@ -182,7 +186,7 @@ export default function PeopleGrid({
 			{isSearching && people.length === 0 && <LoadingIcon />}
 			{showEmpty && (
 				<div style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}>
-					No results found. Try a different search or adjust your filters.
+					{emptyMessage}
 				</div>
 			)}
 			<InfiniteScroll

@@ -17,9 +17,12 @@ import {
 	faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faInstagram } from "@fortawesome/free-brands-svg-icons";
-import FriendButton from "./FriendButton";
+import SaveToListButton from "./SaveToListButton";
 import EmailCopyButton, { CopyButton } from "./EmailCopyButton";
 import { normalizeExternalUrl } from "@/utils/externalUrl";
+import { getSavedEntry, updateNote, useSavedLists } from "@/hooks/useSavedLists";
+
+const MAX_NOTE_LENGTH = 1000;
 
 export default function PersonModal({
 	person,
@@ -31,6 +34,25 @@ export default function PersonModal({
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(person.user_profile ?? null);
 	const [isVisible, setIsVisible] = useState(false);
 	const backdropRef = useRef<HTMLDivElement>(null);
+	const savedLists = useSavedLists();
+	const savedEntry = getSavedEntry(savedLists, person);
+	const [noteDraft, setNoteDraft] = useState(savedEntry?.note ?? "");
+	const [noteStatus, setNoteStatus] = useState("");
+
+	useEffect(() => {
+		setNoteDraft(savedEntry?.note ?? "");
+	}, [savedEntry?.note]);
+
+	const saveNote = async () => {
+		if(!person.netid || !savedEntry || noteDraft === (savedEntry.note ?? "")) return;
+		try {
+			await updateNote(person.netid, savedEntry, noteDraft);
+			setNoteStatus("Note saved");
+		} catch(e) {
+			console.error(e);
+			setNoteStatus("Couldn't save your note. Try again.");
+		}
+	};
 
 	useEffect(() => {
 		requestAnimationFrame(() => setIsVisible(true));
@@ -134,13 +156,7 @@ export default function PersonModal({
 					<div className={styles.header_info}>
 						<div className={styles.name_row}>
 							<h2 className={styles.name}>{displayName}</h2>
-							{person.netid && (
-								<FriendButton
-									netid={person.netid}
-									initialStatus={person.friend_data?.status}
-									initialCount={person.friend_data?.count}
-								/>
-							)}
+							{person.netid && <SaveToListButton person={person} />}
 						</div>
 						{person.pronouns && (
 							<span className={styles.pronouns}>{person.pronouns}</span>
@@ -232,6 +248,26 @@ export default function PersonModal({
 								</a>
 							)}
 						</div>
+					</div>
+				)}
+
+				{savedEntry && person.netid && (
+					<div className={styles.note_section}>
+						<label htmlFor={`saved-note-${person.netid}`} className={styles.note_label}>Private note</label>
+						<textarea
+							id={`saved-note-${person.netid}`}
+							className={styles.note_input}
+							placeholder="Only you can see this"
+							rows={3}
+							maxLength={MAX_NOTE_LENGTH}
+							value={noteDraft}
+							onChange={e => {
+								setNoteDraft(e.target.value);
+								setNoteStatus("");
+							}}
+							onBlur={saveNote}
+						/>
+						{noteStatus && <span className={styles.note_status} role="status">{noteStatus}</span>}
 					</div>
 				)}
 

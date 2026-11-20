@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faUserGroup, faUserCheck, faUserXmark, faUserMinus, faCamera, faCloudArrowUp, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faCamera, faCloudArrowUp, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache, type PendingPhotoRequest } from "@/hooks/useProfileCache";
@@ -34,10 +34,6 @@ export default function ProfilePage() {
 	const [deleteStep, setDeleteStep] = useState(0);
 	const [showDataChangeBanner, setShowDataChangeBanner] = useState(false);
 	const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
-	const [activeTab, setActiveTab] = useState<"profile" | "friends">("profile");
-	const [friends, setFriends] = useState<Person[]>([]);
-	const [friendRequests, setFriendRequests] = useState<Person[]>([]);
-	const [friendsLoading, setFriendsLoading] = useState(false);
 	const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
 	const [photoPreview, setPhotoPreview] = useState("");
 	const [photoUploading, setPhotoUploading] = useState(false);
@@ -131,118 +127,9 @@ export default function ProfilePage() {
 	const linkedinError = getSocialUrlError("linkedin", linkedinUrl);
 	const instagramError = getSocialUrlError("instagram", instagramUrl);
 
-	const fetchPeopleByNetids = async (netids: string[]): Promise<Person[]> => {
-		if(netids.length === 0) return [];
-		try {
-			const response = await fetch(`${API_URL}${API.people}`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					filters: { netid: netids },
-					page: 0,
-					page_size: netids.length,
-				}),
-			});
-			if(response?.ok) {
-				return await response.json();
-			}
-		} catch(e) {
-			console.error(e);
-		}
-		return [];
-	};
-
-	const fetchFriends = async () => {
-		setFriendsLoading(true);
-		try {
-			const [friendsRes, requestsRes] = await Promise.all([
-				fetch(`${API_URL}${API.friendsMe}`, {
-					credentials: "include",
-					headers: { "Content-Type": "application/json" },
-				}),
-				fetch(`${API_URL}${API.friendsRequests}`, {
-					credentials: "include",
-					headers: { "Content-Type": "application/json" },
-				}),
-			]);
-
-			if(friendsRes.ok && requestsRes.ok) {
-				const friendsData = await friendsRes.json();
-				const requestsData = await requestsRes.json();
-
-				const allNetids = [...friendsData.friends, ...requestsData.requests];
-				const people = await fetchPeopleByNetids(allNetids);
-
-				const personMap = new Map<string, Person>();
-				people.forEach(p => { if(p.netid) personMap.set(p.netid, p); });
-
-				setFriends(friendsData.friends.map((n: string) => personMap.get(n) || { first_name: n, last_name: "" }));
-				setFriendRequests(requestsData.requests.map((n: string) => personMap.get(n) || { first_name: n, last_name: "" }));
-			}
-		} catch(e) {
-			console.error(e);
-		} finally {
-			setFriendsLoading(false);
-		}
-	};
-
-	const handleAcceptRequest = async (netid: string) => {
-		try {
-			const response = await fetch(`${API_URL}${API.friendsAccept(netid)}`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-			});
-			if(response.ok) {
-				const accepted = friendRequests.find(p => p.netid === netid);
-				setFriendRequests(prev => prev.filter(p => p.netid !== netid));
-				if(accepted) setFriends(prev => [...prev, accepted]);
-			}
-		} catch(e) {
-			console.error(e);
-		}
-	};
-
-	const handleDeclineRequest = async (netid: string) => {
-		try {
-			const response = await fetch(`${API_URL}${API.friendsDecline(netid)}`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-			});
-			if(response.ok) {
-				setFriendRequests(prev => prev.filter(p => p.netid !== netid));
-			}
-		} catch(e) {
-			console.error(e);
-		}
-	};
-
-	const handleRemoveFriend = async (netid: string) => {
-		try {
-			const response = await fetch(`${API_URL}${API.friendsRemove(netid)}`, {
-				method: "DELETE",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-			});
-			if(response.ok) {
-				setFriends(prev => prev.filter(p => p.netid !== netid));
-			}
-		} catch(e) {
-			console.error(e);
-		}
-	};
-
 	useEffect(() => {
 		fetchProfile();
 	}, []);
-
-	useEffect(() => {
-		if(activeTab === "friends") {
-			fetchFriends();
-		}
-	}, [activeTab]);
 
 	useEffect(() => {
 		const handleClickOutside = (e: MouseEvent) => {
@@ -555,140 +442,30 @@ export default function ProfilePage() {
 					)}
 				</div>
 
-				<div className={styles.tabs}>
-					<button
-						className={`${styles.tab} ${activeTab === "profile" ? styles.active : ""}`}
-						onClick={() => setActiveTab("profile")}
-					>
-						Profile
-					</button>
-					<button
-						className={`${styles.tab} ${activeTab === "friends" ? styles.active : ""}`}
-						onClick={() => setActiveTab("friends")}
-					>
-						<FontAwesomeIcon icon={faUserGroup} />
-						Friends
-						{friendRequests.length > 0 && (
-							<span className={styles.badge}>{friendRequests.length}</span>
-						)}
-					</button>
+				<h2>Social Links</h2>
+				<div className={styles.field}>
+					<label>LinkedIn URL</label>
+					<Input
+						placeholder="https://linkedin.com/in/yourname"
+						value={linkedinUrl}
+						onChange={e => setLinkedinUrl(e.target.value)}
+					/>
+					{linkedinError && <span className={styles.field_error}>{linkedinError}</span>}
+				</div>
+				<div className={styles.field}>
+					<label>Instagram URL</label>
+					<Input
+						placeholder="https://instagram.com/yourhandle"
+						value={instagramUrl}
+						onChange={e => setInstagramUrl(e.target.value)}
+					/>
+					{instagramError && <span className={styles.field_error}>{instagramError}</span>}
 				</div>
 
-				{activeTab === "profile" && (
-					<>
-						<h2>Social Links</h2>
-						<div className={styles.field}>
-							<label>LinkedIn URL</label>
-							<Input
-								placeholder="https://linkedin.com/in/yourname"
-								value={linkedinUrl}
-								onChange={e => setLinkedinUrl(e.target.value)}
-							/>
-							{linkedinError && <span className={styles.field_error}>{linkedinError}</span>}
-						</div>
-						<div className={styles.field}>
-							<label>Instagram URL</label>
-							<Input
-								placeholder="https://instagram.com/yourhandle"
-								value={instagramUrl}
-								onChange={e => setInstagramUrl(e.target.value)}
-							/>
-							{instagramError && <span className={styles.field_error}>{instagramError}</span>}
-						</div>
-
-						<div className={styles.save_section}>
-							<Button onClick={saveProfile}>{isSaving ? "Saving..." : "Save"}</Button>
-							{saveMessage && <span className={styles.save_message}>{saveMessage}</span>}
-						</div>
-					</>
-				)}
-
-				{activeTab === "friends" && (
-					<div className={styles.friends_tab}>
-						{friendRequests.length > 0 && (
-							<>
-								<h2>Friend Requests</h2>
-								<div className={styles.friends_list}>
-									{friendRequests.map(p => (
-										<div key={p.netid} className={styles.friend_card}>
-											<div className={styles.friend_photo}>
-												{p.image ? (
-													<img src={p.image} alt={`${p.first_name} ${p.last_name}`} />
-												) : (
-													<div className={styles.friend_photo_placeholder}>
-														<FontAwesomeIcon icon={faUser} />
-													</div>
-												)}
-											</div>
-											<div className={styles.friend_info}>
-												<span className={styles.friend_name}>
-													{p.preferred_name || p.first_name} {p.last_name}
-												</span>
-												{p.college && p.year && (
-													<span className={styles.friend_detail}>{p.college} &middot; &apos;{String(p.year).slice(-2)}</span>
-												)}
-											</div>
-											<div className={styles.friend_actions}>
-												<button
-													className={`${styles.friend_action} ${styles.accept_action}`}
-													onClick={() => p.netid && handleAcceptRequest(p.netid)}
-												>
-													<FontAwesomeIcon icon={faUserCheck} />
-													Accept
-												</button>
-												<button
-													className={`${styles.friend_action} ${styles.decline_action}`}
-													onClick={() => p.netid && handleDeclineRequest(p.netid)}
-												>
-													<FontAwesomeIcon icon={faUserXmark} />
-													Decline
-												</button>
-											</div>
-										</div>
-									))}
-								</div>
-							</>
-						)}
-
-						<h2>Friends{friends.length > 0 && ` (${friends.length})`}</h2>
-						{friendsLoading ? (
-							<p>Loading...</p>
-						) : friends.length > 0 ? (
-							<div className={styles.friends_list}>
-								{friends.map(p => (
-									<div key={p.netid} className={styles.friend_card}>
-										<div className={styles.friend_photo}>
-											{p.image ? (
-												<img src={p.image} alt={`${p.first_name} ${p.last_name}`} />
-											) : (
-												<div className={styles.friend_photo_placeholder}>
-													<FontAwesomeIcon icon={faUser} />
-												</div>
-											)}
-										</div>
-										<div className={styles.friend_info}>
-											<span className={styles.friend_name}>
-												{p.preferred_name || p.first_name} {p.last_name}
-											</span>
-											{p.college && p.year && (
-												<span className={styles.friend_detail}>{p.college} &middot; &apos;{String(p.year).slice(-2)}</span>
-											)}
-										</div>
-										<button
-											className={`${styles.friend_action} ${styles.remove_action}`}
-											onClick={() => p.netid && handleRemoveFriend(p.netid)}
-										>
-											<FontAwesomeIcon icon={faUserMinus} />
-											Remove
-										</button>
-									</div>
-								))}
-							</div>
-						) : (
-							<p>No friends yet. Visit someone&apos;s profile and send them a friend request!</p>
-						)}
-					</div>
-				)}
+				<div className={styles.save_section}>
+					<Button onClick={saveProfile}>{isSaving ? "Saving..." : "Save"}</Button>
+					{saveMessage && <span className={styles.save_message}>{saveMessage}</span>}
+				</div>
 
 			</div>
 		</>
