@@ -1,0 +1,47 @@
+@use "../shared.scss";
+
+.overlay {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	height: 100vh;
+	height: 100dvh;
+	place-items: center;
+	background: shared.$background-color;
+	opacity: 1;
+	touch-action: none;
+	transition: opacity 0.18s ease-out;
+	// Release the page after three seconds even if hydration is delayed.
+	animation: loading_deadline 3s step-end forwards;
+
+	@include shared.tablet() {
+		display: grid;
+	}
+
+	@include shared.responsive() {
+		display: grid;
+	}
+
+	img {
+		display: block;
+		width: 80px;
+		height: 80px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
+}
+
+.leaving {
+	opacity: 0;
+	pointer-events: none;
+}
+
+@keyframes loading_deadline {
+	to {
+		visibility: hidden;
+		pointer-events: none;
+	}
+}

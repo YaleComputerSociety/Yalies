@@ -1,12 +1,7 @@
 "use client";
-import { API_URL } from "@/consts";
 
 import styles from "./about.module.scss";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
 import { Lexend_Deca } from "next/font/google";
-import { useEffect, useState } from "react";
-import { API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faXTwitter } from "@fortawesome/free-brands-svg-icons";
@@ -56,27 +51,8 @@ function TeamMember({ name, role, image, website, linkedin, x }: {
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
 export default function AboutPage() {
-	const [isAuthenticated, setAuthenticated] = useState(false);
-
-	useEffect(() => {
-		const checkAuth = async () => {
-			try {
-				const res = await fetch(`${API_URL}${API.profileMe}`, {
-					credentials: "include",
-				});
-				setAuthenticated(res.ok);
-			} catch {
-				setAuthenticated(false);
-			}
-		};
-		checkAuth();
-	}, []);
-
 	return (
 		<>
-			<Topbar>
-				<Navbar isAuthenticated={isAuthenticated} />
-			</Topbar>
 			<div id={styles.about_page} className={logoFont.className}>
 				<h1>About</h1>
 				<p className={styles.intro}>
@@ -95,6 +71,29 @@ export default function AboutPage() {
 							role="Yalies Lead"
 							image="/team/yavin_fickel.jpg"
 							linkedin="https://linkedin.com/in/yavin"
+						/>
+						<TeamMember
+							name="Cynthia Wen"
+							role="Developer"
+							image="/team/cynthia_wen.jpg"
+							linkedin="https://www.linkedin.com/in/cynthia-wen-1ab5b5226/"
+						/>
+						<TeamMember
+							name="Kaitlyn Zhang"
+							role="Developer"
+							image="/team/kaitlyn_zhang.jpg"
+							linkedin="https://www.linkedin.com/in/kaitlynszhang"
+						/>
+						<TeamMember
+							name="Kingsten Lin"
+							role="Developer"
+							image="/team/kingsten_lin.jpg"
+						/>
+						<TeamMember
+							name="Sean Donahue"
+							role="Developer"
+							image="/team/sean_donahue.jpg"
+							linkedin="https://linkedin.com/in/seandonahue1212"
 						/>
 					</div>
 

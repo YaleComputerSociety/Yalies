@@ -212,20 +212,6 @@ export default function PersonModal({
 
 				{hasContactRow && (
 					<div className={styles.contact_section}>
-						<div className={styles.contact_details}>
-							{person.email && (
-								<EmailCopyButton className={styles.contact_email} email={person.email} />
-							)}
-							{person.netid && (
-								<CopyButton
-									value={person.netid}
-									displayValue={`NetID ${person.netid}`}
-									icon={faIdCard}
-									copyLabel="NetID"
-									className={styles.contact_netid}
-								/>
-							)}
-						</div>
 						<div className={styles.contact_socials}>
 							{linkedinUrl && (
 								<a
@@ -246,6 +232,20 @@ export default function PersonModal({
 								>
 									<FontAwesomeIcon icon={faInstagram as IconProp} />
 								</a>
+							)}
+						</div>
+						<div className={styles.contact_details}>
+							{person.email && (
+								<EmailCopyButton className={styles.contact_email} email={person.email} />
+							)}
+							{person.netid && (
+								<CopyButton
+									value={person.netid}
+									displayValue={`NetID ${person.netid}`}
+									icon={faIdCard}
+									copyLabel="NetID"
+									className={styles.contact_netid}
+								/>
 							)}
 						</div>
 					</div>

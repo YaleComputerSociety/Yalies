@@ -4,6 +4,7 @@ import { Person } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCheck, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Lexend_Deca } from "next/font/google";
+import { useSession } from "./NavigationShell";
 import styles from "./savetolistbutton.module.scss";
 import {
 	createList,
@@ -54,6 +55,7 @@ export default function SaveToListButton({
 	person: Person;
 	className?: string;
 }) {
+	const { isAuthenticated, netid: viewerNetid } = useSession();
 	const savedLists = useSavedLists();
 	const entry = getSavedEntry(savedLists, person);
 	const saved = entry !== null;
@@ -66,11 +68,11 @@ export default function SaveToListButton({
 	const netid = person.netid ?? "";
 
 	useEffect(() => {
-		loadSavedLists();
+		if(isAuthenticated && person.netid !== viewerNetid) loadSavedLists();
 		return () => {
 			if(statusTimeout.current) clearTimeout(statusTimeout.current);
 		};
-	}, []);
+	}, [isAuthenticated, person.netid, viewerNetid]);
 
 	useEffect(() => {
 		if(!menuOpen) return;
@@ -145,6 +147,8 @@ export default function SaveToListButton({
 
 	const defaultName = getListName(savedLists, savedLists.defaultListId);
 	const mainLabel = saved ? "Saved. Change lists" : `Save to ${defaultName}`;
+
+	if(!isAuthenticated || !person.netid || person.netid === viewerNetid) return null;
 
 	return (
 		<div

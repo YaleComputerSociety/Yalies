@@ -3,8 +3,11 @@ import { API_URL } from "@/consts";
 
 import styles from "./profilebutton.module.scss";
 import Link from "next/link";
-import { getProfile, prefetchProfile } from "@/hooks/useProfileCache";
-import { API, Person } from "yalies-shared";
+import { usePathname } from "next/navigation";
+import YaleMojiLink from "./YaleMojiLink";
+import { getProfile, prefetchProfile, invalidateProfileCache } from "@/hooks/useProfileCache";
+import { clearYaleMojiCache, subscribeYaleMoji } from "@/hooks/yalemojiCache";
+import { API, Person, YaleMojiAvatar } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { faAddressBook, faArrowRightFromBracket, faBookmark, faCircleInfo, faCode, faQuestionCircle, faRightToBracket, faUser } from "@fortawesome/free-solid-svg-icons";
@@ -20,7 +23,7 @@ type CachedProfileIdentity = {
 };
 
 function getFirstName(person: Person | null) {
-	return person?.preferred_name?.trim() || person?.first_name?.trim() || "";
+	return person?.preferred_name?.trim() || person?.first_name?.trim() || person?.netid?.trim() || "";
 }
 
 function getInitials(person: Person | null) {
@@ -111,12 +114,20 @@ export default function ProfileButton({
 	isAuthenticated?: boolean;
 	showCompactNavLinks?: boolean;
 }) {
+	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const [person, setPerson] = useState<Person | null>(null);
+	const [avatar, setAvatar] = useState<YaleMojiAvatar | null>(null);
 	const [cachedIdentity, setCachedIdentity] = useState<CachedProfileIdentity | null>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		setOpen(false);
+		setClosing(false);
+	}, [pathname]);
 
 	const openDropdown = useCallback(() => {
 		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -160,17 +171,32 @@ export default function ProfileButton({
 	}, []);
 
 	useEffect(() => {
-		if(!isAuthenticated) return;
-		getProfile().then((result) => {
-			if(result?.person) {
-				setPerson(result.person);
+		if(!isAuthenticated) {
+			setAvatar(null);
+			setPerson(null);
+			invalidateProfileCache();
+			return;
+		}
+		let active = true;
+		let unsubscribeAvatar: (() => void) | undefined;
+		const load = async () => {
+			const result = await getProfile();
+			if(!active || !result) return;
+			unsubscribeAvatar = subscribeYaleMoji(result.profile.netid, setAvatar);
+			setPerson(result.person);
+			if(result.person) {
 				const identity = getProfileIdentity(result.person);
 				if(identity) {
 					setCachedIdentity(identity);
 					window.localStorage.setItem(PROFILE_IDENTITY_STORAGE_KEY, JSON.stringify(identity));
 				}
 			}
-		});
+		};
+		void load();
+		return () => {
+			active = false;
+			unsubscribeAvatar?.();
+		};
 	}, [isAuthenticated]);
 
 	const initials = useMemo(() => {
@@ -181,7 +207,7 @@ export default function ProfileButton({
 		return "";
 	}, [cachedIdentity, person]);
 
-	const firstName = getFirstName(person) || cachedIdentity?.firstName || "";
+	const avatarStyle = avatar ? { backgroundImage: `url("${avatar.background_url}")` } : undefined;
 
 	if (isAuthenticated) {
 		return (
@@ -189,12 +215,15 @@ export default function ProfileButton({
 				<button
 					type="button"
 					className={styles.profile_button}
+					style={avatarStyle}
 					onMouseEnter={() => prefetchProfile()}
 					onClick={toggleDropdown}
 					aria-label="Profile menu"
 					aria-expanded={open && !closing}
 				>
-					{initials ? (
+					{avatar ? (
+						<img src={avatar.png_url} alt="" className={styles.button_avatar} onError={() => setAvatar(null)} />
+					) : initials ? (
 						<span suppressHydrationWarning>{initials}</span>
 					) : (
 						<FontAwesomeIcon icon={faUser} className={styles.profile_fallback_icon} />
@@ -202,22 +231,34 @@ export default function ProfileButton({
 				</button>
 				{open && (
 					<div className={`${styles.dropdown} ${closing ? styles.closing : ""}`}>
-						<div className={styles.identity_header}>
-							{/* YaleMoji button temporarily disabled.
-							<a
+						<div className={styles.identity_header} style={avatarStyle}>
+							{avatar && <YaleMojiLink
 								className={styles.header_edit}
-								href="https://yalemoji.com?ref=yalies"
+								href="https://yalemoji.com/editor?ref=yalies"
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label="Build your YaleMoji"
+								aria-label="Edit your Yalemoji"
+								title="Edit your Yalemoji"
 							>
-								<FiSmile size={17} strokeWidth={1.7} />
-							</a>
-							*/}
-							<div className={styles.header_initials} suppressHydrationWarning>
-								{initials || <FontAwesomeIcon icon={faUser} className={styles.header_fallback_icon} />}
-							</div>
-							{firstName && <span className={styles.greeting}>Hello, {firstName}</span>}
+								<img src="/icons/yalemoji.svg" alt="" className={styles.header_edit_icon} width={20} height={16} />
+							</YaleMojiLink>}
+							{avatar ? (
+								<img src={avatar.png_url} alt="Your Yalemoji" className={styles.header_avatar} onError={() => setAvatar(null)} />
+							) : (
+								<div className={styles.header_initials} suppressHydrationWarning>
+									{initials || <FontAwesomeIcon icon={faUser} className={styles.header_fallback_icon} />}
+								</div>
+							)}
+							{!avatar && (
+								<YaleMojiLink
+									className={styles.create_yalemoji}
+									href="https://yalemoji.com/create?ref=yalies"
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Make your Yalemoji
+								</YaleMojiLink>
+							)}
 						</div>
 						<div className={styles.menu_items}>
 							{showCompactNavLinks && (
@@ -234,6 +275,7 @@ export default function ProfileButton({
 								icon={faArrowRightFromBracket}
 								iconClassName={styles.icon_red}
 								onClick={() => {
+									clearYaleMojiCache();
 									window.location.href = API_URL + API.logout;
 								}}
 							>

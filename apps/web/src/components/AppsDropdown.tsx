@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import styles from "./appsdropdown.module.scss";
+import YaleMojiLink from "./YaleMojiLink";
 
 type AppLink = {
 	name: string;
@@ -27,24 +29,27 @@ const apps: AppLink[] = [
 		color: "#28639b",
 	},
 	{
-		name: "Yale Clubs",
-		href: "https://yaleclubs.io",
-		image: "/apps-panel/yclubs.svg",
-		color: "#438fd1",
+		name: "YaleMeals",
+		href: "https://apps.apple.com/us/app/yalemeals/id6755962674",
+		image: "/apps-panel/yale-menus.png",
+		imageShift: "upMore",
+		imageSize: "xlarge",
+		color: "#164b78",
 	},
 	{
-		name: "y/meets",
+		name: "ymeets",
 		href: "https://ymeets.com",
 		image: "/apps-panel/ymeetslogo.png",
 		roundedImage: true,
 		color: "#468ff2",
 	},
 	{
-		name: "Yale IMs",
-		href: "https://yaleims.com",
-		image: "/apps-panel/yaleims.png",
-		imageShift: "up",
-		color: "#e2ad16",
+		name: "Yalemoji",
+		href: "https://yalemoji.com?ref=yalies",
+		image: "/apps-panel/yalemoji-waffle.png",
+		imageSize: "large",
+		roundedImage: true,
+		color: "#28639b",
 	},
 	{
 		name: "y/labs",
@@ -54,12 +59,17 @@ const apps: AppLink[] = [
 		color: "#1678d3",
 	},
 	{
-		name: "Yale Meals",
-		href: "https://apps.apple.com/us/app/yalemeals/id6755962674",
-		image: "/apps-panel/yale-menus.png",
-		imageShift: "upMore",
-		imageSize: "xlarge",
-		color: "#164b78",
+		name: "YaleIMs",
+		href: "https://yaleims.com",
+		image: "/apps-panel/yaleims.png",
+		imageShift: "up",
+		color: "#e2ad16",
+	},
+	{
+		name: "YaleClubs",
+		href: "https://yaleclubs.io",
+		image: "/apps-panel/yclubs.svg",
+		color: "#438fd1",
 	},
 ];
 
@@ -70,10 +80,17 @@ function normalizeHostname(hostname: string) {
 const DROPDOWN_ANIMATION_MS = 180;
 
 export default function AppsDropdown() {
+	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 	const [closing, setClosing] = useState(false);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+		setOpen(false);
+		setClosing(false);
+	}, [pathname]);
 
 	const openDropdown = useCallback(() => {
 		if(closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -128,8 +145,9 @@ export default function AppsDropdown() {
 			{open && (
 				<div className={`${styles.dropdown} ${closing ? styles.closing : ""}`}>
 					<div className={styles.app_grid}>
-						{apps.map((app) => (
-							<a
+						{apps.map((app) => {
+							const LinkElement = app.name === "Yalemoji" ? YaleMojiLink : "a";
+							return <LinkElement
 								key={app.name}
 								className={styles.app_tile}
 								href={app.href}
@@ -160,8 +178,8 @@ export default function AppsDropdown() {
 									/>
 								</span>
 								<span>{app.name}</span>
-							</a>
-						))}
+							</LinkElement>;
+						})}
 					</div>
 					<p className={styles.attribution}>
 						Yalies is a{" "}

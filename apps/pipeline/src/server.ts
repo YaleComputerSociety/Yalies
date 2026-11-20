@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { existsSync } from "node:fs";
 import { configDotenv } from "dotenv";
-configDotenv({ path: fileURLToPath(new URL("../../../.config/internal/.env.data-pipeline", import.meta.url)), override: true });
+configDotenv({ path: process.env.YALIES_PIPELINE_ENV_FILE || fileURLToPath(new URL("../../../.config/internal/.env.data-pipeline", import.meta.url)), override: true });
 
 import express from "express";
 import cors from "cors";
@@ -15,18 +17,28 @@ import SyncRouter from "./routes/SyncRouter.js";
 import DatabaseRouter from "./routes/DatabaseRouter.js";
 import CasRouter from "./routes/CasRouter.js";
 import DevLoginRouter from "./routes/DevLoginRouter.js";
+import { messageRouter } from "./routes/MessageRouter.js";
+import AdminRouter from "./routes/AdminRouter.js";
+import { initializeAdminAccess } from "./helpers/adminAccess.js";
 import requireAdmin from "./helpers/requireAdmin.js";
 import devIdentity from "./helpers/devIdentity.js";
-import { PIPELINE_ROUTES } from "yalies-shared";
+import { PIPELINE_ROUTES, NOTIFICATION_SCHEMA_SQL } from "yalies-shared";
 
 import SessionModel from "./models/SessionModel.js";
 import AdminModel from "./models/AdminModel.js";
 
-const REQUIRED_ENV = ["DATABASE_URL", "SESSION_SECRET"];
+const REQUIRED_ENV = ["DATABASE_URL", "SESSION_SECRET", "DASHBOARD_URL"];
 const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missingEnv.length > 0) {
 	console.error(`FATAL: missing required env vars: ${missingEnv.join(", ")}. See ONBOARDING.md.`);
 	process.exit(1);
+}
+if (process.env.AUTH_MODE === "dev" && process.env.NODE_ENV !== "development") {
+	throw new Error("AUTH_MODE=dev is only allowed in development");
+}
+const dashboardOrigin = new URL(process.env.DASHBOARD_URL!).origin;
+if (process.env.NODE_ENV !== "development" && !dashboardOrigin.startsWith("https://")) {
+	throw new Error("Production DASHBOARD_URL must use HTTPS");
 }
 
 const sequelize = new Sequelize(process.env.DATABASE_URL!, { logging: false });
@@ -51,9 +63,7 @@ app.set("trust proxy", 1);
 
 // Restrict cross-origin credentialed requests to the known dashboard origin(s)
 // rather than reflecting any origin (the API has full write access to prod data).
-const allowedOrigins = [process.env.DASHBOARD_URL, "http://localhost:3001"]
-	.filter(Boolean)
-	.map((o) => (o as string).replace(/\/$/, ""));
+const allowedOrigins = [dashboardOrigin];
 app.use(cors({
 	credentials: true,
 	origin: (origin, callback) => {
@@ -64,6 +74,13 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+	if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+		const origin = req.get("Origin");
+		if (origin && !allowedOrigins.includes(origin)) return res.status(403).json({ error: "Untrusted request origin" });
+	}
+	return next();
+});
 app.use((req, res, next) => {
 	res.set("Cache-Control", "no-store");
 	next();
@@ -77,8 +94,8 @@ app.use(session({
 	cookie: {
 		httpOnly: true,
 		secure: process.env.NODE_ENV !== "development",
-		sameSite: process.env.NODE_ENV !== "development" ? "none" : false,
-		maxAge: 34560000 * 1000,
+		sameSite: "lax",
+		maxAge: 12 * 60 * 60 * 1000,
 	},
 	store: new SequelizeStore({
 		db: sequelize,
@@ -119,11 +136,22 @@ const cookieRouter = new CookieRouter();
 const scrapeRouter = new ScrapeRouter();
 const syncRouter = new SyncRouter();
 const databaseRouter = new DatabaseRouter();
+const adminRouter = new AdminRouter();
 
+app.use(PIPELINE_ROUTES.messages, requireAdmin, messageRouter(sequelize));
+app.use(PIPELINE_ROUTES.admins, requireAdmin, adminRouter.getRouter());
 app.use(PIPELINE_ROUTES.cookie, requireAdmin, cookieRouter.getRouter());
 app.use(PIPELINE_ROUTES.scrape, requireAdmin, scrapeRouter.getRouter());
 app.use(PIPELINE_ROUTES.sync, requireAdmin, syncRouter.getRouter());
 app.use(PIPELINE_ROUTES.database, requireAdmin, databaseRouter.getRouter());
+
+// The production image hosts the exported dashboard beside its API. All data
+// routes above require a current admin-table entry, including existing sessions.
+if (process.env.DASHBOARD_STATIC_DIR) {
+	const directory = path.resolve(process.env.DASHBOARD_STATIC_DIR);
+	if (!existsSync(path.join(directory, "index.html"))) throw new Error("Dashboard export is missing");
+	app.use(process.env.DASHBOARD_BASE_PATH || "/", express.static(directory, { extensions: ["html"] }));
+}
 
 // Global error handler — always return JSON, never leak stack traces to clients.
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -137,12 +165,8 @@ async function initDb() {
 		await sequelize.authenticate();
 		console.log("Connected to the database");
 
-		await sequelize.query(`
-			CREATE TABLE IF NOT EXISTS admin (
-				netid VARCHAR(255) PRIMARY KEY,
-				added_at TIMESTAMP DEFAULT NOW()
-			);
-		`);
+		await initializeAdminAccess(sequelize);
+		await sequelize.query(NOTIFICATION_SCHEMA_SQL);
 		await sequelize.query(`
 			CREATE TABLE IF NOT EXISTS session (
 				sid VARCHAR(255) PRIMARY KEY,
@@ -154,6 +178,7 @@ async function initDb() {
 
 	} catch (error) {
 		console.error("Database initialization error:", error);
+		throw error;
 	}
 }
 
@@ -167,4 +192,4 @@ const start = async () => {
 		console.log(`Yalies scraper API server listening on port ${PORT}`);
 	});
 };
-start();
+start().catch(() => process.exit(1));

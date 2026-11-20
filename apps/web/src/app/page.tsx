@@ -1,22 +1,24 @@
 "use client";
 import { API_URL } from "@/consts";
 import { parseSearch } from "@/helpers/searchQuery";
+import Notifications from "@/components/Notifications";
 import PeopleGrid from "@/components/PeopleGrid";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
-import Navbar from "@/components/Navbar";
+import { NavbarContent, useSession } from "@/components/NavigationShell";
 import Filters from "@/components/Filters";
-import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
 import Searchbar from "@/components/Searchbar";
 import SearchModeToggle, { type SearchMode } from "@/components/SearchModeToggle";
 import BirthdaySection from "@/components/BirthdaySection";
 import PersonModal from "@/components/PersonModal";
+import MobileLoadingOverlay from "@/components/MobileLoadingOverlay";
 import styles from "./home.module.scss";
 import { sendGAEvent } from "@next/third-parties/google";
 import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHomeCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
+import { prioritizeYaleMojis, prioritizeYaleMojisWithinYear, spreadYaleMojis } from "@/helpers/yalemojiOrdering";
 
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
 const PAGE_SIZE = 20;
@@ -26,6 +28,9 @@ const DEFAULT_FILTERS: Record<string, string[]> = {
 	year: [],
 	college: [],
 	major: [],
+	address_country: [],
+	address_state: [],
+	birth_date: [],
 };
 
 function getRandomBrowseSeed() {
@@ -44,11 +49,16 @@ function filtersAreDefaultBrowse(filters: Record<string, string[]> | null) {
 		filters.school[0] === YALE_COLLEGE &&
 		filters.year && filters.year.length === 0 &&
 		filters.college && filters.college.length === 0 &&
-		filters.major && filters.major.length === 0
+		filters.major && filters.major.length === 0 &&
+		(filters.address_country ?? []).length === 0 &&
+		(filters.address_state ?? []).length === 0 &&
+		(filters.birth_date ?? []).length === 0
+		&& Object.entries(filters).every(([key, values]) => !key.startsWith("exclude_") || values.length === 0)
 	);
 }
 
 export default function HomePage() {
+	const { setAuthenticated } = useSession();
 	const homeCache = getHomeCache();
 
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
@@ -62,26 +72,27 @@ export default function HomePage() {
 	const [searchboxText, setSearchboxText] = useState(homeCache?.query ?? "");
 	const [query, setQuery] = useState(homeCache?.query ?? "");
 	const [searchMode, setSearchMode] = useState<SearchMode>(homeCache?.searchMode ?? "full_name");
-	const [isClient, setIsClient] = useState(false);
-	const [isSearching, setIsSearching] = useState(false);
+	const [isSearching, setIsSearching] = useState(!homeCache);
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [luckyPerson, setLuckyPerson] = useState<Person | null>(null);
 	const [resultsLabel, setResultsLabel] = useState(getResultsLabel(homeCache?.people.length ?? 0));
-	const [isCompact, setIsCompact] = useState(false);
+	const [isCompact, setIsCompact] = useState<boolean | null>(null);
 	const [compactFiltersOpen, setCompactFiltersOpen] = useState(false);
 	const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const restoredFromCache = useRef(!!homeCache);
 	const activeSearchRequest = useRef<AbortController | null>(null);
 	const searchRequestVersion = useRef(0);
+	const displayedPeople = useMemo(() => {
+		if(query.length === 0 && filtersAreDefaultBrowse(filters)) return people;
+		const isBirthdaySearch = ["birthday", "birth_date", "birth_month", "birth_day"]
+			.some(field => (filters?.[field]?.length ?? 0) > 0);
+		return isBirthdaySearch ? prioritizeYaleMojis(people) : prioritizeYaleMojisWithinYear(people);
+	}, [people, query, filters]);
 
 	useEffect(() => {
 		const label = RESULT_LABEL_WORDS[Math.floor(Math.random() * RESULT_LABEL_WORDS.length)];
 		setResultsLabel(getResultsLabel(people.length, label));
 	}, [people.length]);
-
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
 
 	useEffect(() => {
 		const updateCompact = () => setIsCompact(window.innerWidth <= 1024);
@@ -101,7 +112,7 @@ export default function HomePage() {
 		const requestVersion = ++searchRequestVersion.current;
 		let response;
 
-		const { queryActual, resolvedSearchMode, filterObject } = parseSearch(query, searchMode, filters);
+		const { queryActual, resolvedSearchMode, filterObject, excludedFilterObject } = parseSearch(query, searchMode, filters);
 
 		if (currentPage === 0) {
 			setIsSearching(true);
@@ -120,6 +131,7 @@ export default function HomePage() {
 					query: queryActual.length > 0 ? queryActual : null,
 					searchMode: resolvedSearchMode,
 					filters: filterObject,
+					exclude_filters: excludedFilterObject,
 					page: currentPage,
 					page_size: PAGE_SIZE,
 					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
@@ -128,6 +140,7 @@ export default function HomePage() {
 			});
 		} catch(e) {
 			if(e instanceof DOMException && e.name === "AbortError") return;
+			if(requestVersion !== searchRequestVersion.current) return;
 			console.error(e);
 			setSearchError("Failed to connect to the server. Please try again.");
 			setIsSearching(false);
@@ -142,6 +155,7 @@ export default function HomePage() {
 		}
 		if(!response.ok) {
 			if(response.status === 401) {
+				setAuthenticated(false);
 				setUnauthenticated(true);
 				setIsSearching(false);
 				return;
@@ -155,7 +169,17 @@ export default function HomePage() {
 			setIsSearching(false);
 			return;
 		}
-		const newPeople: Person[] = await response?.json();
+		setAuthenticated(true);
+		let newPeople: Person[];
+		try {
+			newPeople = await response.json();
+		} catch(e) {
+			if(requestVersion !== searchRequestVersion.current) return;
+			if(e instanceof DOMException && e.name === "AbortError") return;
+			setSearchError("Something went wrong. Please try again.");
+			setIsSearching(false);
+			return;
+		}
 		if(requestVersion !== searchRequestVersion.current) return;
 		if(newPeople.length === 0) {
 			setHasReachedEnd(true);
@@ -163,10 +187,10 @@ export default function HomePage() {
 			return;
 		}
 		setPeople((prev) => {
-			if(currentPage === 0) return newPeople;
+			if(currentPage === 0) return shouldUseRandomBrowseOrder ? spreadYaleMojis(newPeople) : newPeople;
 			const seenNetids = new Set(prev.map(person => person.netid).filter(Boolean));
 			const uniqueNewPeople = newPeople.filter(person => !person.netid || !seenNetids.has(person.netid));
-			return [...prev, ...uniqueNewPeople];
+			return [...prev, ...(shouldUseRandomBrowseOrder ? spreadYaleMojis(uniqueNewPeople) : uniqueNewPeople)];
 		});
 		setCurrentPage((prev) => prev + 1);
 		setIsSearching(false);
@@ -180,6 +204,7 @@ export default function HomePage() {
 					query: queryActual.length > 0 ? queryActual : null,
 					searchMode: resolvedSearchMode,
 					filters: filterObject,
+					exclude_filters: excludedFilterObject,
 					page: currentPage + 1,
 					page_size: PAGE_SIZE,
 					...(shouldUseRandomBrowseOrder && { random_seed: browseSeed }),
@@ -187,7 +212,7 @@ export default function HomePage() {
 			}).catch(() => {});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed]);
+	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed, setAuthenticated]);
 
 	const getTodaysBirthdays = async () => {
 		let response;
@@ -250,7 +275,7 @@ export default function HomePage() {
 			if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters, query, searchMode]);
+	}, [filters, query, searchMode, browseSeed]);
 
 	useEffect(() => {
 		if (filters && !isSearching && (people.length > 0 || hasReachedEnd)) {
@@ -270,9 +295,7 @@ export default function HomePage() {
 	if(isUnauthenticated) {
 		return (
 			<>
-				<Topbar>
-					<Navbar />
-				</Topbar>
+				<MobileLoadingOverlay ready={isCompact !== null} />
 				<Splash />
 			</>
 		);
@@ -287,7 +310,7 @@ export default function HomePage() {
 	};
 
 	const onSubmit = () => {
-		if(searchboxText === query) return;
+		setIsSearching(true);
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);
@@ -300,6 +323,7 @@ export default function HomePage() {
 
 	const onSearchModeChange = (mode: SearchMode) => {
 		if (mode === searchMode) return;
+		setIsSearching(true);
 		invalidateHomeCache();
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
@@ -318,22 +342,32 @@ export default function HomePage() {
 		if(person) setLuckyPerson(person);
 	};
 
-	const setFilterValue = (key: string, newValue: string[]) => {
+	const setFilterValues = (updates: Record<string, string[]>) => {
+		setIsSearching(true);
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);
 		setHasReachedEnd(false);
 		setCurrentPage(0);
 		setBrowseSeed(getRandomBrowseSeed());
-		setFilters({ ...filters, [key]: newValue });
+		setFilters((previous) => ({ ...previous, ...updates }));
 	};
+	const setFilterValue = (key: string, newValue: string[]) => setFilterValues({ [key]: newValue });
 
 	const renderSearchbar = (wrapperClassName?: string) => (
 		<Searchbar
+			isSearching={isSearching}
+			autoFocus
+			enableShortcut
 			placeholder={searchMode === "initials" ? "Search by initials" : "Search Yalies"}
 			value={searchboxText}
 			onChange={onQueryChange}
 			onClear={() => {
+				if (!query) {
+					setSearchboxText("");
+					return;
+				}
+				setIsSearching(true);
 				activeSearchRequest.current?.abort();
 				searchRequestVersion.current++;
 				setSearchboxText("");
@@ -349,6 +383,7 @@ export default function HomePage() {
 	);
 
 	const reset = () => {
+		setIsSearching(true);
 		activeSearchRequest.current?.abort();
 		searchRequestVersion.current++;
 		setPeople([]);
@@ -370,6 +405,7 @@ export default function HomePage() {
 			<Filters
 				filters={filters || {}}
 				setFilterValue={setFilterValue}
+				setFilterValues={setFilterValues}
 				reset={reset}
 				filtersAreDefault={filtersAreDefault}
 				open={true}
@@ -379,7 +415,7 @@ export default function HomePage() {
 
 	const compactSearchPanel = (
 		<div className={styles.compact_search_panel}>
-			<div className={styles.compact_card}>
+			<div className={`${styles.compact_card} ${styles.compact_card_ready}`}>
 				<div className={styles.compact_header}>
 					<div className={styles.compact_actions}>
 						<button
@@ -408,31 +444,48 @@ export default function HomePage() {
 					{renderSearchbar(styles.compact_searchbar)}
 					<SearchModeToggle value={searchMode} onChange={onSearchModeChange} />
 				</div>
-				<div className={`${styles.compact_filters} ${compactFiltersOpen ? styles.compact_filters_open : ""}`}>
+				<div className={`${styles.compact_filters} ${compactFiltersOpen ? styles.compact_filters_open : ""}`} aria-hidden={!compactFiltersOpen}>
 					<Filters
 						filters={filters || {}}
 						setFilterValue={setFilterValue}
+						setFilterValues={setFilterValues}
 						reset={reset}
 						filtersAreDefault={filtersAreDefault}
-						open={true}
+						open={compactFiltersOpen}
 					/>
 				</div>
 			</div>
 		</div>
 	);
 
+	const compactSearchPlaceholder = (
+		<div className={styles.compact_search_panel} aria-hidden="true">
+			<div className={styles.compact_card}>
+				<div className={`${styles.compact_header} ${styles.placeholder_header}`}>
+					<span className={styles.placeholder_actions} />
+					<span className={styles.placeholder_count} />
+				</div>
+				<div className={styles.compact_search}>
+					<div className={`${styles.compact_searchbar} ${styles.placeholder_search}`} />
+					<div className={styles.placeholder_modes} />
+				</div>
+				<div className={styles.compact_filters} />
+			</div>
+		</div>
+	);
+
 	return (
 		<>
-			<Topbar>
-				<Navbar
-					middleContent={isCompact ? undefined : searchWithFilters}
-					searchStatus={isCompact ? undefined : (isSearching ? "Searching..." : resultsLabel)}
-					isAuthenticated={true}
-					onLogoClick={reset}
-					onFeelingLucky={onFeelingLucky}
-				/>
-			</Topbar>
-			{isClient && isCompact && compactSearchPanel}
+			<MobileLoadingOverlay ready={isCompact !== null && !isSearching} />
+			<NavbarContent
+				// Keep desktop controls mounted from the first paint; CSS hides them on compact screens.
+				middleContent={isCompact !== true ? searchWithFilters : undefined}
+				searchStatus={isCompact !== true ? (isSearching ? "Searching..." : resultsLabel) : undefined}
+				onLogoClick={reset}
+				onFeelingLucky={onFeelingLucky}
+			/>
+			<Notifications />
+			{isCompact === null ? compactSearchPlaceholder : isCompact && compactSearchPanel}
 			{searchError && (
 				<div style={{ textAlign: "center", padding: "20px", color: "#dc3545" }}>
 					{searchError}
@@ -440,7 +493,7 @@ export default function HomePage() {
 			)}
 			{showBirthdays && <BirthdaySection people={birthdayPeople} />}
 			<PeopleGrid
-				people={people}
+				people={displayedPeople}
 				loadMoreFunction={getPeople}
 				hasReachedEnd={hasReachedEnd}
 				isSearching={isSearching}

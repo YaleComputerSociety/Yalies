@@ -82,6 +82,7 @@ export default function EmailCopyButton({
 	return (
 		<CopyButton
 			value={email}
+			displayValue={email.replace(/@yale\.edu$/i, "")}
 			icon={faEnvelope}
 			copyLabel="email"
 			className={className}

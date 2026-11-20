@@ -14,7 +14,29 @@ npm ci
 
 `npm ci` installs all workspaces and builds `yalies-shared`. Do not install dependencies separately in each app. Python is not required for web development.
 
-## Configure
+## Run locally with sample people
+
+For frontend/API work, no private config bundle, Google account, or production access is required.
+Install PostgreSQL server tools (on macOS: `brew install postgresql@16`), or start Docker Desktop, then:
+
+```sh
+npm run dev:local
+```
+
+Open `http://localhost:3000` and click **Log in**. You will be signed in as `dev1` and see 12 fictional people.
+This runs the real frontend, API, and PostgreSQL database, with local login instead of Yale CAS.
+It generates private settings under `.config/local`, and uses PostgreSQL on port `55432`.
+It does not use or replace your existing `.config/external` files or cloud proxy configuration.
+Data persists across restarts. Ctrl+C stops the apps and the database if this command started it.
+The API must be restarted after server source changes; the frontend reloads automatically.
+To use a different person from your local directory, set `DEV_NETID` in
+`.config/local/backend.env` and restart. The selected login persists across restarts;
+you can also override it for a run with `DEV_NETID=your_netid npm run dev:local`.
+
+See [local development and database access](docs/local-development.md) for required files, shared development
+database access, and replacing sample people with a directory snapshot.
+
+## Configure a shared development database (optional)
 
 Get the development config bundle from a maintainer. Keep its filenames below. Templates in `config/examples` document the values; replace all placeholders before starting an app.
 
@@ -60,13 +82,18 @@ The launchers do not start a database proxy automatically. This keeps database s
 
 ```sh
 npm run doctor -- --all
-npm run add-admin -w yalies-data-pipeline -- YOUR_NETID
 npm run dev:pipeline
 # In another terminal:
 npm run dev:dashboard
 ```
 
-Admin bootstrap writes to the configured database. Verify the development target first. Open `http://localhost:3001`; pipeline health is `http://localhost:8080/health`. The dashboard’s CAS flow is a known branch issue and was not exercised during this refactor.
+Verify the development database target before starting the pipeline. Its first
+startup resets the `admin` table to `yef3` only and records the migration; later
+starts preserve changes. Set `DEV_NETID=yef3` for development bypass. Open
+`http://localhost:3001`; pipeline health is `http://localhost:8080/health`. The
+**Access** page manages additional administrators. For recovery, run
+`npm run add-admin -w yalies-data-pipeline -- YOUR_NETID` against the intended
+database. Production uses Yale CAS; see [deployment](docs/deployment.md#admin-dashboard).
 
 ## Checks
 

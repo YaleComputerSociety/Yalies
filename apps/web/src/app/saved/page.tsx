@@ -2,8 +2,7 @@
 import { API_URL } from "@/consts";
 
 import styles from "./saved.module.scss";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
+import { useSession } from "@/components/NavigationShell";
 import PeopleGrid from "@/components/PeopleGrid";
 import { Lexend_Deca } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +24,7 @@ const PAGE_SIZE = 20;
 const MAX_LIST_NAME_LENGTH = 50;
 
 export default function SavedPage() {
+	const { setAuthenticated } = useSession();
 	const savedLists = useSavedLists();
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
 	const [selectedListId, setSelectedListId] = useState<number | null>(null);
@@ -60,6 +60,7 @@ export default function SavedPage() {
 			});
 			if(version !== requestVersion.current) return;
 			if(response.status === 401) {
+				setAuthenticated(false);
 				setUnauthenticated(true);
 				return;
 			}
@@ -69,6 +70,7 @@ export default function SavedPage() {
 				setHasReachedEnd(true);
 				return;
 			}
+			setAuthenticated(true);
 			const newPeople: Person[] = await response.json();
 			if(version !== requestVersion.current) return;
 			setPeople(prev => {
@@ -158,9 +160,6 @@ export default function SavedPage() {
 	if(isUnauthenticated) {
 		return (
 			<>
-				<Topbar>
-					<Navbar />
-				</Topbar>
 				<div className={`${styles.saved_header} ${logoFont.className}`}>
 					<p>Please sign in to see your saved contacts.</p>
 				</div>
@@ -180,9 +179,6 @@ export default function SavedPage() {
 
 	return (
 		<>
-			<Topbar>
-				<Navbar isAuthenticated={true} />
-			</Topbar>
 			<div className={`${styles.saved_header} ${logoFont.className}`}>
 				<div className={styles.title_row}>
 					<h1>Saved</h1>

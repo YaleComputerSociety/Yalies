@@ -1,7 +1,8 @@
 import express, { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import { RequestUser } from "../types";
-import { createSignedAuthAssertion, isValidYaleMojiState, YaleMojiAuthError } from "../yalemojiAuth.js";
+import { createSignedAuthAssertion, getYaleMojiFirstName, isValidYaleMojiState, YaleMojiAuthError } from "../yalemojiAuth.js";
+import PersonModel from "../models/PersonModel.js";
 
 import { takeOidcContinuation, finishLogin } from "../oidc/continuation.js";
 
@@ -41,7 +42,7 @@ export default class CasRouter {
 			errorCallbackUrl = new URL(configuredErrorCallbackUrl);
 			if(errorCallbackUrl.protocol !== "https:" && errorCallbackUrl.protocol !== "http:") throw new Error();
 		} catch {
-			return res.status(500).send("YaleMoji authentication is not configured");
+			return res.status(500).send("Yalemoji authentication is not configured");
 		}
 
 		if(!isValidYaleMojiState(req.query.state)) {
@@ -65,7 +66,7 @@ export default class CasRouter {
 		const state = req.query.state;
 		const authFunction = passport.authenticate("cas", (err: Error, user: Express.User) => {
 			if(err) {
-				console.error("YaleMoji CAS authentication failed");
+				console.error("Yalemoji CAS authentication failed");
 				return this.redirectYaleMojiError(res, errorCallbackUrl, "authentication_failed", state);
 			}
 			if(!user) return this.redirectYaleMojiError(res, errorCallbackUrl, "authentication_failed", state);
@@ -74,11 +75,22 @@ export default class CasRouter {
 			const netid = userWithData.netId?.trim().toLowerCase();
 			if(!netid) return this.redirectYaleMojiError(res, errorCallbackUrl, "identity_unavailable", state);
 
-			return req.logIn(user, (loginError) => {
+			return req.logIn(user, async (loginError) => {
 				if(loginError) return this.redirectYaleMojiError(res, errorCallbackUrl, "session_failed", state);
 				req.session.netid = netid;
 
-				const assertion = createSignedAuthAssertion(netid, state, secret);
+				let firstName: string | undefined;
+				try {
+					const person = await PersonModel.findOne({
+						where: { netid },
+						attributes: ["preferred_name", "first_name"],
+					});
+					firstName = getYaleMojiFirstName(person);
+				} catch(error) {
+					console.warn("Could not load Yalemoji greeting name", error);
+				}
+
+				const assertion = createSignedAuthAssertion(netid, state, secret, undefined, firstName);
 				callbackUrl.searchParams.set("assertion", assertion);
 				return res.redirect(callbackUrl.toString());
 			});

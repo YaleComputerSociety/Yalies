@@ -1,6 +1,6 @@
 import express, {Request, Response} from "express";
 import PersonModel, { PERSON_ALLOWED_FILTER_FIELDS } from "../models/PersonModel.js";
-import { NETID_REGEX } from "yalies-shared";
+import { NETID_REGEX, type Person } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
 import ProfileLikeModel from "../models/ProfileLikeModel.js";
 import SavedContactModel from "../models/SavedContactModel.js";
@@ -8,18 +8,22 @@ import SavedListMemberModel from "../models/SavedListMemberModel.js";
 import SavedListModel from "../models/SavedListModel.js";
 import { Op, Sequelize, WhereOptions, type Order, type OrderItem } from "sequelize";
 import CAS from "../cas.js";
-import { buildFuzzyNameSearch, buildInitialsSearch, normalizeInitials } from "../nameSearch.js";
+import { findNameSearchIds, buildInitialsSearch, normalizeInitials, type NameSearchCandidate } from "../nameSearch.js";
+import { searchProximity, type SearchPerson } from "../searchProximity.js";
+import { buildExcludedFiltersWhere, buildLocationIncludesWhere, parseExcludedFilters, type ExcludedFilters } from "../filterExclusions.js";
+
+import { withYaleMojiAvatars } from "../yalemojiAvatar.js";
 
 const SEARCH_CACHE_MAX = 150;
 const SEARCH_CACHE_TTL_MS = 60 * 1000; 
 const RANDOM_ORDER_MODULUS = 2147483647;
 const RANDOM_ORDER_MULTIPLIER = 2654435761;
-const searchCache = new Map<string, { data: unknown[]; timestamp: number }>();
+const searchCache = new Map<string, { data: Person[]; timestamp: number }>();
 
-function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, page: number, pageSize: number, randomSeed: number | null): string {
+function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, excludedFilters: ExcludedFilters, page: number, pageSize: number, randomSeed: number | null, savedOwnerNetid: string | undefined): string {
 	// netid is part of the key because the cached payload embeds per-user state
 	// (liked_by_me, saved_data) — sharing it across users leaks data.
-	return JSON.stringify({ netid, query, filters, page, pageSize, randomSeed });
+	return JSON.stringify({ netid, savedOwnerNetid, query, filters, excludedFilters, page, pageSize, randomSeed });
 }
 
 export function invalidateSearchCache(netid: string) {
@@ -29,9 +33,9 @@ export function invalidateSearchCache(netid: string) {
 }
 
 type SearchMode = "default" | "full_name" | "first_name" | "last_name" | "initials";
-type SyntheticFilterField = "is_saved" | "saved_list" | "birthday";
+type SyntheticFilterField = "is_saved" | "saved_list" | "birthday" | "birth_date";
 
-const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_saved", "saved_list", "birthday"]);
+const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_saved", "saved_list", "birthday", "birth_date"]);
 const BIRTHDAY_FILTER_DAYS: Record<string, number> = {
 	today: 0,
 	next_3_days: 3,
@@ -110,7 +114,7 @@ function getSavedOrder(netids: string[]): Order {
 	];
 }
 
-function getInitialsOrder(): Order {
+function getInitialsOrder(): OrderItem[] {
 	return [
 		["last_name", "ASC"],
 		["first_name", "ASC"],
@@ -148,6 +152,25 @@ function buildBirthdayWhere(values: string[]): WhereOptions<PersonModel> | null 
 
 	return {
 		[Op.or]: [...dates.values()],
+	};
+}
+
+// Values are "M" for a whole month or "M-D" for an exact date; any match counts
+function buildBirthDateWhere(values: string[]): WhereOptions<PersonModel> | null {
+	const conditions = values.flatMap((value) => {
+		const match = /^(\d{1,2})(?:-(\d{1,2}))?$/.exec(value);
+		if(!match) return [];
+		const month = Number(match[1]);
+		const day = match[2] ? Number(match[2]) : null;
+		if(month < 1 || month > 12) return [];
+		if(day === null) return [{ birth_month: month }];
+		if(day < 1 || day > 31) return [];
+		return [{ birth_month: month, birth_day: day }];
+	});
+	if(conditions.length === 0) return null;
+
+	return {
+		[Op.or]: conditions,
 	};
 }
 
@@ -193,12 +216,17 @@ export default class PeopleRouter {
 		};
 	};
 
-	getSuggestionsFromDatabase = async (query: string, limit: number = 8) => {
+	getSearchViewer = async (netid?: string): Promise<SearchPerson | null> => netid
+		? await PersonModel.findOne({ where: { netid }, attributes: ["year", "college"], raw: true })
+		: null;
+
+	getSuggestionsFromDatabase = async (query: string, limit: number = 8, netid?: string) => {
 		try {
+			const viewer = await this.getSearchViewer(netid);
 			const people = await PersonModel.findAll({
 				where: this.buildNameSearchWhere(query),
 				attributes: ["netid", "first_name", "last_name", "image", "college", "year", "school"],
-				order: getSearchOrder(query),
+				order: [...searchProximity(viewer).sqlOrder(PersonModel.sequelize!), ...getSearchOrder(query)],
 				limit,
 			});
 			return people.map((p) => ({
@@ -245,7 +273,7 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const suggestions = await this.getSuggestionsFromDatabase(query, 8);
+		const suggestions = await this.getSuggestionsFromDatabase(query, 8, req.netid);
 		res.status(200).json(suggestions);
 	};
 
@@ -257,6 +285,13 @@ export default class PeopleRouter {
 		const query = (req.body.query || "").trim();
 		const searchMode: SearchMode = isSearchMode(req.body.searchMode) ? req.body.searchMode : "default";
 		const filtersRaw = req.body.filters || {};
+		let excludedFilters: ExcludedFilters;
+		try {
+			excludedFilters = parseExcludedFilters(req.body.exclude_filters);
+		} catch(error) {
+			res.status(400).send(error instanceof Error ? error.message : "Invalid excluded filters");
+			return;
+		}
 		const page = req.body.page || 0;
 		const pageSize = req.body.page_size || 100;
 		const randomSeed = getRandomSeed(req.body.random_seed);
@@ -266,10 +301,12 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, page, pageSize, randomSeed);
+		// Private saves are available only to the login session, not directory API keys.
+		const savedOwnerNetid = !req.headers.authorization && req.isAuthenticated() ? req.netid : undefined;
+		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, excludedFilters, page, pageSize, randomSeed, savedOwnerNetid);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
-			return res.status(200).json(cached.data);
+			return res.status(200).json(await withYaleMojiAvatars(cached.data));
 		}
 
 		let where: WhereOptions<PersonModel> = {};
@@ -280,19 +317,8 @@ export default class PeopleRouter {
 				return;
 			}
 
-			if(field === "address_country") {
-				const countries = Array.isArray(filtersRaw[field]) ? filtersRaw[field] : [filtersRaw[field]];
-				const countryConditions = countries.map((c: string) => ({
-					[Op.or]: [
-						{ address_country: c },
-						{ address: { [Op.iLike]: `%${c}%` } },
-					],
-				}));
-				where = {
-					...where,
-					[Op.or]: countryConditions,
-				};
-			} else if(field === "year") {
+			if(field === "address_country" || field === "address_state") continue;
+			if(field === "year") {
 				const years = getFilterValues(filtersRaw, field)
 					.map((value) => Number(value))
 					.filter((value) => Number.isInteger(value));
@@ -318,8 +344,10 @@ export default class PeopleRouter {
 				};
 			}
 		}
+		where = andWhere(where, buildLocationIncludesWhere(filtersRaw));
+		where = andWhere(where, buildExcludedFiltersWhere(excludedFilters));
 
-		let searchOrder: Order | null = null;
+		let searchOrder: OrderItem[] | null = null;
 
 		if(query) {
 			if(searchMode === "first_name") {
@@ -346,10 +374,7 @@ export default class PeopleRouter {
 				}
 
 			} else if(searchMode === "full_name") {
-				const nameSearch = buildFuzzyNameSearch(PersonModel.sequelize!, query);
-				where = andWhere(where, nameSearch.where);
-				const order = getSearchOrder(query);
-				searchOrder = [order[0], nameSearch.similarityOrder, ...order.slice(1)];
+				// Resolve progressive matching below, once ALL filters are applied.
 			} else if(searchMode === "default" && query.match(/^[a-z]{2}$/i)) {
 				where = andWhere(where, this.constructInitialsQuery(query));
 				searchOrder = getInitialsOrder();
@@ -364,18 +389,25 @@ export default class PeopleRouter {
 			where = andWhere(where, birthdayWhere);
 		}
 
+		const birthDateWhere = buildBirthDateWhere(getFilterValues(filtersRaw, "birth_date"));
+		if(birthDateWhere) {
+			where = andWhere(where, birthDateWhere);
+		}
+		const isBirthdaySearch = Boolean(birthdayWhere || birthDateWhere
+			|| getFilterValues(filtersRaw, "birth_month").length || getFilterValues(filtersRaw, "birth_day").length);
+
 		const savedListIds = getFilterValues(filtersRaw, "saved_list")
 			.map(value => SavedListModel.parseId(value))
 			.filter((value): value is number => value !== null);
 		let savedOrder: string[] | null = null;
 		if(getFilterValues(filtersRaw, "is_saved").includes("true") || getFilterValues(filtersRaw, "saved_list").length > 0) {
-			if(!req.netid) {
+			if(!savedOwnerNetid) {
 				res.status(200).json([]);
 				return;
 			}
 			const savedNetids = getFilterValues(filtersRaw, "saved_list").length > 0
-				? await SavedListMemberModel.getNetids(req.netid, savedListIds)
-				: await SavedContactModel.getSavedNetids(req.netid);
+				? await SavedListMemberModel.getNetids(savedOwnerNetid, savedListIds)
+				: await SavedContactModel.getSavedNetids(savedOwnerNetid);
 			if(savedNetids.length === 0) {
 				res.status(200).json([]);
 				return;
@@ -386,11 +418,29 @@ export default class PeopleRouter {
 
 		let people: PersonModel[];
 		try {
+			let offset = page * pageSize;
+			const viewer = query || isBirthdaySearch ? await this.getSearchViewer(req.netid) : null;
+			if(query && searchMode === "full_name") {
+				const ids = await findNameSearchIds(PersonModel.sequelize!, query, async (condition, attributes) =>
+					await PersonModel.findAll({
+						where: andWhere(where, condition), attributes, raw: true,
+					}) as unknown as NameSearchCandidate[],
+					viewer,
+				);
+				const pageIds = ids.slice(offset, offset + Number(pageSize));
+				where = andWhere(where, { id: { [Op.in]: pageIds } });
+				searchOrder = pageIds.length ? [[Sequelize.fn("array_position",
+					Sequelize.literal(`ARRAY[${pageIds.map(id => PersonModel.sequelize!.escape(id)).join(",")}]::integer[]`),
+					Sequelize.col("id")), "ASC"]] : getInitialsOrder();
+				offset = 0;
+			} else if(query || isBirthdaySearch) {
+				searchOrder = [...searchProximity(viewer).sqlOrder(PersonModel.sequelize!), ...(searchOrder ?? getInitialsOrder())];
+			}
 			people = await PersonModel.findAll({
 				where,
 				order: searchOrder ?? (savedOrder ? getSavedOrder(savedOrder) : getPeopleOrder(randomSeed)),
 				limit: pageSize,
-				offset: page * pageSize,
+				offset,
 			});
 		} catch(e) {
 			console.error(e);
@@ -417,13 +467,13 @@ export default class PeopleRouter {
 					where: { liker_netid: currentUserNetid, liked_netid: { [Op.in]: netids } },
 				  })
 				: [],
-			currentUserNetid && netids.length > 0
+			savedOwnerNetid && netids.length > 0
 				? SavedContactModel.findAll({
-					where: { owner_netid: currentUserNetid, saved_netid: { [Op.in]: netids } },
+					where: { owner_netid: savedOwnerNetid, saved_netid: { [Op.in]: netids } },
 				  })
 				: [],
-			currentUserNetid
-				? SavedListMemberModel.getListIds(currentUserNetid, netids)
+			savedOwnerNetid
+				? SavedListMemberModel.getListIds(savedOwnerNetid, netids)
 				: new Map<string, number[]>(),
 		]);
 
@@ -444,7 +494,7 @@ export default class PeopleRouter {
 				like_count: likeCountMap.get(person.netid) || 0,
 				liked_by_me: myLikeSet.has(person.netid),
 			} : undefined;
-			const savedData = currentUserNetid && person.netid
+			const savedData = savedOwnerNetid && person.netid
 				? {
 					saved: savedMap.has(person.netid),
 					note: savedMap.get(person.netid) ?? null,
@@ -459,9 +509,23 @@ export default class PeopleRouter {
 			};
 		});
 
+		if(query) {
+			// Legacy two-letter queries use initials even without an explicit mode.
+			const recordedSearchMode = searchMode === "default" && /^[a-z]{2}$/i.test(query) ? "initials" : searchMode;
+			try {
+				await PersonModel.sequelize!.query(`
+					INSERT INTO recents (netid, name, query, search_mode, results)
+					VALUES (CAST($netid AS TEXT), (SELECT concat_ws(' ', first_name, last_name) FROM person
+						WHERE LOWER(netid) = LOWER($netid) LIMIT 1), $query, $searchMode, CAST($results AS TEXT[]))
+				`, { bind: { netid: req.netid, query, searchMode: recordedSearchMode, results: netids } });
+			} catch {
+				console.error("Failed to save recent search");
+			}
+		}
+
 		searchCache.set(cacheKey, { data: json, timestamp: Date.now() });
 		pruneCache();
 
-		res.status(200).json(json);
+		res.status(200).json(await withYaleMojiAvatars(json));
 	};
 };

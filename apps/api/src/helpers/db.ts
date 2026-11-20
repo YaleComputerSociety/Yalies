@@ -9,6 +9,8 @@ import SavedListModel from "./models/SavedListModel.js";
 import SavedListMemberModel from "./models/SavedListMemberModel.js";
 import SavedListDefaultModel from "./models/SavedListDefaultModel.js";
 import DataChangeRequestModel from "./models/DataChangeRequestModel.js";
+import { NOTIFICATION_SCHEMA_SQL } from "./notifications.js";
+import { NAME_SEARCH_SETUP_SQL } from "./nameSearch.js";
 
 export const SEQUELIZE_DEFINITION_OPTIONS = {
 	paranoid: false,
@@ -16,6 +18,21 @@ export const SEQUELIZE_DEFINITION_OPTIONS = {
 	updatedAt: false,
 	deletedAt: false,
 };
+
+export const RECENTS_SETUP_SQL = `
+	CREATE TABLE IF NOT EXISTS recents (
+		id BIGSERIAL PRIMARY KEY,
+		netid VARCHAR(255) NOT NULL,
+		name TEXT,
+		query TEXT NOT NULL,
+		search_mode TEXT,
+		results TEXT[],
+		timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		clear BOOLEAN NOT NULL DEFAULT FALSE
+	);
+	ALTER TABLE recents ADD COLUMN IF NOT EXISTS search_mode TEXT;
+	ALTER TABLE recents ADD COLUMN IF NOT EXISTS results TEXT[];
+`;
 
 export default class DB {
 	#sql: Sequelize;
@@ -35,6 +52,8 @@ export default class DB {
 
 	setupDb = async () => {
 		try {
+			await this.#sql.query(NAME_SEARCH_SETUP_SQL);
+			await this.#sql.query(NOTIFICATION_SCHEMA_SQL);
 			await this.#sql.query(`
 				CREATE OR REPLACE FUNCTION first_last_name(text, text)
 				RETURNS text AS $$
@@ -63,6 +82,7 @@ export default class DB {
 					updated_at TIMESTAMP
 				);
 			`);
+			await this.#sql.query(RECENTS_SETUP_SQL);
 			await this.#sql.query(`
 				ALTER TABLE user_profile
 				ADD COLUMN IF NOT EXISTS description TEXT,

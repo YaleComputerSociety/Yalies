@@ -64,6 +64,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 			}
 		};
 		checkAuth();
+		const interval = window.setInterval(checkAuth, 60_000);
+		window.addEventListener("focus", checkAuth);
+		return () => {
+			window.clearInterval(interval);
+			window.removeEventListener("focus", checkAuth);
+		};
 	}, []);
 
 	return (
