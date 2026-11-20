@@ -27,6 +27,7 @@ const logoFont = Lexend_Deca({ subsets: ["latin"] });
 const PAGE_SIZE = 100;
 const RENDER_BATCH = 20;
 const MAX_LIST_NAME_LENGTH = 50;
+const SHOW_NOTES_STORAGE_KEY = "yalies-show-list-notes";
 
 export default function SavedPage() {
 	const { isAuthenticated, setAuthenticated } = useSession();
@@ -50,6 +51,24 @@ export default function SavedPage() {
 	const [message, setMessage] = useState("");
 	const [isCreating, setIsCreating] = useState(false);
 	const [newListName, setNewListName] = useState("");
+
+	useEffect(() => {
+		try {
+			setShowNotes(window.localStorage.getItem(SHOW_NOTES_STORAGE_KEY) !== "false");
+		} catch {
+			// Keep the default when browser storage is unavailable.
+		}
+	}, []);
+
+	const toggleNotes = () => {
+		const nextShowNotes = !showNotes;
+		setShowNotes(nextShowNotes);
+		try {
+			window.localStorage.setItem(SHOW_NOTES_STORAGE_KEY, String(nextShowNotes));
+		} catch {
+			// The toggle still works when browser storage is unavailable.
+		}
+	};
 
 	const selectedList = savedLists.lists.find(list => list.id === selectedListId)
 		?? savedLists.lists.find(list => list.id === savedLists.defaultListId)
@@ -234,7 +253,7 @@ export default function SavedPage() {
 					{memberPeople.length > 0 && <div className={styles.description_actions}>
 						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy NetIDs for the entire list, one per line" aria-live="polite" onClick={() => void copyList("netid")}>{copyLabels.netid ?? "Copy NetIDs"}</button>
 						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy email addresses for the entire list, one per line" aria-live="polite" onClick={() => void copyList("email")}>{copyLabels.email ?? "Copy emails"}</button>
-						<button type="button" className={`${styles.secondary_action} ${styles.notes_toggle}`} aria-pressed={showNotes} onClick={() => setShowNotes(visible => !visible)}>{showNotes ? "Hide notes" : "Show notes"}</button>
+						<button type="button" className={`${styles.secondary_action} ${styles.notes_toggle}`} aria-pressed={showNotes} onClick={toggleNotes}>{showNotes ? "Hide notes" : "Show notes"}</button>
 					</div>}
 				</div>}
 				{memberPeople.length > 0 && <>
