@@ -18,17 +18,26 @@
 	gap: 8px;
 }
 
+.description_toolbar {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 16px 0 4px;
+}
+
 .description_row {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
+	flex: 1 1 300px;
+	min-width: 0;
 	gap: 8px;
-	margin: 16px 0 4px;
 }
 
 .description_input {
-	flex: 1;
-	min-width: 200px;
+	flex: 1 1 200px;
+	min-width: 0;
 	padding: 8px 10px;
 	border: 1px solid transparent;
 	border-radius: shared.$border-radius-standard;
@@ -77,18 +86,18 @@
 	input { width: 100%; }
 }
 
-.action_row {
+.description_actions {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: 8px;
-	margin-top: 12px;
 
-	> span { margin-right: auto; }
+	button { white-space: nowrap; }
 	button:disabled { opacity: 0.5; cursor: default; }
 }
 
-.copy_button {
+.copy_button,
+.notes_toggle {
 	min-width: 108px;
 	justify-content: center;
 }

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:yalemoji": "node --test tests/yalemoji*.test.mjs tests/expandedYaleMoji.test.mjs",
     "test:saved": "node --test tests/savedList*.test.mjs",
+    "test:cards": "node --test tests/cardLabels.test.mjs",
     "prebuild": "npm run build:shared --prefix ../..",
     "predev": "npm run build:shared --prefix ../.."
   },

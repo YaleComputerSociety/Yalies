@@ -1,0 +1,123 @@
+import type { Person } from "yalies-shared";
+
+export const COLLEGE_ABBREVIATIONS: Readonly<Record<string, string>> = Object.freeze({
+	"Benjamin Franklin College": "BF",
+	"Berkeley College": "BK",
+	"Branford College": "BR",
+	"Davenport College": "DC",
+	"Ezra Stiles College": "ES",
+	"Grace Hopper College": "GH",
+	"Jonathan Edwards College": "JE",
+	"Morse College": "MC",
+	"Pauli Murray College": "MY",
+	"Pierson College": "PC",
+	"Silliman College": "SM",
+	"Saybrook College": "SY",
+	"Trumbull College": "TC",
+	"Timothy Dwight College": "TD",
+});
+
+// Suggested display acronyms, ready to edit. Keys exactly match all 86 entries in
+// apps/pipeline/src/allowedMajors.ts; the coverage test checks for missing majors.
+// These labels affect cards only. Stored names and filter values stay unchanged.
+export const MAJOR_ABBREVIATIONS: Readonly<Record<string, string>> = Object.freeze({
+	"African American Studies": "Af Am Studies",
+	"American Studies": "American Studies",
+	"American Studies (Int.)": "American Studies (Int.)",
+	"Anthropology": "Anthro",
+	"Applied Mathematics": "Applied Math",
+	"Applied Physics": "Applied Phsysics",
+	"Archaeological Studies": "Archaeological Studies",
+	"Architecture": "Architecture",
+	"Art": "Art",
+	"Astronomy": "Astronomy",
+	"Astrophysics": "Astrophysics",
+	"Biomedical Engineering": "BME",
+	"Chemical Engineering": "ChemE",
+	"Chemistry": "Chem",
+	"Chemistry (Int.)": "Chem (Int.)",
+	"Classical Civilization": "CLCV",
+	"Classics": "Classics",
+	"Cognitive Science": "Cog Sci",
+	"Comparative Literature": "Comp Lit",
+	"Computer Science": "Comp Sci",
+	"Computer Science & Econ": "CS & Econ",
+	"Computer Science & Mathematics": "CS & Math",
+	"Computer Science & Psychology": "CS & Psych",
+	"Computing and the Arts": "Comp & Arts",
+	"Computing & Linguistics": "Comp & Linguistics",
+	"Earth and Planetary Sciences": "Earth and Planetary Sciences",
+	"East Asian Languages & Lits": "East Asian Languages & Lits",
+	"East Asian Studies": "East Asian Studies",
+	"Ecology & Evolutionary Biology": "EEB",
+	"Economics": "Econ",
+	"Economics & Mathematics": "Econ & Math",
+	"Elec Engineering & Comp Sci": "EECS",
+	"Electrical Engineering": "EE",
+	"Engineering Science-Chemical": "Chemical Eng",
+	"Engineering Science-Electrical": "Electrical Eng",
+	"Engineering Science-Mechanical": "Mechanical Eng",
+	"Engineering Sci-Environmental": "Environmental Eng",
+	"English": "English",
+	"Environmental Engineering": "Env E",
+	"Environmental Studies": "Env Studies",
+	"Ethics,Politics & Economics": "EP&E",
+	"Ethnicity, Race & Migration": "ER&M",
+	"Film and Media Studies": "Film",
+	"Film and Media Studies (Int.)": "Film (Int.)",
+	"French": "French",
+	"German Studies": "German Studies",
+	"Global Affairs": "Global",
+	"History": "History",
+	"History of Art": "History of Art",
+	"History Science, Medicine & PH": "HSHM",
+	"Humanities": "Humanities",
+	"Italian Studies": "Italian Studies",
+	"Latin American Studies": "Latin Am Studies",
+	"Linguistics": "Linguistics",
+	"Mathematics": "Math",
+	"Mathematics (Int.)": "Math (Int.)",
+	"Mathematics & Philosophy": "Math & Phil",
+	"Mathematics & Physics": "Math & Physics",
+	"Mechanical Engineering": "MechE",
+	"Molecular Biophysics & Biochem": "MB&B",
+	"Molecular,Cellular,DevBio(Int)": "MCDB (Int.)",
+	"Molecular,Cellular,Dev Biology": "MCDB",
+	"Music": "Music",
+	"Music (Int.)": "Music (Int.)",
+	"Near Eastern Languages & Civs": "Near Eastern Languages & Civs",
+	"Neuroscience": "Neuro",
+	"Philosophy": "Phil",
+	"Physics": "Physics",
+	"Physics & Geosciences": "Physics & Geo",
+	"Physics (Int.)": "Physics (Int.)",
+	"Physics & Philosophy": "Physics & Phil",
+	"Political Science": "Poli Sci",
+	"Political Science (Int.)": "Poli Sci (Int.)",
+	"Psychology": "Psych",
+	"Religious Studies": "RLST",
+	"Russ, E Eur & Eurasian Studies": "Russ, E Eur & Eurasian Studies",
+	"Sociology": "Sociology",
+	"Sociology (Int.)": "Sociology (Int.)",
+	"Spanish": "Spanish",
+	"Spanish (Int.)": "Spanish (Int.)",
+	"Statistics and Data Science": "S&DS",
+	"TheaterDancePerformanceStudies": "Theater Dance Performance Studies",
+	"Theater & Performance Studies": "Theater & Performance Studies",
+	"Undeclared": "?",
+	"Urban Studies": "Urban Studies",
+	"Women'sGender&SexualityStudies": "WGSS",
+});
+
+const collegeCodes = new Set(Object.values(COLLEGE_ABBREVIATIONS));
+
+export function formatCardCollegeYear(person: Pick<Person, "college" | "college_code" | "year">) {
+	const code = person.college_code?.trim().toUpperCase();
+	const college = code && collegeCodes.has(code) ? code
+		: COLLEGE_ABBREVIATIONS[person.college?.trim() ?? ""] ?? person.college?.replace(/\s+College$/i, "");
+	return [college, person.year && `'${String(person.year).slice(-2)}`].filter(Boolean).join(" ");
+}
+
+export function formatCardMajor(major: string) {
+	return MAJOR_ABBREVIATIONS[major] ?? major;
+}

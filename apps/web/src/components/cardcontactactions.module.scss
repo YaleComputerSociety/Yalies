@@ -1,0 +1,36 @@
+@use "../_shared.scss" as shared;
+
+.actions {
+	display: flex;
+	justify-content: space-evenly;
+	width: calc(100% - 2px);
+	margin-inline: auto;
+	margin-top: 6px;
+}
+
+.actions .control {
+	--email-button-color: #{shared.$secondary-color};
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 20px;
+	min-width: 0;
+	height: 30px;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	color: var(--email-button-color);
+	text-decoration: none;
+	cursor: pointer;
+	transition: color 0.15s ease;
+
+	svg { width: 14px; height: 14px; }
+	> svg { opacity: 0.7; }
+	&:hover,
+	&:focus-visible {
+		--email-button-color: #{shared.$accent-color};
+	}
+	&:hover > svg { opacity: 1; }
+	&:focus-visible { outline: 2px solid shared.$accent-color; outline-offset: -2px; }
+}

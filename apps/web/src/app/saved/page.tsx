@@ -40,6 +40,7 @@ export default function SavedPage() {
 	const deferredQuery = useDeferredValue(query);
 	const [year, setYear] = useState("");
 	const [college, setCollege] = useState("");
+	const [showNotes, setShowNotes] = useState(true);
 	const [copyLabels, setCopyLabels] = useState<Partial<Record<"netid" | "email", string>>>({});
 	const copyTimers = useRef<Partial<Record<"netid" | "email", ReturnType<typeof setTimeout>>>>({});
 	const [importResult, setImportResult] = useState<ListImportResult | null>(null);
@@ -228,7 +229,14 @@ export default function SavedPage() {
 						</button>
 					)}
 				</div>
-				{selectedList && <SavedListDescription key={selectedList.id} list={selectedList} />}
+				{selectedList && <div className={styles.description_toolbar}>
+					<SavedListDescription key={selectedList.id} list={selectedList} />
+					{memberPeople.length > 0 && <div className={styles.description_actions}>
+						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy NetIDs for the entire list, one per line" aria-live="polite" onClick={() => void copyList("netid")}>{copyLabels.netid ?? "Copy NetIDs"}</button>
+						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy email addresses for the entire list, one per line" aria-live="polite" onClick={() => void copyList("email")}>{copyLabels.email ?? "Copy emails"}</button>
+						<button type="button" className={`${styles.secondary_action} ${styles.notes_toggle}`} aria-pressed={showNotes} onClick={() => setShowNotes(visible => !visible)}>{showNotes ? "Hide notes" : "Show notes"}</button>
+					</div>}
+				</div>}
 				{memberPeople.length > 0 && <>
 					<div className={styles.list_toolbar}>
 						<label className={styles.search_field}>
@@ -244,11 +252,6 @@ export default function SavedPage() {
 							{colleges.map(value => <option key={value} value={value}>{value.replace(/ College$/, "")}</option>)}
 						</select>
 					</div>
-					<div className={styles.action_row}>
-						<span className={styles.field_hint} role="status">{hasFilters ? `${filteredPeople.length} of ${memberPeople.length}` : memberPeople.length} people{isLoading ? " loaded…" : ""}</span>
-						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy NetIDs for the entire list, one per line" aria-live="polite" onClick={() => void copyList("netid")}>{copyLabels.netid ?? "Copy NetIDs"}</button>
-						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy email addresses for the entire list, one per line" aria-live="polite" onClick={() => void copyList("email")}>{copyLabels.email ?? "Copy emails"}</button>
-					</div>
 				</>}
 				{importResult && (showImportSummary || importResult.unmatched.length > 0 || importResult.ambiguous.length > 0 || importResult.skipped_self.length > 0) && <div className={styles.import_result} role="status">
 					{showImportSummary && <p>{importResult.added} people added using {importResult.delimiter}.{importResult.already_in_list > 0 ? ` ${importResult.already_in_list} already in this list.` : ""}</p>}
@@ -260,7 +263,7 @@ export default function SavedPage() {
 				{error && <p className={styles.message}>{error}</p>}
 			</div>
 			<PeopleGrid
-				showSavedNotes
+				showSavedNotes={showNotes}
 				currentListId={activeListId}
 				paginationLength={visiblePeople.length}
 				people={visiblePeople}
