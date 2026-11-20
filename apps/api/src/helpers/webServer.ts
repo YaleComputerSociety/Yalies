@@ -14,7 +14,8 @@ import ConnectSessionSequelize from "connect-session-sequelize";
 import APIKeyRouter from "./routes/apiKeyRouter.js";
 import UserProfileRouter from "./routes/userProfileRouter.js";
 import ProfileLikeRouter from "./routes/profileLikeRouter.js";
-import FriendshipRouter from "./routes/friendshipRouter.js";
+import SavedRouter from "./routes/savedRouter.js";
+import SavedListRouter from "./routes/savedListRouter.js";
 import { API_ROUTES } from "yalies-shared";
 import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
@@ -138,8 +139,11 @@ export default class WebServer {
 		const profileLikeRouter = new ProfileLikeRouter();
 		this.#app.use(API_ROUTES.likes, profileLikeRouter.getRouter());
 
-		const friendshipRouter = new FriendshipRouter();
-		this.#app.use(API_ROUTES.friends, friendshipRouter.getRouter());
+		const savedRouter = new SavedRouter();
+		this.#app.use(API_ROUTES.saved, savedRouter.getRouter());
+
+		const savedListRouter = new SavedListRouter();
+		this.#app.use(API_ROUTES.savedLists, savedListRouter.getRouter());
 
 		this.#app.get(`${API_ROUTES.admin}/facecheck`, CAS.requireAuthenticationSessionOnly, requireAdmin, (_req, res) => {
 			res.json({ enabled: isFacecheckEnabled() });

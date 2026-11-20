@@ -21,14 +21,11 @@ export const API = {
 
 	likesFor: (netid: string) => `${API_PREFIX}/likes/${netid}`,
 
-	friendsMe: `${API_PREFIX}/friends/me`,
-	friendsRequests: `${API_PREFIX}/friends/requests`,
-	friendsStatus: (netid: string) => `${API_PREFIX}/friends/status/${netid}`,
-	friendsCount: (netid: string) => `${API_PREFIX}/friends/count/${netid}`,
-	friendsRequest: (netid: string) => `${API_PREFIX}/friends/request/${netid}`,
-	friendsAccept: (netid: string) => `${API_PREFIX}/friends/accept/${netid}`,
-	friendsDecline: (netid: string) => `${API_PREFIX}/friends/decline/${netid}`,
-	friendsRemove: (netid: string) => `${API_PREFIX}/friends/${netid}`,
+	savedMe: `${API_PREFIX}/saved/me`,
+	savedFor: (netid: string) => `${API_PREFIX}/saved/${netid}`,
+	savedLists: `${API_PREFIX}/saved-lists`,
+	savedList: (id: number) => `${API_PREFIX}/saved-lists/${id}`,
+	savedListMember: (id: number, netid: string) => `${API_PREFIX}/saved-lists/${id}/members/${netid}`,
 
 	apiKeysList: `${API_PREFIX}/api-keys/list`,
 	apiKeysCreate: `${API_PREFIX}/api-keys/create`,
@@ -45,7 +42,8 @@ export const API_ROUTES = {
 	apiKeys: `${API_PREFIX}/api-keys`,
 	profile: `${API_PREFIX}/profile`,
 	likes: `${API_PREFIX}/likes`,
-	friends: `${API_PREFIX}/friends`,
+	saved: `${API_PREFIX}/saved`,
+	savedLists: `${API_PREFIX}/saved-lists`,
 	admin: `${API_PREFIX}/admin`,
 };
 

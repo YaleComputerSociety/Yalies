@@ -53,7 +53,13 @@ export type Person = {
 
     user_profile?: UserProfile;
     like_data?: { like_count: number; liked_by_me: boolean };
-    friend_data?: { status: string; count: number };
+    saved_data?: { saved: boolean; note: string | null; list_ids: number[] };
+};
+
+export type SavedList = {
+	id: number;
+	name: string;
+	count: number;
 };
 
 export type ApiKey = {
