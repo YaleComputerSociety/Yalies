@@ -21,20 +21,22 @@
 	gap: 24px;
 	padding: 30px 24px 40px;
     .person {
+		--person-card-radius: 20px;
         width: 380px;
 		box-sizing: border-box;
         text-align: left;
 		background: shared.$card-background-color;
 		border: 1px solid shared.$border-color;
-		border-radius: shared.$border-radius-lg;
+		border-radius: var(--person-card-radius);
 		padding: 20px;
 		color: shared.$foreground-color;
 		cursor: pointer;
 		box-shadow: shared.$shadow-sm;
 		transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
 		position: relative;
+		isolation: isolate;
 
-		&:hover {
+		&:hover:not(:has(.yalemoji_button:hover, .yalemoji_default_button:hover)):not([data-yalemoji-expanded="true"]) {
 			transform: translateY(-2px);
 			box-shadow: shared.$shadow-lg;
 		}
@@ -146,11 +148,12 @@
 		.card_footer {
 			display: flex;
 			align-items: center;
-			justify-content: space-between;
+			justify-content: flex-start;
 			gap: 10px;
-			padding-top: 12px;
-			margin-top: 12px;
-			border-top: 1px solid shared.$border-color;
+			padding-top: 0;
+			margin-top: 20px;
+			min-height: 16px;
+			padding-right: 74px;
 			font-size: 12px;
 			color: shared.$secondary-color;
 			line-height: 1.2;
@@ -198,8 +201,7 @@
 			}
 
 			.card_footer {
-				padding-top: 10px;
-				margin-top: 10px;
+				margin-top: 14px;
 				font-size: 11px;
 			}
 		}
@@ -211,6 +213,10 @@
 
 		.person {
 			padding: 12px;
+
+			.card_footer {
+				margin-top: 12px;
+			}
 
 			.info_box {
 				.profile_image_frame {
@@ -256,7 +262,10 @@
 }
 
 .card_socials {
-	margin-left: auto;
+	&:empty {
+		display: none;
+	}
+
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -275,6 +284,7 @@
 
 	svg {
 		height: 15px;
+		opacity: 0.7;
 	}
 }
 
@@ -288,4 +298,211 @@
 	margin: 30px auto;
 	width: 25px;
 	height: 25px;
+}
+
+.yalemoji {
+	width: 64px;
+	height: 64px;
+	position: absolute;
+	right: 10px;
+	bottom: 14px;
+	pointer-events: none;
+	object-fit: contain;
+
+}
+
+.yalemoji_default {
+	width: 56px;
+	height: 56px;
+	opacity: 0.4;
+	transform: none;
+}
+
+.yalemoji_background {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: var(--person-card-radius);
+	// Match the identity header: square SVG tiles preserve circles and patterns.
+	background-size: 220px 220px;
+	background-position: center;
+	background-repeat: repeat;
+	opacity: 0.22;
+	pointer-events: none;
+	transition: opacity 480ms ease;
+}
+
+.card_content {
+	opacity: 1;
+	transition: opacity 220ms ease 100ms;
+}
+
+.yalemoji_button {
+	position: absolute;
+	right: 10px;
+	bottom: 14px;
+	z-index: 1;
+	width: 64px;
+	height: 64px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	cursor: pointer;
+	transform: translate(0, 0) scale(1);
+	transition: right 420ms cubic-bezier(0.22, 1, 0.36, 1), bottom 420ms cubic-bezier(0.22, 1, 0.36, 1), transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	-webkit-tap-highlight-color: transparent;
+
+	.yalemoji {
+		position: absolute;
+		// Keep the full export visible while measurement loads or is unavailable.
+		width: 100%;
+		height: 100%;
+		left: 0;
+		top: 0;
+	}
+
+	&:hover {
+		transform: translate(0, -3px) scale(1);
+	}
+
+	&:focus-visible {
+		outline: 2px solid shared.$accent-color;
+		outline-offset: 2px;
+	}
+}
+
+.person[data-yalemoji-expanded="true"] {
+	cursor: pointer;
+
+	.card_content {
+		opacity: 0;
+		pointer-events: none;
+		transition-delay: 0ms;
+	}
+
+	.yalemoji_background {
+		opacity: 1;
+	}
+
+	.yalemoji_button {
+		right: 50%;
+		bottom: 50%;
+		transform: translate(50%, 50%) scale(2.2);
+
+		&:hover {
+			transform: translate(50%, calc(50% - 2px)) scale(2.2);
+		}
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.card_content,
+	.yalemoji_background,
+	.yalemoji_button {
+		transition: none;
+	}
+}
+
+.yalemoji_default_button {
+	position: absolute;
+	right: 10px;
+	bottom: 14px;
+	z-index: 1;
+	width: 56px;
+	height: 56px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+
+	.yalemoji {
+		position: static;
+		display: block;
+	}
+
+	&:focus-visible {
+		outline: 2px solid shared.$accent-color;
+		outline-offset: 2px;
+	}
+}
+
+.yalemoji_tooltip {
+	position: absolute;
+	right: 74px;
+	bottom: 28px;
+	z-index: 2;
+	padding: 6px 9px;
+	border-radius: 6px;
+	background: shared.$foreground-color;
+	color: shared.$card-background-color;
+	box-shadow: shared.$shadow-sm;
+	font-size: 12px;
+	line-height: 1.3;
+	white-space: nowrap;
+	pointer-events: none;
+
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 220ms ease, visibility 0s linear 220ms;
+
+	&[data-visible="true"] {
+		opacity: 1;
+		visibility: visible;
+		transition-delay: 0s;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
+
+	&::after {
+		content: "";
+		position: absolute;
+		left: 100%;
+		top: 50%;
+		transform: translateY(-50%);
+		border: 5px solid transparent;
+		border-left-color: shared.$foreground-color;
+	}
+}
+
+.person[data-has-yalemoji="false"] .card_footer {
+	padding-right: 0;
+}
+
+.yalemoji_viewport {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+// A feathered 10px perimeter softens only the focused card's edges.
+.person::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	border-radius: inherit;
+	pointer-events: none;
+	opacity: 0;
+	-webkit-backdrop-filter: blur(5px);
+	backdrop-filter: blur(5px);
+	--edge-blur-mask: linear-gradient(to right, #000, transparent 10px, transparent calc(100% - 10px), #000), linear-gradient(to bottom, #000, transparent 10px, transparent calc(100% - 10px), #000);
+	-webkit-mask-image: var(--edge-blur-mask);
+	mask-image: var(--edge-blur-mask);
+	transition: opacity 250ms ease;
+}
+
+.person[data-yalemoji-expanded="true"]::after {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.person::after {
+		transition: none;
+	}
 }

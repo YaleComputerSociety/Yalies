@@ -1,5 +1,6 @@
 import express, { Express } from "express";
 import compression from "compression";
+import { notificationRouter } from "./routes/notificationRouter.js";
 import PingPongRouter from "./routes/pingPongRouter.js";
 import PeopleRouter from "./routes/peopleRouter.js";
 import CasRouter from "./routes/casRouter.js";
@@ -19,6 +20,7 @@ import { API_ROUTES } from "yalies-shared";
 import { isFacecheckEnabled, setFacecheckEnabled } from "./facecheck.js";
 
 import { isOidcPath, isOidcProtocolPath, mountOidc } from "./oidc/provider.js";
+import { createAdminProxy } from "./adminProxy.js";
 
 const SequelizeStore = ConnectSessionSequelize(session.Store);
 
@@ -37,6 +39,7 @@ export default class WebServer {
 	initializeExpress = () => {
 		this.#app = express();
 		this.#app.set("trust proxy", 1);
+		if (process.env.ADMIN_SERVICE_URL) this.#app.use(createAdminProxy(process.env.ADMIN_SERVICE_URL));
 		this.#app.use(compression());
 		const legacyCors = cors({ credentials: true, origin: true });
 		this.#app.use((req, res, next) => isOidcPath(req.path) ? next() : legacyCors(req, res, next));
@@ -103,6 +106,8 @@ export default class WebServer {
 			if (req.netid && adminNetids.includes(req.netid)) return next();
 			return res.status(403).json({ error: "Admin access required" });
 		};
+
+		this.#app.use("/v3/notifications", CAS.requireAuthenticationSessionOnly, notificationRouter(this.#db.getSql()));
 
 		const pingPongRouter = new PingPongRouter();
 		this.#app.use(API_ROUTES.ping, pingPongRouter.getRouter());

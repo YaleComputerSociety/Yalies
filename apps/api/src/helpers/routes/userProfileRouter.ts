@@ -11,6 +11,7 @@ import PersonModel from "../models/PersonModel.js";
 import DataChangeRequestModel from "../models/DataChangeRequestModel.js";
 import { detectFace, compareFaces, shouldRunFacecheck } from "../facecheck.js";
 import { CHANGE_REQUEST_ALLOWED_FIELDS } from "yalies-shared";
+import { getYaleMojiAvatar } from "../yalemojiAvatar.js";
 
 const GCS_BUCKET_NAME = "yalies-photos";
 // On Cloud Run we authenticate via the attached runtime service account
@@ -121,6 +122,7 @@ export default class UserProfileRouter {
 			return next();
 		});
 		router.get("/me/full", CAS.requireAuthenticationSessionOnly, this.getMyFullProfile);
+		router.get("/me/yalemoji", CAS.requireAuthenticationSessionOnly, this.getMyYaleMoji);
 		router.get("/me", CAS.requireAuthenticationSessionOnly, this.getMyProfile);
 		router.put("/me", CAS.requireAuthenticationSessionOnly, this.updateMyProfile);
 		router.post("/me/photo", CAS.requireAuthenticationSessionOnly, uploadPhotoMiddleware, this.uploadPhoto);
@@ -159,6 +161,13 @@ export default class UserProfileRouter {
 			console.error(e);
 			return res.status(500).send("Error fetching full profile");
 		}
+	};
+
+	getMyYaleMoji = async (req: Request, res: Response) => {
+		res.set("Cache-Control", "no-store");
+		const yalemoji = await getYaleMojiAvatar(req.netid);
+		if(yalemoji === undefined) return res.status(503).json({ error: "Yalemoji lookup unavailable" });
+		return res.status(200).json({ netid: req.netid, yalemoji });
 	};
 
 	getMyProfile = async (req: Request, res: Response) => {

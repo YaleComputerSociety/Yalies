@@ -1,12 +1,7 @@
 "use client";
-import { API_URL } from "@/consts";
 
 import styles from "./about.module.scss";
-import Navbar from "@/components/Navbar";
-import Topbar from "@/components/Topbar";
 import { Lexend_Deca } from "next/font/google";
-import { useEffect, useState } from "react";
-import { API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faXTwitter } from "@fortawesome/free-brands-svg-icons";
@@ -56,27 +51,8 @@ function TeamMember({ name, role, image, website, linkedin, x }: {
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
 export default function AboutPage() {
-	const [isAuthenticated, setAuthenticated] = useState(false);
-
-	useEffect(() => {
-		const checkAuth = async () => {
-			try {
-				const res = await fetch(`${API_URL}${API.profileMe}`, {
-					credentials: "include",
-				});
-				setAuthenticated(res.ok);
-			} catch {
-				setAuthenticated(false);
-			}
-		};
-		checkAuth();
-	}, []);
-
 	return (
 		<>
-			<Topbar>
-				<Navbar isAuthenticated={isAuthenticated} />
-			</Topbar>
 			<div id={styles.about_page} className={logoFont.className}>
 				<h1>About</h1>
 				<p className={styles.intro}>

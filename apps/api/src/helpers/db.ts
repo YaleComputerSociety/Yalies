@@ -6,6 +6,7 @@ import UserProfileModel from "./models/UserProfileModel.js";
 import ProfileLikeModel from "./models/ProfileLikeModel.js";
 import FriendshipModel from "./models/FriendshipModel.js";
 import DataChangeRequestModel from "./models/DataChangeRequestModel.js";
+import { NOTIFICATION_SCHEMA_SQL } from "./notifications.js";
 import { NAME_SEARCH_SETUP_SQL } from "./nameSearch.js";
 
 export const SEQUELIZE_DEFINITION_OPTIONS = {
@@ -49,6 +50,7 @@ export default class DB {
 	setupDb = async () => {
 		try {
 			await this.#sql.query(NAME_SEARCH_SETUP_SQL);
+			await this.#sql.query(NOTIFICATION_SCHEMA_SQL);
 			await this.#sql.query(`
 				CREATE OR REPLACE FUNCTION first_last_name(text, text)
 				RETURNS text AS $$

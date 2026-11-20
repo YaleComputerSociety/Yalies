@@ -1,12 +1,12 @@
 "use client";
 import { API_URL } from "@/consts";
 import { parseSearch } from "@/helpers/searchQuery";
+import Notifications from "@/components/Notifications";
 import PeopleGrid from "@/components/PeopleGrid";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Person, API, YALE_COLLEGE } from "yalies-shared";
-import Navbar from "@/components/Navbar";
+import { NavbarContent, useSession } from "@/components/NavigationShell";
 import Filters from "@/components/Filters";
-import Topbar from "@/components/Topbar";
 import Splash from "@/components/Splash";
 import Searchbar from "@/components/Searchbar";
 import SearchModeToggle, { type SearchMode } from "@/components/SearchModeToggle";
@@ -18,6 +18,7 @@ import { sendGAEvent } from "@next/third-parties/google";
 import { getHomeCache, setHomeCache, invalidateHomeCache } from "@/hooks/useHomeCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons";
+import { prioritizeYaleMojis, prioritizeYaleMojisWithinYear, spreadYaleMojis } from "@/helpers/yalemojiOrdering";
 
 const RESULT_LABEL_WORDS = ["students", "people", "Yalies", "bulldogs"];
 const PAGE_SIZE = 20;
@@ -57,6 +58,7 @@ function filtersAreDefaultBrowse(filters: Record<string, string[]> | null) {
 }
 
 export default function HomePage() {
+	const { setAuthenticated } = useSession();
 	const homeCache = getHomeCache();
 
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
@@ -80,6 +82,12 @@ export default function HomePage() {
 	const restoredFromCache = useRef(!!homeCache);
 	const activeSearchRequest = useRef<AbortController | null>(null);
 	const searchRequestVersion = useRef(0);
+	const displayedPeople = useMemo(() => {
+		if(query.length === 0 && filtersAreDefaultBrowse(filters)) return people;
+		const isBirthdaySearch = ["birthday", "birth_date", "birth_month", "birth_day"]
+			.some(field => (filters?.[field]?.length ?? 0) > 0);
+		return isBirthdaySearch ? prioritizeYaleMojis(people) : prioritizeYaleMojisWithinYear(people);
+	}, [people, query, filters]);
 
 	useEffect(() => {
 		const label = RESULT_LABEL_WORDS[Math.floor(Math.random() * RESULT_LABEL_WORDS.length)];
@@ -147,6 +155,7 @@ export default function HomePage() {
 		}
 		if(!response.ok) {
 			if(response.status === 401) {
+				setAuthenticated(false);
 				setUnauthenticated(true);
 				setIsSearching(false);
 				return;
@@ -160,6 +169,7 @@ export default function HomePage() {
 			setIsSearching(false);
 			return;
 		}
+		setAuthenticated(true);
 		let newPeople: Person[];
 		try {
 			newPeople = await response.json();
@@ -177,10 +187,10 @@ export default function HomePage() {
 			return;
 		}
 		setPeople((prev) => {
-			if(currentPage === 0) return newPeople;
+			if(currentPage === 0) return shouldUseRandomBrowseOrder ? spreadYaleMojis(newPeople) : newPeople;
 			const seenNetids = new Set(prev.map(person => person.netid).filter(Boolean));
 			const uniqueNewPeople = newPeople.filter(person => !person.netid || !seenNetids.has(person.netid));
-			return [...prev, ...uniqueNewPeople];
+			return [...prev, ...(shouldUseRandomBrowseOrder ? spreadYaleMojis(uniqueNewPeople) : uniqueNewPeople)];
 		});
 		setCurrentPage((prev) => prev + 1);
 		setIsSearching(false);
@@ -202,7 +212,7 @@ export default function HomePage() {
 			}).catch(() => {});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed]);
+	}, [hasReachedEnd, filters, query, searchMode, currentPage, browseSeed, setAuthenticated]);
 
 	const getTodaysBirthdays = async () => {
 		let response;
@@ -286,9 +296,6 @@ export default function HomePage() {
 		return (
 			<>
 				<MobileLoadingOverlay ready={isCompact !== null} />
-				<Topbar>
-					<Navbar />
-				</Topbar>
 				<Splash />
 			</>
 		);
@@ -470,16 +477,14 @@ export default function HomePage() {
 	return (
 		<>
 			<MobileLoadingOverlay ready={isCompact !== null && !isSearching} />
-			<Topbar>
-				<Navbar
-					// Keep desktop controls mounted from the first paint; CSS hides them on compact screens.
-					middleContent={isCompact !== true ? searchWithFilters : undefined}
-					searchStatus={isCompact !== true ? (isSearching ? "Searching..." : resultsLabel) : undefined}
-					isAuthenticated={true}
-					onLogoClick={reset}
-					onFeelingLucky={onFeelingLucky}
-				/>
-			</Topbar>
+			<NavbarContent
+				// Keep desktop controls mounted from the first paint; CSS hides them on compact screens.
+				middleContent={isCompact !== true ? searchWithFilters : undefined}
+				searchStatus={isCompact !== true ? (isSearching ? "Searching..." : resultsLabel) : undefined}
+				onLogoClick={reset}
+				onFeelingLucky={onFeelingLucky}
+			/>
+			<Notifications />
 			{isCompact === null ? compactSearchPlaceholder : isCompact && compactSearchPanel}
 			{searchError && (
 				<div style={{ textAlign: "center", padding: "20px", color: "#dc3545" }}>
@@ -488,7 +493,7 @@ export default function HomePage() {
 			)}
 			{showBirthdays && <BirthdaySection people={birthdayPeople} />}
 			<PeopleGrid
-				people={people}
+				people={displayedPeople}
 				loadMoreFunction={getPeople}
 				hasReachedEnd={hasReachedEnd}
 				isSearching={isSearching}

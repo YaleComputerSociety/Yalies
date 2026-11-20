@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Person } from "yalies-shared";
 import styles from "./birthdaysection.module.scss";
 import gridStyles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
+import PersonCardShell from "./PersonCardShell";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { faCake, faBook, faGraduationCap, faHouse } from "@fortawesome/free-solid-svg-icons";
@@ -12,6 +13,7 @@ import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { COLLEGE_SHIELDS } from "@/consts";
 import EmailCopyButton from "./EmailCopyButton";
 import { normalizeExternalUrl } from "@/utils/externalUrl";
+import { prioritizeYaleMojis } from "@/helpers/yalemojiOrdering";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -47,6 +49,7 @@ function isBirthdayToday(person: Person) {
 
 export default function BirthdaySection({ people }: { people: Person[] }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+	const orderedPeople = useMemo(() => prioritizeYaleMojis(people), [people]);
 
 	if (people.length === 0) return null;
 
@@ -57,7 +60,7 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 					<FontAwesomeIcon icon={faCake} />
 					<span>Birthdays Today</span>
 				</div>
-				{people.map(person => {
+				{orderedPeople.map(person => {
 					const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
 					const collegeYearText = formatCollegeYear(person);
 					const hometownText = formatHometown(person);
@@ -97,13 +100,12 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 
 					const linkedinUrl = normalizeExternalUrl(person.user_profile?.linkedin_url);
 					const instagramUrl = normalizeExternalUrl(person.user_profile?.instagram_url);
-					const hasFooter = person.email || linkedinUrl || instagramUrl;
 
 					return (
-						<div
+						<PersonCardShell
 							key={person.netid}
-							className={gridStyles.person}
-							onClick={() => setSelectedPerson(person)}
+							person={person}
+							onOpen={() => setSelectedPerson(person)}
 						>
 							<div className={gridStyles.info_box}>
 								<div className={gridStyles.profile_image_frame}>
@@ -123,42 +125,40 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 									{detailRows}
 								</div>
 							</div>
-							{hasFooter && (
-								<div className={gridStyles.card_footer}>
-									{person.email && (
-										<EmailCopyButton
-											className={gridStyles.email_link}
-											email={person.email}
-											stopPropagation
-										/>
+							<div className={gridStyles.card_footer}>
+								<div className={gridStyles.card_socials}>
+									{linkedinUrl && (
+										<a
+											href={linkedinUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											onClick={e => e.stopPropagation()}
+											aria-label="LinkedIn"
+										>
+											<FontAwesomeIcon icon={faLinkedin as IconProp} />
+										</a>
 									)}
-									<div className={gridStyles.card_socials}>
-										{linkedinUrl && (
-											<a
-												href={linkedinUrl}
-												target="_blank"
-												rel="noopener noreferrer"
-												onClick={e => e.stopPropagation()}
-												aria-label="LinkedIn"
-											>
-												<FontAwesomeIcon icon={faLinkedin as IconProp} />
-											</a>
-										)}
-										{instagramUrl && (
-											<a
-												href={instagramUrl}
-												target="_blank"
-												rel="noopener noreferrer"
-												onClick={e => e.stopPropagation()}
-												aria-label="Instagram"
-											>
-												<FontAwesomeIcon icon={faInstagram as IconProp} />
-											</a>
-										)}
-									</div>
+									{instagramUrl && (
+										<a
+											href={instagramUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											onClick={e => e.stopPropagation()}
+											aria-label="Instagram"
+										>
+											<FontAwesomeIcon icon={faInstagram as IconProp} />
+										</a>
+									)}
 								</div>
-							)}
-						</div>
+								{person.email && (
+									<EmailCopyButton
+										className={gridStyles.email_link}
+										email={person.email}
+										stopPropagation
+									/>
+								)}
+							</div>
+						</PersonCardShell>
 					);
 				})}
 			</div>

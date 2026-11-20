@@ -205,8 +205,8 @@
 	padding: 14px 0;
 	border-top: 1px solid shared.$border-color;
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	align-items: flex-start;
+	justify-content: flex-start;
 	gap: 14px;
 }
 
@@ -247,7 +247,10 @@
 }
 
 .contact_socials {
-	margin-left: auto;
+	&:empty {
+		display: none;
+	}
+
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -266,5 +269,6 @@
 
 	svg {
 		height: 18px;
+		opacity: 0.7;
 	}
 }

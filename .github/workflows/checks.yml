@@ -26,6 +26,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
       OIDC_TEST_DATABASE_URL: postgres://yalies_test:test_only@127.0.0.1:5432/yalies_test
       SEARCH_TEST_DATABASE_URL: postgres://yalies_test:test_only@127.0.0.1:5432/yalies_test
+      ADMIN_TEST_DATABASE_URL: postgres://yalies_test:test_only@127.0.0.1:5432/yalies_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

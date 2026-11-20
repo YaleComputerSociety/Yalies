@@ -42,7 +42,7 @@ export default class CasRouter {
 			errorCallbackUrl = new URL(configuredErrorCallbackUrl);
 			if(errorCallbackUrl.protocol !== "https:" && errorCallbackUrl.protocol !== "http:") throw new Error();
 		} catch {
-			return res.status(500).send("YaleMoji authentication is not configured");
+			return res.status(500).send("Yalemoji authentication is not configured");
 		}
 
 		if(!isValidYaleMojiState(req.query.state)) {
@@ -66,7 +66,7 @@ export default class CasRouter {
 		const state = req.query.state;
 		const authFunction = passport.authenticate("cas", (err: Error, user: Express.User) => {
 			if(err) {
-				console.error("YaleMoji CAS authentication failed");
+				console.error("Yalemoji CAS authentication failed");
 				return this.redirectYaleMojiError(res, errorCallbackUrl, "authentication_failed", state);
 			}
 			if(!user) return this.redirectYaleMojiError(res, errorCallbackUrl, "authentication_failed", state);
@@ -87,7 +87,7 @@ export default class CasRouter {
 					});
 					firstName = getYaleMojiFirstName(person);
 				} catch(error) {
-					console.warn("Could not load YaleMoji greeting name", error);
+					console.warn("Could not load Yalemoji greeting name", error);
 				}
 
 				const assertion = createSignedAuthAssertion(netid, state, secret, undefined, firstName);

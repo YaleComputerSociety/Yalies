@@ -14,6 +14,7 @@ export const API = {
 
 	profileMe: `${API_PREFIX}/profile/me`,
 	profileMeFull: `${API_PREFIX}/profile/me/full`,
+	profileMeYaleMoji: `${API_PREFIX}/profile/me/yalemoji`,
 	profileMePhoto: `${API_PREFIX}/profile/me/photo`,
 	profileMePhotoDownload: `${API_PREFIX}/profile/me/photo/download`,
 	profileMeChangeRequest: `${API_PREFIX}/profile/me/change-request`,
@@ -50,9 +51,12 @@ export const API_ROUTES = {
 };
 
 export const PIPELINE_API = {
+	messages: `${PIPELINE_PREFIX}/messages`,
 	auth: `${PIPELINE_PREFIX}/auth`,
 	authMe: `${PIPELINE_PREFIX}/auth/me`,
 	authLogout: `${PIPELINE_PREFIX}/auth/logout`,
+	admins: `${PIPELINE_PREFIX}/admins`,
+	admin: (netid: string) => `${PIPELINE_PREFIX}/admins/${encodeURIComponent(netid)}`,
 	cookieValidate: `${PIPELINE_PREFIX}/cookie/validate`,
 	scrapeFacebook: `${PIPELINE_PREFIX}/scrape/facebook`,
 	scrapeDirectory: `${PIPELINE_PREFIX}/scrape/directory`,
@@ -69,7 +73,9 @@ export const PIPELINE_API = {
 };
 
 export const PIPELINE_ROUTES = {
+	messages: `${PIPELINE_PREFIX}/messages`,
 	auth: `${PIPELINE_PREFIX}/auth`,
+	admins: `${PIPELINE_PREFIX}/admins`,
 	cookie: `${PIPELINE_PREFIX}/cookie`,
 	scrape: `${PIPELINE_PREFIX}/scrape`,
 	sync: `${PIPELINE_PREFIX}/sync`,

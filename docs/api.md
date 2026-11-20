@@ -7,3 +7,18 @@ Route constants and request/response types are in `packages/shared`. Implementat
 Directory access, sessions, API keys, and profile mutations have different authorization requirements. Follow the middleware in the relevant router before adding a caller. OIDC protocol endpoints and integration examples are documented in [Continue with Yalies](continue-with-yalies.md).
 
 This repository no longer uses the historical SQLite/Heroku `/v2` setup described in older documentation.
+
+`GET /v3/profile/me/full` requires a login session (including local dev login). Alongside
+`profile`, `person`, and `photo_request`, it returns `yalemoji`: either
+`{ version, png_url, svg_url, background_url }` or `null`. The backend resolves the
+session's NetID through Yalemoji's authenticated `/api/v1/users/{netid}` endpoint.
+The app key stays on the backend. Missing configuration, an absent avatar, or an
+upstream failure returns `null` without preventing the rest of the profile from loading.
+
+Search responses from `POST /v3/people` include `yalemoji` on each person:
+`{ version, png_url, svg_url, background_url }` or `null`. Before returning each
+page (including cached directory results), the backend batches its NetIDs through
+Yalemoji's server-authenticated `POST /api/v1/lookup` endpoint, up to 100 per
+request. Missing avatars and temporary lookup failures render the public default
+`https://www.yalemoji.com/assets/default-avatar.png?v=3`. Directory photos remain
+in `image`; the transparent Yalemoji appears separately in each card's lower right.
