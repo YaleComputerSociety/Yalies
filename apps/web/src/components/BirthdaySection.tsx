@@ -108,7 +108,6 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 							person={person}
 							onOpen={() => setSelectedPerson(person)}
 						>
-							{person.netid && <SaveToListButton person={person} className={gridStyles.save_to_list} />}
 							<div className={gridStyles.info_box}>
 								<div className={gridStyles.profile_image_frame}>
 									<img
@@ -124,7 +123,10 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 									<div className={gridStyles.name_row}>
 										<h3 className={gridStyles.name}>{person.first_name} {person.last_name}</h3>
 									</div>
-									{detailRows}
+									<div className={gridStyles.details_body}>
+										<div className={gridStyles.detail_rows}>{detailRows}</div>
+										{person.netid && <SaveToListButton person={person} className={gridStyles.save_to_list} />}
+									</div>
 								</div>
 							</div>
 							<div className={gridStyles.card_footer}>

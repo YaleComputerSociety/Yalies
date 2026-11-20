@@ -35,7 +35,6 @@ export default function Navbar({
 	const pathname = usePathname();
 	const directoryActive = pathname === "/";
 	const savedActive = pathname === "/saved";
-	const profileActive = pathname === "/profile" || pathname.startsWith("/profile/");
 	const useCompactTopNav = !middleContent && pathname !== "/";
 	const topNavClassName = useCompactTopNav ? `${styles.navbar_top} ${styles.navbar_top_compact}` : styles.navbar_top;
 
@@ -89,8 +88,7 @@ export default function Navbar({
 							{theme === "dark" ? <FaRegMoon size={15} /> : <ImSun size={16} />}
 						</button>
 						<Link href="/" className={directoryActive ? styles.active_nav_button : undefined}>Directory</Link>
-						<Link href="/saved" className={savedActive ? styles.active_nav_button : undefined}>Saved</Link>
-						<Link href="/profile" className={profileActive ? styles.active_nav_button : undefined}>Profile</Link>
+						<Link href="/saved" className={savedActive ? styles.active_nav_button : undefined}>Lists</Link>
 					</div>
 					<div className={styles.account_controls}>
 						<button
@@ -132,14 +130,7 @@ export default function Navbar({
 						className={savedActive ? styles.active_nav_button : undefined}
 						onClick={() => setMenuOpen(false)}
 					>
-						Saved
-					</Link>
-					<Link
-						href="/profile"
-						className={profileActive ? styles.active_nav_button : undefined}
-						onClick={() => setMenuOpen(false)}
-					>
-						Profile
+						Lists
 					</Link>
 					<ProfileButton isAuthenticated={isAuthenticated} showCompactNavLinks />
 				</div>

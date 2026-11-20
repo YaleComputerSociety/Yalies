@@ -264,10 +264,10 @@ export default function ProfileButton({
 							{showCompactNavLinks && (
 								<div className={styles.compact_nav_items}>
 									<DropdownItem href="/" icon={faAddressBook}>Directory</DropdownItem>
-									<DropdownItem href="/saved" icon={faBookmark}>Saved</DropdownItem>
-									<DropdownItem href="/profile" icon={faUser}>Profile</DropdownItem>
+									<DropdownItem href="/saved" icon={faBookmark}>Lists</DropdownItem>
 								</div>
 							)}
+							<DropdownItem href="/profile" icon={faUser}>Profile</DropdownItem>
 							<DropdownItem href="/about" icon={faCircleInfo}>About</DropdownItem>
 							<DropdownItem href="/faq" icon={faQuestionCircle} iconClassName={styles.icon_purple}>FAQ</DropdownItem>
 							<DropdownItem href="/api" icon={faCode} iconClassName={styles.icon_orange}>API</DropdownItem>

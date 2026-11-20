@@ -6,6 +6,7 @@ import SavedListModel from "../models/SavedListModel.js";
 import SavedListMemberModel from "../models/SavedListMemberModel.js";
 import SavedListDefaultModel from "../models/SavedListDefaultModel.js";
 import { invalidateSearchCache } from "./peopleRouter.js";
+import { ensureSavedLists, lockSavedLists } from "../savedLists.js";
 
 export default class SavedRouter {
 	getRouter = () => {
@@ -75,11 +76,12 @@ export default class SavedRouter {
 					return res.status(404).send("List not found");
 				}
 				listId = list.id;
-			} else if(!listChosen) {
-				listId = await SavedListDefaultModel.getDefault(req.netid);
+			} else {
+				listId = (await ensureSavedLists(req.netid)).defaultListId;
 			}
 
 			const row = await SavedContactModel.sequelize!.transaction(async transaction => {
+				await lockSavedLists(req.netid, transaction);
 				const [saved, created] = await SavedContactModel.findOrCreate({
 					where: { owner_netid: req.netid, saved_netid: netid },
 					defaults: { note },
@@ -137,7 +139,11 @@ export default class SavedRouter {
 		const { netid } = req.params;
 
 		try {
-			await SavedContactModel.destroy({ where: { owner_netid: req.netid, saved_netid: netid } });
+			await SavedContactModel.sequelize!.transaction(async transaction => {
+				await lockSavedLists(req.netid, transaction);
+				await SavedListMemberModel.destroy({ where: { owner_netid: req.netid, saved_netid: netid }, transaction });
+				await SavedContactModel.destroy({ where: { owner_netid: req.netid, saved_netid: netid }, transaction });
+			});
 			invalidateSearchCache(req.netid);
 			return res.status(200).json({ saved: false, note: null, list_ids: [] });
 		} catch(e) {

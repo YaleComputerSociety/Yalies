@@ -5,112 +5,144 @@ import styles from "./saved.module.scss";
 import { useSession } from "@/components/NavigationShell";
 import PeopleGrid from "@/components/PeopleGrid";
 import { Lexend_Deca } from "next/font/google";
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Person, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPen, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
 	createList,
-	deleteList,
 	getSavedEntry,
-	loadSavedLists,
-	renameList,
+	refreshSavedLists,
 	useSavedLists,
+	type ListImportResult,
 } from "@/hooks/useSavedLists";
+
+import SavedListChip from "./SavedListChip";
+import SavedListDescription from "./SavedListDescription";
+import SavedListImport from "./SavedListImport";
+import { filterSavedPeople, getListClipboard } from "@/helpers/savedListTools";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 100;
+const RENDER_BATCH = 20;
 const MAX_LIST_NAME_LENGTH = 50;
 
 export default function SavedPage() {
-	const { setAuthenticated } = useSession();
+	const { isAuthenticated, setAuthenticated } = useSession();
 	const savedLists = useSavedLists();
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
 	const [selectedListId, setSelectedListId] = useState<number | null>(null);
 	const [people, setPeople] = useState<Person[]>([]);
-	const [currentPage, setCurrentPage] = useState(0);
-	const [hasReachedEnd, setHasReachedEnd] = useState(false);
+	const [visibleLimit, setVisibleLimit] = useState(RENDER_BATCH);
+	const [reloadVersion, setReloadVersion] = useState(0);
+	const [query, setQuery] = useState("");
+	const deferredQuery = useDeferredValue(query);
+	const [year, setYear] = useState("");
+	const [college, setCollege] = useState("");
+	const [copyLabels, setCopyLabels] = useState<Partial<Record<"netid" | "email", string>>>({});
+	const copyTimers = useRef<Partial<Record<"netid" | "email", ReturnType<typeof setTimeout>>>>({});
+	const [importResult, setImportResult] = useState<ListImportResult | null>(null);
+	const [showImportSummary, setShowImportSummary] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [message, setMessage] = useState("");
 	const [isCreating, setIsCreating] = useState(false);
 	const [newListName, setNewListName] = useState("");
-	const [isRenaming, setIsRenaming] = useState(false);
-	const [renameValue, setRenameValue] = useState("");
-	const [deleteStep, setDeleteStep] = useState(0);
-	const requestVersion = useRef(0);
 
-	const selectedList = savedLists.lists.find(list => list.id === selectedListId) ?? null;
-
-	const loadPeople = async (listId: number | null, page: number) => {
-		const version = ++requestVersion.current;
-		setIsLoading(true);
-		setError("");
-		try {
-			const response = await fetch(`${API_URL}${API.people}`, {
-				method: "POST",
-				credentials: "include",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					filters: listId === null ? { is_saved: ["true"] } : { saved_list: [String(listId)] },
-					page,
-					page_size: PAGE_SIZE,
-				}),
-			});
-			if(version !== requestVersion.current) return;
-			if(response.status === 401) {
-				setAuthenticated(false);
-				setUnauthenticated(true);
-				return;
-			}
-			if(!response.ok) {
-				console.error("Error fetching saved people", response.status, await response.text());
-				setError("Something went wrong. Please try again.");
-				setHasReachedEnd(true);
-				return;
-			}
-			setAuthenticated(true);
-			const newPeople: Person[] = await response.json();
-			if(version !== requestVersion.current) return;
-			setPeople(prev => {
-				if(page === 0) return newPeople;
-				const seenNetids = new Set(prev.map(person => person.netid));
-				return [...prev, ...newPeople.filter(person => !seenNetids.has(person.netid))];
-			});
-			setCurrentPage(page + 1);
-			setHasReachedEnd(newPeople.length < PAGE_SIZE);
-		} catch(e) {
-			console.error(e);
-			if(version === requestVersion.current) {
-				setError("Failed to connect to the server. Please try again.");
-				setHasReachedEnd(true);
-			}
-		} finally {
-			if(version === requestVersion.current) setIsLoading(false);
-		}
-	};
+	const selectedList = savedLists.lists.find(list => list.id === selectedListId)
+		?? savedLists.lists.find(list => list.id === savedLists.defaultListId)
+		?? savedLists.lists[0] ?? null;
+	const activeListId = selectedList?.id;
+	const activeListRef = useRef(activeListId);
+	useEffect(() => { activeListRef.current = activeListId; }, [activeListId]);
 
 	useEffect(() => {
-		loadSavedLists();
+		refreshSavedLists().catch(error => {
+			setError(error instanceof Error ? error.message : "Could not load your lists.");
+		});
 	}, []);
 
 	useEffect(() => {
-		setPeople([]);
-		setCurrentPage(0);
-		setHasReachedEnd(false);
-		setIsRenaming(false);
-		setDeleteStep(0);
-		loadPeople(selectedListId, 0);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedListId]);
+		if(isAuthenticated !== undefined) setUnauthenticated(!isAuthenticated);
+	}, [isAuthenticated]);
 
 	useEffect(() => {
-		if(selectedListId !== null && savedLists.loaded && !selectedList) setSelectedListId(null);
-	}, [selectedListId, savedLists.loaded, selectedList]);
+		if(activeListId !== undefined && !savedLists.lists.some(list => list.id === selectedListId)) {
+			setSelectedListId(activeListId);
+		}
+	}, [activeListId, savedLists.lists, selectedListId]);
 
-	const loadMore = () => {
-		if(!isLoading) loadPeople(selectedListId, currentPage);
+	useEffect(() => {
+		setQuery(""); setYear(""); setCollege(""); setCopyLabels({}); setImportResult(null);
+		const timers = copyTimers.current;
+		Object.values(timers).forEach(timer => clearTimeout(timer));
+		return () => Object.values(timers).forEach(timer => clearTimeout(timer));
+	}, [activeListId]);
+
+	useEffect(() => {
+		if(!importResult) return;
+		setShowImportSummary(true);
+		const timer = setTimeout(() => setShowImportSummary(false), 2000);
+		return () => clearTimeout(timer);
+	}, [importResult]);
+
+	useEffect(() => { setVisibleLimit(RENDER_BATCH); }, [activeListId, deferredQuery, year, college]);
+
+	useEffect(() => {
+		if(activeListId === undefined) return;
+		const controller = new AbortController();
+		setPeople([]); setIsLoading(true); setError("");
+		const load = async () => {
+			try {
+				const all = new Map<string, Person>();
+				for(let page = 0; ; page++) {
+					const response = await fetch(`${API_URL}${API.people}`, {
+						method: "POST", credentials: "include", signal: controller.signal,
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ filters: { saved_list: [String(activeListId)] }, page, page_size: PAGE_SIZE }),
+					});
+					if(response.status === 401) { setAuthenticated(false); return; }
+					if(!response.ok) throw new Error("Could not load this list. Please try again.");
+					const batch: Person[] = await response.json();
+					if(controller.signal.aborted) return;
+					for(const person of batch) if(person.netid) all.set(person.netid, person);
+					setPeople(Array.from(all.values()));
+					if(batch.length < PAGE_SIZE) break;
+				}
+				setAuthenticated(true);
+			} catch(error) {
+				if(!controller.signal.aborted) setError(error instanceof Error ? error.message : "Could not load list");
+			} finally { if(!controller.signal.aborted) setIsLoading(false); }
+		};
+		void load();
+		return () => controller.abort();
+	}, [activeListId, reloadVersion, setAuthenticated]);
+
+	const memberPeople = useMemo(() => people.flatMap(person => {
+		const entry = getSavedEntry(savedLists, person);
+		if(!entry || activeListId === undefined || !entry.listIds.includes(activeListId)) return [];
+		return [{ ...person, saved_data: { saved: true, note: entry.note, list_ids: entry.listIds } }];
+	}), [people, savedLists, activeListId]);
+	const filteredPeople = useMemo(() => filterSavedPeople(memberPeople, deferredQuery, year, college), [memberPeople, deferredQuery, year, college]);
+	const years = useMemo(() => Array.from(new Set(memberPeople.flatMap(person => person.year ? [person.year] : []))).sort((a, b) => b - a), [memberPeople]);
+	const colleges = useMemo(() => Array.from(new Set(memberPeople.flatMap(person => person.college ? [person.college] : []))).sort(), [memberPeople]);
+	const visiblePeople = filteredPeople.slice(0, visibleLimit);
+	const hasFilters = Boolean(query.trim() || year || college);
+	const copyList = async (field: "netid" | "email") => {
+		const listId = activeListId;
+		const result = getListClipboard(memberPeople, field);
+		let label = "Copied!";
+		try {
+			if(result.count) await navigator.clipboard.writeText(result.text);
+			else label = field === "email" ? "No emails" : "No NetIDs";
+		} catch { label = "Copy failed"; }
+		if(activeListRef.current !== listId) return;
+		clearTimeout(copyTimers.current[field]);
+		setCopyLabels(previous => ({ ...previous, [field]: label }));
+		copyTimers.current[field] = setTimeout(() => {
+			setCopyLabels(previous => ({ ...previous, [field]: undefined }));
+		}, 2000);
 	};
 
 	const run = async (action: () => Promise<void>) => {
@@ -135,78 +167,27 @@ export default function SavedPage() {
 		});
 	};
 
-	const onRename = (e: React.FormEvent) => {
-		e.preventDefault();
-		const name = renameValue.trim();
-		if(!selectedList || !name) return;
-		run(async () => {
-			await renameList(selectedList.id, name);
-			setIsRenaming(false);
-		});
-	};
-
-	const onDelete = () => {
-		if(!selectedList) return;
-		if(deleteStep === 0) {
-			setDeleteStep(1);
-			return;
-		}
-		run(async () => {
-			await deleteList(selectedList.id);
-			setSelectedListId(null);
-		});
-	};
-
 	if(isUnauthenticated) {
 		return (
 			<>
 				<div className={`${styles.saved_header} ${logoFont.className}`}>
-					<p>Please sign in to see your saved contacts.</p>
+					<p>Please sign in to see your lists.</p>
 				</div>
 			</>
 		);
 	}
 
-	const visiblePeople = people.filter(person => {
-		const entry = getSavedEntry(savedLists, person);
-		if(!entry) return false;
-		return selectedListId === null || entry.listIds.includes(selectedListId);
-	});
-
-	const emptyMessage = selectedList
-		? `No one in ${selectedList.name} yet. On any card, click the arrow next to + and pick ${selectedList.name}.`
-		: "No saved contacts yet. Click + on anyone in the Directory to save them.";
+	const emptyMessage = hasFilters
+		? "No people match these filters. Try another name, note, year, or college."
+		: `No one in ${selectedList?.name ?? "this list"} yet. Import email addresses or NetIDs below, or save someone from the Directory.`;
 
 	return (
 		<>
 			<div className={`${styles.saved_header} ${logoFont.className}`}>
-				<div className={styles.title_row}>
-					<h1>Saved</h1>
-					<span className={styles.subtitle}>Only you can see who you&apos;ve saved.</span>
-				</div>
-				<div className={styles.list_chips} role="tablist" aria-label="Saved lists">
-					<button
-						type="button"
-						role="tab"
-						aria-selected={selectedListId === null}
-						className={`${styles.chip} ${selectedListId === null ? styles.active : ""}`}
-						onClick={() => setSelectedListId(null)}
-					>
-						All saved
-						<span className={styles.count}>{savedLists.total}</span>
-					</button>
+				<div className={styles.list_chips} role="tablist" aria-label="Lists">
 					{savedLists.lists.map(list => (
-						<button
-							key={list.id}
-							type="button"
-							role="tab"
-							aria-selected={selectedListId === list.id}
-							className={`${styles.chip} ${selectedListId === list.id ? styles.active : ""}`}
-							onClick={() => setSelectedListId(list.id)}
-						>
-							{list.name}
-							<span className={styles.count}>{list.count}</span>
-						</button>
+						<SavedListChip key={list.id} list={list} selected={activeListId === list.id}
+							onSelect={() => setSelectedListId(list.id)} onDuplicate={setSelectedListId} onError={setMessage} />
 					))}
 					{isCreating ? (
 						<form className={styles.inline_form} onSubmit={onCreate}>
@@ -247,55 +228,53 @@ export default function SavedPage() {
 						</button>
 					)}
 				</div>
-				{selectedList && (
-					<div className={styles.list_actions}>
-						{isRenaming ? (
-							<form className={styles.inline_form} onSubmit={onRename}>
-								<input
-									autoFocus
-									value={renameValue}
-									onChange={e => setRenameValue(e.target.value)}
-									onKeyDown={e => {
-										if(e.key === "Escape") setIsRenaming(false);
-									}}
-									maxLength={MAX_LIST_NAME_LENGTH}
-									aria-label="List name"
-								/>
-								<button type="submit" className={styles.primary_action}>Save</button>
-								<button type="button" className={styles.secondary_action} onClick={() => setIsRenaming(false)}>
-									Cancel
-								</button>
-							</form>
-						) : (
-							<button
-								type="button"
-								className={styles.secondary_action}
-								onClick={() => {
-									setRenameValue(selectedList.name);
-									setIsRenaming(true);
-									setDeleteStep(0);
-								}}
-							>
-								<FontAwesomeIcon icon={faPen} />
-								Rename
-							</button>
-						)}
-						<button type="button" className={`${styles.secondary_action} ${styles.delete_action}`} onClick={onDelete}>
-							<FontAwesomeIcon icon={faTrash} />
-							{deleteStep === 0 ? "Delete list" : "Click again to delete (people stay saved)"}
-						</button>
+				{selectedList && <SavedListDescription key={selectedList.id} list={selectedList} />}
+				{memberPeople.length > 0 && <>
+					<div className={styles.list_toolbar}>
+						<label className={styles.search_field}>
+							<span className={styles.sr_only}>Filter this list by name or note</span>
+							<input type="search" placeholder="Search names or notes…" value={query} onChange={event => setQuery(event.target.value)} />
+						</label>
+						<select aria-label="Filter by year" value={year} onChange={event => setYear(event.target.value)}>
+							<option value="">All years</option>
+							{years.map(value => <option key={value} value={value}>{value}</option>)}
+						</select>
+						<select aria-label="Filter by college" value={college} onChange={event => setCollege(event.target.value)}>
+							<option value="">All colleges</option>
+							{colleges.map(value => <option key={value} value={value}>{value.replace(/ College$/, "")}</option>)}
+						</select>
 					</div>
-				)}
+					<div className={styles.action_row}>
+						<span className={styles.field_hint} role="status">{hasFilters ? `${filteredPeople.length} of ${memberPeople.length}` : memberPeople.length} people{isLoading ? " loaded…" : ""}</span>
+						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy NetIDs for the entire list, one per line" aria-live="polite" onClick={() => void copyList("netid")}>{copyLabels.netid ?? "Copy NetIDs"}</button>
+						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy email addresses for the entire list, one per line" aria-live="polite" onClick={() => void copyList("email")}>{copyLabels.email ?? "Copy emails"}</button>
+					</div>
+				</>}
+				{importResult && (showImportSummary || importResult.unmatched.length > 0 || importResult.ambiguous.length > 0 || importResult.skipped_self.length > 0) && <div className={styles.import_result} role="status">
+					{showImportSummary && <p>{importResult.added} people added using {importResult.delimiter}.{importResult.already_in_list > 0 ? ` ${importResult.already_in_list} already in this list.` : ""}</p>}
+					{importResult.skipped_self.length > 0 && <p>Your own account was skipped.</p>}
+					{importResult.unmatched.length > 0 && <details><summary>{importResult.unmatched.length} entries not found</summary><p>{importResult.unmatched.join("\n")}</p></details>}
+					{importResult.ambiguous.length > 0 && <details><summary>{importResult.ambiguous.length} ambiguous entries skipped</summary><p>{importResult.ambiguous.join("\n")}</p></details>}
+				</div>}
 				{message && <p className={styles.message} role="status">{message}</p>}
 				{error && <p className={styles.message}>{error}</p>}
 			</div>
 			<PeopleGrid
+				showSavedNotes
+				currentListId={activeListId}
+				paginationLength={visiblePeople.length}
 				people={visiblePeople}
-				loadMoreFunction={loadMore}
-				hasReachedEnd={hasReachedEnd}
-				isSearching={isLoading && people.length === 0}
+				loadMoreFunction={() => setVisibleLimit(limit => limit + RENDER_BATCH)}
+				hasReachedEnd={visibleLimit >= filteredPeople.length}
+				isSearching={(isLoading && people.length === 0) || (!savedLists.loaded && !error)}
 				emptyMessage={emptyMessage}
 			/>
+			{selectedList && !isLoading && !error && memberPeople.length === 0 && <SavedListImport key={selectedList.id} listId={selectedList.id}
+				onImported={result => {
+					if(activeListRef.current !== selectedList.id) return;
+					setImportResult(result);
+					if(result.added > 0) setReloadVersion(version => version + 1);
+				}} />}
 		</>
 	);
 }

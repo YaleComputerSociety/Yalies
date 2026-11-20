@@ -46,9 +46,8 @@
 		}
 
 		.save_to_list {
-			position: absolute;
-			top: 16px;
-			right: 16px;
+			flex-shrink: 0;
+			margin-left: auto;
 			z-index: 2;
 		}
 
@@ -76,29 +75,40 @@
             }
             .details {
 				min-width: 0;
+				flex: 1;
                 white-space: nowrap;
                 display: flex;
                 flex-direction: column;
                 justify-content: flex-start;
                 gap: 6px;
-				overflow: hidden;
-				text-overflow: ellipsis;
 				padding-top: 2px;
 
 				.name_row {
-					display: flex;
-					align-items: center;
-					gap: 4px;
 					margin-bottom: 4px;
-					padding-right: 58px;
+				}
+
+				.details_body {
+					display: flex;
+					align-items: flex-start;
+					gap: 8px;
+				}
+
+				.detail_rows {
+					flex: 1;
+					min-width: 0;
+					display: flex;
+					flex-direction: column;
+					gap: 6px;
 				}
                 .name {
                     margin: 0;
                     font-size: 16px;
 					font-weight: 700;
 					color: shared.$accent-color;
-					overflow: hidden;
-					text-overflow: ellipsis;
+					min-width: 0;
+					max-width: 100%;
+					white-space: normal;
+					overflow-wrap: anywhere;
                 }
                 .row {
 					font-size: 13px;
@@ -109,6 +119,12 @@
 					gap: 8px;
 					overflow: hidden;
 					text-overflow: ellipsis;
+
+					span {
+						min-width: 0;
+						white-space: normal;
+						overflow-wrap: anywhere;
+					}
 
 					svg {
 						width: 12px;
@@ -187,11 +203,6 @@
 		.person {
 			width: 100%;
 			padding: 14px;
-
-			.save_to_list {
-				top: 12px;
-				right: 12px;
-			}
 
 			.info_box {
 				display: flex;
@@ -275,6 +286,68 @@
 		width: 12px;
 		flex-shrink: 0;
 		opacity: 0.65;
+	}
+}
+
+.saved_grid {
+	align-items: start;
+}
+
+.people_grid .person_with_note {
+	width: 380px;
+	max-width: 100%;
+	align-self: start;
+	border-radius: 20px;
+	background: color-mix(in srgb, shared.$accent-color 9%, shared.$card-background-color);
+	box-shadow: shared.$shadow-sm;
+
+	.person {
+		width: 100%;
+		z-index: 1;
+	}
+
+	&:has([data-menu-open="true"]) {
+		z-index: 10;
+	}
+
+	@include shared.tablet() {
+		width: 100%;
+	}
+
+	@include shared.responsive() {
+		width: 100%;
+	}
+}
+
+.note_preview {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 11px 20px 14px;
+	border: none;
+	border-radius: 0 0 20px 20px;
+	background: transparent;
+	color: color-mix(in srgb, shared.$accent-color 75%, shared.$secondary-color);
+	font: inherit;
+	font-size: 13px;
+	font-style: italic;
+	line-height: 1.5;
+	text-align: left;
+	cursor: pointer;
+
+	span {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+		overflow-wrap: anywhere;
+		white-space: pre-line;
+	}
+
+	&:focus-visible {
+		outline: 2px solid shared.$accent-color;
+		outline-offset: 2px;
 	}
 }
 

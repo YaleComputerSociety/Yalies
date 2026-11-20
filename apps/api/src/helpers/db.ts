@@ -149,6 +149,7 @@ export default class DB {
 				);
 			`);
 			await this.#sql.query(`
+				ALTER TABLE saved_list ADD COLUMN IF NOT EXISTS description VARCHAR(160);
 				CREATE UNIQUE INDEX IF NOT EXISTS saved_list_owner_name
 				ON saved_list (owner_netid, LOWER(name));
 			`);

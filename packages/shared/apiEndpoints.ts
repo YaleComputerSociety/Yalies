@@ -26,6 +26,8 @@ export const API = {
 	savedFor: (netid: string) => `${API_PREFIX}/saved/${netid}`,
 	savedLists: `${API_PREFIX}/saved-lists`,
 	savedList: (id: number) => `${API_PREFIX}/saved-lists/${id}`,
+	savedListDuplicate: (id: number) => `${API_PREFIX}/saved-lists/${id}/duplicate`,
+	savedListImport: (id: number) => `${API_PREFIX}/saved-lists/${id}/import`,
 	savedListMember: (id: number, netid: string) => `${API_PREFIX}/saved-lists/${id}/members/${netid}`,
 
 	apiKeysList: `${API_PREFIX}/api-keys/list`,

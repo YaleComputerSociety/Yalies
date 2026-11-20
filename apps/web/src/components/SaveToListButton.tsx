@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { usePopoverPosition } from "@/hooks/usePopoverPosition";
 import { Person } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCheck, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
@@ -51,19 +53,23 @@ function MenuItem({
 export default function SaveToListButton({
 	person,
 	className,
+	currentListId,
 }: {
 	person: Person;
 	className?: string;
+	currentListId?: number;
 }) {
 	const { isAuthenticated, netid: viewerNetid } = useSession();
 	const savedLists = useSavedLists();
 	const entry = getSavedEntry(savedLists, person);
-	const saved = entry !== null;
+	const saved = currentListId === undefined ? entry !== null : !!entry?.listIds.includes(currentListId);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [status, setStatus] = useState("");
 	const [statusVisible, setStatusVisible] = useState(false);
 	const [newListName, setNewListName] = useState("");
 	const containerRef = useRef<HTMLDivElement>(null);
+	const menuRef = useRef<HTMLDivElement>(null);
+	const menuPosition = usePopoverPosition(menuOpen, containerRef, menuRef, 260);
 	const statusTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const netid = person.netid ?? "";
 
@@ -77,7 +83,7 @@ export default function SaveToListButton({
 	useEffect(() => {
 		if(!menuOpen) return;
 		const handleClickOutside = (e: MouseEvent) => {
-			if(containerRef.current && !containerRef.current.contains(e.target as Node)) setMenuOpen(false);
+			if(!containerRef.current?.contains(e.target as Node) && !menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
 		};
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -106,13 +112,13 @@ export default function SaveToListButton({
 			return;
 		}
 		run(async () => {
-			const defaultListId = await saveToList(netid, entry);
+			const defaultListId = await saveToList(netid, entry, currentListId);
 			return `Saved to ${getListName(savedLists, defaultListId)}`;
 		});
 	};
 
-	const onPickList = (listId: number | null) => {
-		if(listId !== null && entry?.listIds.includes(listId)) {
+	const onPickList = (listId: number) => {
+		if(entry?.listIds.includes(listId)) {
 			run(async () => {
 				await removeFromList(netid, entry, listId);
 				return `Removed from ${getListName(savedLists, listId)}`;
@@ -140,13 +146,17 @@ export default function SaveToListButton({
 	const onRemove = () => {
 		run(async () => {
 			setMenuOpen(false);
+			if(currentListId !== undefined) {
+				await removeFromList(netid, entry, currentListId);
+				return "Removed from list";
+			}
 			await unsave(netid, entry);
 			return "Removed from saved";
 		});
 	};
 
-	const defaultName = getListName(savedLists, savedLists.defaultListId);
-	const mainLabel = saved ? "Saved. Change lists" : `Save to ${defaultName}`;
+	const defaultName = getListName(savedLists, currentListId ?? savedLists.defaultListId);
+	const mainLabel = !savedLists.loaded ? "Loading lists…" : saved ? "Saved. Change lists" : `Save to ${defaultName}`;
 
 	if(!isAuthenticated || !person.netid || person.netid === viewerNetid) return null;
 
@@ -168,15 +178,20 @@ export default function SaveToListButton({
 					className={styles.main_button}
 					onClick={onMainClick}
 					aria-label={mainLabel}
+					disabled={!savedLists.loaded}
 					title={mainLabel}
 				>
-					<FontAwesomeIcon icon={saved ? faCheck : faPlus} className={saved ? undefined : styles.plus_icon} />
+					<span className={styles.save_icon} data-saved={saved} aria-hidden="true">
+						<FontAwesomeIcon icon={faPlus} className={styles.plus_icon} />
+						<FontAwesomeIcon icon={faCheck} className={styles.check_icon} />
+					</span>
 				</button>
 				<button
 					type="button"
 					className={styles.caret_button}
 					onClick={() => setMenuOpen(open => !open)}
 					aria-label="Choose a list"
+					disabled={!savedLists.loaded}
 					aria-haspopup="menu"
 					aria-expanded={menuOpen}
 					title="Choose a list"
@@ -184,15 +199,9 @@ export default function SaveToListButton({
 					<FontAwesomeIcon icon={faCaretDown} />
 				</button>
 			</div>
-			{menuOpen && (
-				<div className={`${styles.menu} ${listFont.className}`} role="menu">
+			{menuOpen && createPortal(
+				<div ref={menuRef} className={`${styles.menu} ${listFont.className}`} style={menuPosition} role="menu">
 					<div className={styles.menu_title}>Save to</div>
-					<MenuItem
-						label="All saved"
-						checked={saved}
-						isDefault={savedLists.defaultListId === null}
-						onClick={() => onPickList(null)}
-					/>
 					{savedLists.lists.map(list => (
 						<MenuItem
 							key={list.id}
@@ -215,10 +224,10 @@ export default function SaveToListButton({
 					{saved && (
 						<button type="button" className={styles.remove} onClick={onRemove}>
 							<FontAwesomeIcon icon={faTrash} />
-							Remove from saved
+							{currentListId === undefined ? "Remove from saved" : "Remove from list"}
 						</button>
 					)}
-				</div>
+				</div>, document.body
 			)}
 		</div>
 	);

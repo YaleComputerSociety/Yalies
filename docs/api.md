@@ -27,7 +27,9 @@ Saved contacts and lists require a login session. `GET /v3/saved/me` lists the
 session owner's saves; `GET`, `PUT`, `PATCH`, and `DELETE /v3/saved/:netid` read,
 save, edit a private note, or unsave a person. List creation and listing use
 `/v3/saved-lists`; rename/delete use `/v3/saved-lists/:id`, and removing a member
-uses `DELETE /v3/saved-lists/:id/members/:netid`. Deleting a list keeps its people saved.
+uses `DELETE /v3/saved-lists/:id/members/:netid`. Removing a person's final list
+membership fully unsaves them. Deleting a list keeps people saved only if they
+belong to another list.
 
 For session-authenticated search, `POST /v3/people` accepts `is_saved: ["true"]`
 and `saved_list: ["LIST_ID"]` filters and includes `saved_data` with `saved`,

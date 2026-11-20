@@ -27,9 +27,11 @@ const MAX_NOTE_LENGTH = 1000;
 export default function PersonModal({
 	person,
 	onClose,
+	currentListId,
 }: {
 	person: Person;
 	onClose: () => void;
+	currentListId?: number;
 }) {
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(person.user_profile ?? null);
 	const [isVisible, setIsVisible] = useState(false);
@@ -156,7 +158,7 @@ export default function PersonModal({
 					<div className={styles.header_info}>
 						<div className={styles.name_row}>
 							<h2 className={styles.name}>{displayName}</h2>
-							{person.netid && <SaveToListButton person={person} />}
+							{person.netid && <SaveToListButton person={person} currentListId={currentListId} />}
 						</div>
 						{person.pronouns && (
 							<span className={styles.pronouns}>{person.pronouns}</span>

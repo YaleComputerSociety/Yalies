@@ -11,6 +11,7 @@
     "preview": "bash ../../deploy/preview/deploy.sh",
     "typecheck": "tsc --noEmit",
     "test:yalemoji": "node --test tests/yalemoji*.test.mjs tests/expandedYaleMoji.test.mjs",
+    "test:saved": "node --test tests/savedList*.test.mjs",
     "prebuild": "npm run build:shared --prefix ../..",
     "predev": "npm run build:shared --prefix ../.."
   },

@@ -2,12 +2,14 @@ import { DataTypes, Model, Op, Sequelize } from "sequelize";
 import { SEQUELIZE_DEFINITION_OPTIONS } from "../db.js";
 
 export const MAX_SAVED_LIST_NAME_LENGTH = 50;
+export const MAX_SAVED_LIST_DESCRIPTION_LENGTH = 160;
 export const MAX_SAVED_LISTS = 50;
 
 export default class SavedListModel extends Model {
 	declare id: number;
 	declare owner_netid: string;
 	declare name: string;
+	declare description: string | null;
 	declare created_at: Date;
 
 	static initModel(sequelize: Sequelize) {
@@ -15,6 +17,7 @@ export default class SavedListModel extends Model {
 			id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
 			owner_netid: { type: DataTypes.STRING, allowNull: false },
 			name: { type: DataTypes.STRING(100), allowNull: false },
+			description: { type: DataTypes.STRING(MAX_SAVED_LIST_DESCRIPTION_LENGTH), allowNull: true },
 			created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 		}, {
 			sequelize,
@@ -53,6 +56,7 @@ export default class SavedListModel extends Model {
 		return {
 			id: this.id,
 			name: this.name,
+			description: this.description ?? null,
 			count,
 		};
 	}

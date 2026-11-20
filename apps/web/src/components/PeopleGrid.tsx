@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Person } from "yalies-shared";
 import styles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
@@ -13,6 +13,7 @@ import { COLLEGE_SHIELDS } from "@/consts";
 import EmailCopyButton from "./EmailCopyButton";
 import SaveToListButton from "./SaveToListButton";
 import { normalizeExternalUrl } from "@/utils/externalUrl";
+import { getSavedEntry, useSavedLists } from "@/hooks/useSavedLists";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -60,6 +61,9 @@ export default function PeopleGrid({
 	hasReachedEnd,
 	isSearching,
 	sectionTitle,
+	showSavedNotes = false,
+	currentListId,
+	paginationLength,
 	emptyMessage = "No results found. Try a different search or adjust your filters.",
 }: {
 	people: Person[];
@@ -67,9 +71,22 @@ export default function PeopleGrid({
 	hasReachedEnd: boolean;
 	isSearching?: boolean;
 	sectionTitle?: string;
+	showSavedNotes?: boolean;
+	currentListId?: number;
+	paginationLength?: number;
 	emptyMessage?: string;
 }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+	const savedLists = useSavedLists();
+	const loadMoreTarget = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if(!showSavedNotes || hasReachedEnd || isSearching || !loadMoreTarget.current) return;
+		const observer = new IntersectionObserver(entries => {
+			if(entries.some(entry => entry.isIntersecting)) loadMoreFunction();
+		}, { rootMargin: "400px" });
+		observer.observe(loadMoreTarget.current);
+		return () => observer.disconnect();
+	}, [showSavedNotes, hasReachedEnd, isSearching, loadMoreFunction, paginationLength]);
 
 	const peopleElems = people.map(person => {
 		const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
@@ -130,7 +147,10 @@ export default function PeopleGrid({
 						<div className={styles.name_row}>
 							<h3 className={styles.name}>{person.first_name} {person.last_name}</h3>
 						</div>
-						{detailRows}
+						<div className={styles.details_body}>
+							<div className={styles.detail_rows}>{detailRows}</div>
+							{person.netid && <SaveToListButton person={person} currentListId={currentListId} className={styles.save_to_list} />}
+						</div>
 					</div>
 				</div>
 				<div className={styles.card_footer}>
@@ -170,8 +190,8 @@ export default function PeopleGrid({
 		);
 
 		return (
-			<PersonCardShell key={person.netid} person={person} onOpen={() => setSelectedPerson(person)}>
-				{person.netid && <SaveToListButton person={person} className={styles.save_to_list} />}
+			<PersonCardShell key={person.netid} person={person} onOpen={() => setSelectedPerson(person)}
+				notePreview={showSavedNotes ? getSavedEntry(savedLists, person)?.note : undefined}>
 				{cardContent}
 			</PersonCardShell>
 		);
@@ -188,8 +208,9 @@ export default function PeopleGrid({
 				</div>
 			)}
 			<InfiniteScroll
-				className={styles.people_grid}
-				dataLength={people.length}
+				style={{ overflow: "visible" }}
+				className={`${styles.people_grid} ${showSavedNotes ? styles.saved_grid : ""}`}
+				dataLength={paginationLength ?? people.length}
 				next={loadMoreFunction}
 				hasMore={!hasReachedEnd}
 				loader={<LoadingIcon />}
@@ -202,9 +223,11 @@ export default function PeopleGrid({
 				)}
 				{peopleElems}
 			</InfiniteScroll>
+			{showSavedNotes && <div ref={loadMoreTarget} aria-hidden="true" />}
 			{selectedPerson && (
 				<PersonModal
 					person={selectedPerson}
+					currentListId={currentListId}
 					onClose={() => setSelectedPerson(null)}
 				/>
 			)}
