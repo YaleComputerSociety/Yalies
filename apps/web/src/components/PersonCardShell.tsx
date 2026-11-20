@@ -14,16 +14,17 @@ export default function PersonCardShell({ person, onOpen, children, notePreview 
 	notePreview?: string | null;
 }) {
 	const { netid } = useSession();
-	const showDefaultAvatar = Boolean(netid && person.netid === netid);
+	const showYaleMoji = person.user_profile?.show_yalemoji !== false;
+	const showDefaultAvatar = showYaleMoji && Boolean(netid && person.netid === netid);
 	const cardId = useId();
 	const activeCard = useSyncExternalStore(subscribeExpandedYaleMoji, getExpandedYaleMoji, () => null);
-	const expanded = activeCard === cardId;
+	const expanded = showYaleMoji && activeCard === cardId;
 	const setExpanded = (next: boolean) => setExpandedYaleMoji(cardId, next);
 	useEffect(() => () => setExpandedYaleMoji(cardId, false), [cardId]);
 	const card = <div
 		className={styles.person}
 		data-yalemoji-expanded={expanded}
-		data-has-yalemoji={!!person.yalemoji?.png_url || showDefaultAvatar}
+		data-has-yalemoji={showYaleMoji && (!!person.yalemoji?.png_url || showDefaultAvatar)}
 		onClick={() => {
 			if(expanded) setExpanded(false);
 			else onOpen();
@@ -36,7 +37,7 @@ export default function PersonCardShell({ person, onOpen, children, notePreview 
 		>
 			{children}
 		</div>
-		<CardYaleMoji person={person} showDefaultAvatar={showDefaultAvatar} expanded={expanded} onExpandedChange={setExpanded} />
+		{showYaleMoji && <CardYaleMoji person={person} showDefaultAvatar={showDefaultAvatar} expanded={expanded} onExpandedChange={setExpanded} />}
 	</div>;
 	if(!notePreview?.trim()) return card;
 	return <div className={styles.person_with_note}>

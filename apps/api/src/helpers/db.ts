@@ -86,7 +86,8 @@ export default class DB {
 			await this.#sql.query(`
 				ALTER TABLE user_profile
 				ADD COLUMN IF NOT EXISTS description TEXT,
-				ADD COLUMN IF NOT EXISTS interests TEXT[];
+				ADD COLUMN IF NOT EXISTS interests TEXT[],
+				ADD COLUMN IF NOT EXISTS show_yalemoji BOOLEAN NOT NULL DEFAULT TRUE;
 			`);
 			await this.#sql.query(`
 				ALTER TABLE person

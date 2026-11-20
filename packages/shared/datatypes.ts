@@ -74,6 +74,7 @@ export type ApiKey = {
 
 export type UserProfile = {
 	netid: string;
+	show_yalemoji?: boolean;
 	description?: string;
 	interests?: string[];
 	linkedin_url?: string;

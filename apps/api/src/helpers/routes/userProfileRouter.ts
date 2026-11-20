@@ -184,7 +184,10 @@ export default class UserProfileRouter {
 	};
 
 	updateMyProfile = async (req: Request, res: Response) => {
-		const { description, interests, linkedin_url, instagram_url, classes } = req.body;
+		const { description, interests, linkedin_url, instagram_url, classes, show_yalemoji } = req.body;
+		if(show_yalemoji !== undefined && typeof show_yalemoji !== "boolean") {
+			return res.status(400).send("show_yalemoji must be a boolean.");
+		}
 		const normalizedLinkedinUrl = normalizeSocialUrl("linkedin", linkedin_url);
 		const normalizedInstagramUrl = normalizeSocialUrl("instagram", instagram_url);
 
@@ -203,6 +206,7 @@ export default class UserProfileRouter {
 				...linkedin_url !== undefined && { linkedin_url: normalizedLinkedinUrl },
 				...instagram_url !== undefined && { instagram_url: normalizedInstagramUrl },
 				...classes !== undefined && { classes },
+				...show_yalemoji !== undefined && { show_yalemoji },
 				updated_at: new Date(),
 			});
 			return res.status(200).json(profile.toSanitizedObject());

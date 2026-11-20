@@ -1,7 +1,7 @@
 import type { Person } from "yalies-shared";
 
 function hasYaleMoji(person: Person) {
-	return Boolean(person.yalemoji?.png_url);
+	return person.user_profile?.show_yalemoji !== false && Boolean(person.yalemoji?.png_url);
 }
 
 // Stable partitions keep the API's proximity ranking within each group.

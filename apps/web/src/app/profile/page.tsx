@@ -14,6 +14,7 @@ import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, 
 import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache, type PendingPhotoRequest } from "@/hooks/useProfileCache";
+import { invalidateHomeCache } from "@/hooks/useHomeCache";
 import ChangeRequestModal from "@/components/ChangeRequestModal";
 import EmailCopyButton from "@/components/EmailCopyButton";
 import { getSocialUrlError, normalizeSocialUrl } from "@/utils/externalUrl";
@@ -28,6 +29,7 @@ export default function ProfilePage() {
 	const [person, setPerson] = useState<Person | null>(null);
 	const [linkedinUrl, setLinkedinUrl] = useState("");
 	const [instagramUrl, setInstagramUrl] = useState("");
+	const [showYaleMoji, setShowYaleMoji] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveMessage, setSaveMessage] = useState("");
 	const [settingsOpen, setSettingsOpen] = useState(false);
@@ -50,6 +52,7 @@ export default function ProfilePage() {
 		setProfile(data);
 		setLinkedinUrl(data.linkedin_url ?? "");
 		setInstagramUrl(data.instagram_url ?? "");
+		setShowYaleMoji(data.show_yalemoji !== false);
 		if(personData) {
 			setPerson(personData);
 		}
@@ -100,6 +103,7 @@ export default function ProfilePage() {
 				body: JSON.stringify({
 					linkedin_url: normalizedLinkedinUrl || null,
 					instagram_url: normalizedInstagramUrl || null,
+					show_yalemoji: showYaleMoji,
 				}),
 			});
 		} catch(e) {
@@ -119,7 +123,9 @@ export default function ProfilePage() {
 		setProfile(data);
 		setLinkedinUrl(data.linkedin_url ?? "");
 		setInstagramUrl(data.instagram_url ?? "");
+		setShowYaleMoji(data.show_yalemoji !== false);
 		invalidateProfileCache();
+		invalidateHomeCache();
 		setSaveMessage("Profile saved!");
 		setIsSaving(false);
 	};
@@ -458,8 +464,20 @@ export default function ProfilePage() {
 					{instagramError && <span className={styles.field_error}>{instagramError}</span>}
 				</div>
 
+				<h2>Yalemoji</h2>
+				<label className={styles.yalemoji_toggle}>
+					<input
+						type="checkbox"
+						role="switch"
+						checked={showYaleMoji}
+						onChange={event => setShowYaleMoji(event.target.checked)}
+						disabled={!profile || isSaving}
+					/>
+					<span>Show my Yalemoji on my Yalies card</span>
+				</label>
+
 				<div className={styles.save_section}>
-					<Button onClick={saveProfile}>{isSaving ? "Saving..." : "Save"}</Button>
+					<Button onClick={saveProfile} disabled={!profile || isSaving}>{isSaving ? "Saving..." : "Save"}</Button>
 					{saveMessage && <span className={styles.save_message}>{saveMessage}</span>}
 				</div>
 

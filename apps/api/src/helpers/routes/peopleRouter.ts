@@ -306,7 +306,16 @@ export default class PeopleRouter {
 		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, excludedFilters, page, pageSize, randomSeed, savedOwnerNetid);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
-			return res.status(200).json(await withYaleMojiAvatars(cached.data));
+			// Profile preferences must stay fresh across every viewer's cached searches.
+			const netids = cached.data.flatMap(person => person.netid ? [person.netid] : []);
+			const profiles = netids.length
+				? await UserProfileModel.findAll({ where: { netid: { [Op.in]: netids } } }) : [];
+			const profileMap = new Map(profiles.map(profile => [profile.netid, profile.toSanitizedObject()]));
+			const people = cached.data.map(person => ({
+				...person,
+				user_profile: person.netid ? profileMap.get(person.netid) : undefined,
+			}));
+			return res.status(200).json(await withYaleMojiAvatars(people));
 		}
 
 		let where: WhereOptions<PersonModel> = {};

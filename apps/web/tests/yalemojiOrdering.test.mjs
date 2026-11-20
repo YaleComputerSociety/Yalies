@@ -82,3 +82,11 @@ test("later browse batches promote their own avatars and leave earlier cards in 
 		assert.deepEqual(ids(order([])), []);
 	}
 });
+
+test("hidden avatars do not receive search, birthday, or browse priority", () => {
+	const hidden = { ...person("hidden", 2029, true), user_profile: { netid: "hidden", show_yalemoji: false } };
+	const people = [person("ordinary"), hidden, person("visible", 2029, true)];
+	for(const order of [prioritizeYaleMojis, prioritizeYaleMojisWithinYear, spreadYaleMojis]) {
+		assert.deepEqual(ids(order(people)), ["visible", "ordinary", "hidden"]);
+	}
+});
