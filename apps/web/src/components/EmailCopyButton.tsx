@@ -25,6 +25,7 @@ export function CopyButton({
 	copyLabel,
 	className,
 	stopPropagation,
+	iconOnly = false,
 }: {
 	value: string;
 	displayValue?: string;
@@ -32,6 +33,7 @@ export function CopyButton({
 	copyLabel: string;
 	className?: string;
 	stopPropagation?: boolean;
+	iconOnly?: boolean;
 }) {
 	const [copied, setCopied] = useState(false);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,7 +67,7 @@ export function CopyButton({
 				<FontAwesomeIcon icon={icon} className={styles.primary_icon} />
 				<FontAwesomeIcon icon={copied ? faCheck : faCopy} className={styles.copy_icon} />
 			</span>
-			<span>{copied ? "Copied" : (displayValue ?? value)}</span>
+			{!iconOnly && <span>{copied ? "Copied" : (displayValue ?? value)}</span>}
 		</button>
 	);
 }
@@ -74,10 +76,12 @@ export default function EmailCopyButton({
 	email,
 	className,
 	stopPropagation,
+	iconOnly,
 }: {
 	email: string;
 	className?: string;
 	stopPropagation?: boolean;
+	iconOnly?: boolean;
 }) {
 	return (
 		<CopyButton
@@ -87,6 +91,7 @@ export default function EmailCopyButton({
 			copyLabel="email"
 			className={className}
 			stopPropagation={stopPropagation}
+			iconOnly={iconOnly}
 		/>
 	);
 }

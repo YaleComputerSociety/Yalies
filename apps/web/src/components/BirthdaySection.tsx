@@ -5,25 +5,21 @@ import { Person } from "yalies-shared";
 import styles from "./birthdaysection.module.scss";
 import gridStyles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
+import CardContactActions from "./CardContactActions";
 import PersonCardShell from "./PersonCardShell";
+import SaveToListButton from "./SaveToListButton";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faCake, faBook, faGraduationCap, faHouse } from "@fortawesome/free-solid-svg-icons";
-import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
+import { faCake, faGraduationCap, faHouse } from "@fortawesome/free-solid-svg-icons";
 import { COLLEGE_SHIELDS } from "@/consts";
-import EmailCopyButton from "./EmailCopyButton";
-import { normalizeExternalUrl } from "@/utils/externalUrl";
 import { prioritizeYaleMojis } from "@/helpers/yalemojiOrdering";
+import { formatCardCollegeYear, formatCardMajor } from "@/helpers/cardLabels";
+import MajorIcon from "./MajorIcon";
+import { getMajorIconKind } from "@/helpers/majorIconKind";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
 	if (!shield) return null;
 	return <img src={shield} alt={collegeCode} className={gridStyles.college_shield} />;
-}
-
-function formatCollegeYear(person: Person) {
-	const college = person.college?.replace(/\s+College$/i, "");
-	return [college, person.year && `'${String(person.year).slice(-2)}`].filter(Boolean).join(" ");
 }
 
 function formatBirthday(person: Person) {
@@ -62,7 +58,7 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 				</div>
 				{orderedPeople.map(person => {
 					const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
-					const collegeYearText = formatCollegeYear(person);
+					const collegeYearText = formatCardCollegeYear(person);
 					const hometownText = formatHometown(person);
 					const birthdayText = formatBirthday(person);
 					const birthdayToday = isBirthdayToday(person);
@@ -75,13 +71,13 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 								) : person.year ? (
 									<FontAwesomeIcon icon={faGraduationCap} />
 								) : null}
-								<span>{collegeYearText}</span>
+								<span title={person.college}>{collegeYearText}</span>
 							</div>
 						),
-						person.major && (
-							<div key="major" className={gridStyles.row}>
-								<FontAwesomeIcon icon={faBook} />
-								<span>{person.major}</span>
+						person.major && person.major.trim().toLowerCase() !== "undeclared" && (
+							<div key="major" className={`${gridStyles.row} ${gridStyles.major_row}`} data-major-icon={getMajorIconKind(person.major)}>
+								<MajorIcon major={person.major} />
+								<span title={person.major}>{formatCardMajor(person.major)}</span>
 							</div>
 						),
 						hometownText && (
@@ -98,8 +94,6 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 						),
 					];
 
-					const linkedinUrl = normalizeExternalUrl(person.user_profile?.linkedin_url);
-					const instagramUrl = normalizeExternalUrl(person.user_profile?.instagram_url);
 
 					return (
 						<PersonCardShell
@@ -108,55 +102,26 @@ export default function BirthdaySection({ people }: { people: Person[] }) {
 							onOpen={() => setSelectedPerson(person)}
 						>
 							<div className={gridStyles.info_box}>
-								<div className={gridStyles.profile_image_frame}>
-									<img
-										className={gridStyles.profile_image}
-										src={person.image || "/no_image.png"}
-										alt={`${person.first_name} ${person.last_name}`}
-										loading="lazy"
-										decoding="async"
-										onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
-									/>
+								<div className={gridStyles.photo_column}>
+									<div className={gridStyles.profile_image_frame}>
+										<img
+											className={gridStyles.profile_image}
+											src={person.image || "/no_image.png"}
+											alt={`${person.first_name} ${person.last_name}`}
+											loading="lazy"
+											decoding="async"
+											onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
+										/>
+									</div>
+									<CardContactActions person={person} />
 								</div>
 								<div className={gridStyles.details}>
+									{person.netid && <SaveToListButton person={person} className={gridStyles.save_to_list} />}
 									<div className={gridStyles.name_row}>
 										<h3 className={gridStyles.name}>{person.first_name} {person.last_name}</h3>
 									</div>
 									{detailRows}
 								</div>
-							</div>
-							<div className={gridStyles.card_footer}>
-								<div className={gridStyles.card_socials}>
-									{linkedinUrl && (
-										<a
-											href={linkedinUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											onClick={e => e.stopPropagation()}
-											aria-label="LinkedIn"
-										>
-											<FontAwesomeIcon icon={faLinkedin as IconProp} />
-										</a>
-									)}
-									{instagramUrl && (
-										<a
-											href={instagramUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											onClick={e => e.stopPropagation()}
-											aria-label="Instagram"
-										>
-											<FontAwesomeIcon icon={faInstagram as IconProp} />
-										</a>
-									)}
-								</div>
-								{person.email && (
-									<EmailCopyButton
-										className={gridStyles.email_link}
-										email={person.email}
-										stopPropagation
-									/>
-								)}
 							</div>
 						</PersonCardShell>
 					);

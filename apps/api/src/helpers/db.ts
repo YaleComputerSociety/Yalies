@@ -2,9 +2,14 @@ import { Sequelize } from "sequelize";
 import PersonModel from "./models/PersonModel.js";
 import SessionModel from "./models/SessionModel.js";
 import APIKeyModel from "./models/APIKeyModel.js";
+import DiscoveryProfileModel from "./models/DiscoveryProfileModel.js";
+import { DISCOVERY_SETUP_SQL } from "./discoveryProfile.js";
 import UserProfileModel from "./models/UserProfileModel.js";
 import ProfileLikeModel from "./models/ProfileLikeModel.js";
-import FriendshipModel from "./models/FriendshipModel.js";
+import SavedContactModel from "./models/SavedContactModel.js";
+import SavedListModel from "./models/SavedListModel.js";
+import SavedListMemberModel from "./models/SavedListMemberModel.js";
+import SavedListDefaultModel from "./models/SavedListDefaultModel.js";
 import DataChangeRequestModel from "./models/DataChangeRequestModel.js";
 import { NOTIFICATION_SCHEMA_SQL } from "./notifications.js";
 import { NAME_SEARCH_SETUP_SQL } from "./nameSearch.js";
@@ -29,6 +34,7 @@ export const RECENTS_SETUP_SQL = `
 	);
 	ALTER TABLE recents ADD COLUMN IF NOT EXISTS search_mode TEXT;
 	ALTER TABLE recents ADD COLUMN IF NOT EXISTS results TEXT[];
+	CREATE INDEX IF NOT EXISTS recents_results_gin ON recents USING gin (results);
 `;
 
 export default class DB {
@@ -80,10 +86,12 @@ export default class DB {
 				);
 			`);
 			await this.#sql.query(RECENTS_SETUP_SQL);
+			await this.#sql.query(DISCOVERY_SETUP_SQL);
 			await this.#sql.query(`
 				ALTER TABLE user_profile
 				ADD COLUMN IF NOT EXISTS description TEXT,
-				ADD COLUMN IF NOT EXISTS interests TEXT[];
+				ADD COLUMN IF NOT EXISTS interests TEXT[],
+				ADD COLUMN IF NOT EXISTS show_yalemoji BOOLEAN NOT NULL DEFAULT TRUE;
 			`);
 			await this.#sql.query(`
 				ALTER TABLE person
@@ -125,6 +133,53 @@ export default class DB {
 				ON friendship (requested_netid);
 			`);
 			await this.#sql.query(`
+				CREATE TABLE IF NOT EXISTS saved_contact (
+					owner_netid VARCHAR(255) NOT NULL,
+					saved_netid VARCHAR(255) NOT NULL,
+					note TEXT,
+					created_at TIMESTAMP DEFAULT NOW(),
+					PRIMARY KEY (owner_netid, saved_netid)
+				);
+			`);
+			await this.#sql.query(`
+				CREATE INDEX IF NOT EXISTS saved_contact_owner_netid
+				ON saved_contact (owner_netid);
+			`);
+			await this.#sql.query(`
+				CREATE TABLE IF NOT EXISTS saved_list (
+					id SERIAL PRIMARY KEY,
+					owner_netid VARCHAR(255) NOT NULL,
+					name VARCHAR(100) NOT NULL,
+					created_at TIMESTAMP DEFAULT NOW()
+				);
+			`);
+			await this.#sql.query(`
+				ALTER TABLE saved_list ADD COLUMN IF NOT EXISTS description VARCHAR(160);
+				CREATE UNIQUE INDEX IF NOT EXISTS saved_list_owner_name
+				ON saved_list (owner_netid, LOWER(name));
+			`);
+			await this.#sql.query(`
+				CREATE TABLE IF NOT EXISTS saved_list_member (
+					list_id INTEGER NOT NULL REFERENCES saved_list (id) ON DELETE CASCADE,
+					owner_netid VARCHAR(255) NOT NULL,
+					saved_netid VARCHAR(255) NOT NULL,
+					created_at TIMESTAMP DEFAULT NOW(),
+					PRIMARY KEY (list_id, saved_netid),
+					FOREIGN KEY (owner_netid, saved_netid)
+						REFERENCES saved_contact (owner_netid, saved_netid) ON DELETE CASCADE
+				);
+			`);
+			await this.#sql.query(`
+				CREATE INDEX IF NOT EXISTS saved_list_member_owner
+				ON saved_list_member (owner_netid, saved_netid);
+			`);
+			await this.#sql.query(`
+				CREATE TABLE IF NOT EXISTS saved_list_default (
+					owner_netid VARCHAR(255) PRIMARY KEY,
+					list_id INTEGER REFERENCES saved_list (id) ON DELETE SET NULL
+				);
+			`);
+			await this.#sql.query(`
 				CREATE TABLE IF NOT EXISTS data_change_request (
 					id SERIAL PRIMARY KEY,
 					requester_netid VARCHAR(255) NOT NULL,
@@ -163,8 +218,12 @@ export default class DB {
 		SessionModel.initModel(this.#sql);
 		APIKeyModel.initModel(this.#sql);
 		UserProfileModel.initModel(this.#sql);
+		DiscoveryProfileModel.initModel(this.#sql);
 		ProfileLikeModel.initModel(this.#sql);
-		FriendshipModel.initModel(this.#sql);
+		SavedContactModel.initModel(this.#sql);
+		SavedListModel.initModel(this.#sql);
+		SavedListMemberModel.initModel(this.#sql);
+		SavedListDefaultModel.initModel(this.#sql);
 		DataChangeRequestModel.initModel(this.#sql);
 	};
 };

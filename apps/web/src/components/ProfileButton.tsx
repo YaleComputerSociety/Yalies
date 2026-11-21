@@ -10,7 +10,7 @@ import { clearYaleMojiCache, subscribeYaleMoji } from "@/hooks/yalemojiCache";
 import { API, Person, YaleMojiAvatar } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faAddressBook, faArrowRightFromBracket, faCircleInfo, faCode, faQuestionCircle, faRightToBracket, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faAddressBook, faArrowRightFromBracket, faBookmark, faCircleInfo, faCode, faQuestionCircle, faRightToBracket, faUser } from "@fortawesome/free-solid-svg-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const PROFILE_IDENTITY_STORAGE_KEY = "yalies-profile-identity";
@@ -264,9 +264,10 @@ export default function ProfileButton({
 							{showCompactNavLinks && (
 								<div className={styles.compact_nav_items}>
 									<DropdownItem href="/" icon={faAddressBook}>Directory</DropdownItem>
-									<DropdownItem href="/profile" icon={faUser}>Profile</DropdownItem>
+									<DropdownItem href="/saved" icon={faBookmark}>Lists</DropdownItem>
 								</div>
 							)}
+							<DropdownItem href="/profile" icon={faUser}>Profile</DropdownItem>
 							<DropdownItem href="/about" icon={faCircleInfo}>About</DropdownItem>
 							<DropdownItem href="/faq" icon={faQuestionCircle} iconClassName={styles.icon_purple}>FAQ</DropdownItem>
 							<DropdownItem href="/api" icon={faCode} iconClassName={styles.icon_orange}>API</DropdownItem>

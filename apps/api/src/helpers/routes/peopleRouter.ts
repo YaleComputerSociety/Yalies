@@ -3,8 +3,10 @@ import PersonModel, { PERSON_ALLOWED_FILTER_FIELDS } from "../models/PersonModel
 import { NETID_REGEX, type Person } from "yalies-shared";
 import UserProfileModel from "../models/UserProfileModel.js";
 import ProfileLikeModel from "../models/ProfileLikeModel.js";
-import FriendshipModel from "../models/FriendshipModel.js";
-import { Op, Sequelize, WhereOptions, type OrderItem } from "sequelize";
+import SavedContactModel from "../models/SavedContactModel.js";
+import SavedListMemberModel from "../models/SavedListMemberModel.js";
+import SavedListModel from "../models/SavedListModel.js";
+import { Op, Sequelize, WhereOptions, type Order, type OrderItem } from "sequelize";
 import CAS from "../cas.js";
 import { findNameSearchIds, buildInitialsSearch, normalizeInitials, type NameSearchCandidate } from "../nameSearch.js";
 import { searchProximity, type SearchPerson } from "../searchProximity.js";
@@ -18,16 +20,22 @@ const RANDOM_ORDER_MODULUS = 2147483647;
 const RANDOM_ORDER_MULTIPLIER = 2654435761;
 const searchCache = new Map<string, { data: Person[]; timestamp: number }>();
 
-function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, excludedFilters: ExcludedFilters, page: number, pageSize: number, randomSeed: number | null): string {
+function getCacheKey(netid: string | undefined, query: string, filters: Record<string, unknown>, excludedFilters: ExcludedFilters, page: number, pageSize: number, randomSeed: number | null, savedOwnerNetid: string | undefined): string {
 	// netid is part of the key because the cached payload embeds per-user state
-	// (liked_by_me, directional friend status) — sharing it across users leaks data.
-	return JSON.stringify({ netid, query, filters, excludedFilters, page, pageSize, randomSeed });
+	// (liked_by_me, saved_data) — sharing it across users leaks data.
+	return JSON.stringify({ netid, savedOwnerNetid, query, filters, excludedFilters, page, pageSize, randomSeed });
+}
+
+export function invalidateSearchCache(netid: string) {
+	for(const key of searchCache.keys()) {
+		if(JSON.parse(key).netid === netid) searchCache.delete(key);
+	}
 }
 
 type SearchMode = "default" | "full_name" | "first_name" | "last_name" | "initials";
-type SyntheticFilterField = "is_friend" | "birthday" | "birth_date";
+type SyntheticFilterField = "is_saved" | "saved_list" | "birthday" | "birth_date";
 
-const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_friend", "birthday", "birth_date"]);
+const SYNTHETIC_FILTER_FIELDS = new Set<SyntheticFilterField>(["is_saved", "saved_list", "birthday", "birth_date"]);
 const BIRTHDAY_FILTER_DAYS: Record<string, number> = {
 	today: 0,
 	next_3_days: 3,
@@ -92,6 +100,16 @@ function getSearchOrder(query: string): OrderItem[] {
 		],
 		["last_name", "ASC"],
 		["first_name", "ASC"],
+		["id", "ASC"],
+	];
+}
+
+function getSavedOrder(netids: string[]): Order {
+	const sequelize = PersonModel.sequelize;
+	if(!sequelize) throw new Error("Person model must be initialized before searching");
+	const positions = netids.map(netid => sequelize.escape(netid)).join(", ");
+	return [
+		[Sequelize.literal(`array_position(ARRAY[${positions}]::varchar[], netid)`), "ASC"],
 		["id", "ASC"],
 	];
 }
@@ -283,10 +301,21 @@ export default class PeopleRouter {
 			return;
 		}
 
-		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, excludedFilters, page, pageSize, randomSeed);
+		// Private saves are available only to the login session, not directory API keys.
+		const savedOwnerNetid = !req.headers.authorization && req.isAuthenticated() ? req.netid : undefined;
+		const cacheKey = getCacheKey(req.netid, `${searchMode}:${query}`, filtersRaw, excludedFilters, page, pageSize, randomSeed, savedOwnerNetid);
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
-			return res.status(200).json(await withYaleMojiAvatars(cached.data));
+			// Profile preferences must stay fresh across every viewer's cached searches.
+			const netids = cached.data.flatMap(person => person.netid ? [person.netid] : []);
+			const profiles = netids.length
+				? await UserProfileModel.findAll({ where: { netid: { [Op.in]: netids } } }) : [];
+			const profileMap = new Map(profiles.map(profile => [profile.netid, profile.toSanitizedObject()]));
+			const people = cached.data.map(person => ({
+				...person,
+				user_profile: person.netid ? profileMap.get(person.netid) : undefined,
+			}));
+			return res.status(200).json(await withYaleMojiAvatars(people));
 		}
 
 		let where: WhereOptions<PersonModel> = {};
@@ -376,17 +405,24 @@ export default class PeopleRouter {
 		const isBirthdaySearch = Boolean(birthdayWhere || birthDateWhere
 			|| getFilterValues(filtersRaw, "birth_month").length || getFilterValues(filtersRaw, "birth_day").length);
 
-		if(getFilterValues(filtersRaw, "is_friend").includes("true")) {
-			if(!req.netid) {
+		const savedListIds = getFilterValues(filtersRaw, "saved_list")
+			.map(value => SavedListModel.parseId(value))
+			.filter((value): value is number => value !== null);
+		let savedOrder: string[] | null = null;
+		if(getFilterValues(filtersRaw, "is_saved").includes("true") || getFilterValues(filtersRaw, "saved_list").length > 0) {
+			if(!savedOwnerNetid) {
 				res.status(200).json([]);
 				return;
 			}
-			const friendNetids = await FriendshipModel.getFriends(req.netid);
-			if(friendNetids.length === 0) {
+			const savedNetids = getFilterValues(filtersRaw, "saved_list").length > 0
+				? await SavedListMemberModel.getNetids(savedOwnerNetid, savedListIds)
+				: await SavedContactModel.getSavedNetids(savedOwnerNetid);
+			if(savedNetids.length === 0) {
 				res.status(200).json([]);
 				return;
 			}
-			where = andWhere(where, { netid: { [Op.in]: friendNetids } });
+			where = andWhere(where, { netid: { [Op.in]: savedNetids } });
+			savedOrder = savedNetids;
 		}
 
 		let people: PersonModel[];
@@ -411,7 +447,7 @@ export default class PeopleRouter {
 			}
 			people = await PersonModel.findAll({
 				where,
-				order: searchOrder ?? getPeopleOrder(randomSeed),
+				order: searchOrder ?? (savedOrder ? getSavedOrder(savedOrder) : getPeopleOrder(randomSeed)),
 				limit: pageSize,
 				offset,
 			});
@@ -424,7 +460,7 @@ export default class PeopleRouter {
 		const netids = people.map(p => p.netid).filter(Boolean);
 		const currentUserNetid = req.netid;
 
-		const [profiles, allLikes, myLikes, friendships] = await Promise.all([
+		const [profiles, allLikes, myLikes, mySaved, myListIds] = await Promise.all([
 			netids.length > 0
 				? UserProfileModel.findAll({ where: { netid: { [Op.in]: netids } } })
 				: [],
@@ -440,16 +476,14 @@ export default class PeopleRouter {
 					where: { liker_netid: currentUserNetid, liked_netid: { [Op.in]: netids } },
 				  })
 				: [],
-			currentUserNetid && netids.length > 0
-				? FriendshipModel.findAll({
-					where: {
-						[Op.or]: [
-							{ requester_netid: currentUserNetid, requested_netid: { [Op.in]: netids } },
-							{ requester_netid: { [Op.in]: netids }, requested_netid: currentUserNetid },
-						],
-					},
+			savedOwnerNetid && netids.length > 0
+				? SavedContactModel.findAll({
+					where: { owner_netid: savedOwnerNetid, saved_netid: { [Op.in]: netids } },
 				  })
 				: [],
+			savedOwnerNetid
+				? SavedListMemberModel.getListIds(savedOwnerNetid, netids)
+				: new Map<string, number[]>(),
 		]);
 
 		const profileMap = new Map(profiles.map(p => [p.netid, p.toSanitizedObject()]));
@@ -460,38 +494,7 @@ export default class PeopleRouter {
 		}
 		const myLikeSet = new Set(myLikes.map(l => l.liked_netid));
 
-		const friendStatusMap = new Map<string, { status: string; count: number }>();
-
-		const friendCountRows = netids.length > 0
-			? await FriendshipModel.findAll({
-				where: {
-					status: "accepted",
-					[Op.or]: [
-						{ requester_netid: { [Op.in]: netids } },
-						{ requested_netid: { [Op.in]: netids } },
-					],
-				},
-			  })
-			: [];
-		const friendCountMap = new Map<string, number>();
-		for (const row of friendCountRows) {
-			friendCountMap.set(row.requester_netid, (friendCountMap.get(row.requester_netid) || 0) + 1);
-			friendCountMap.set(row.requested_netid, (friendCountMap.get(row.requested_netid) || 0) + 1);
-		}
-
-		for (const netid of netids) {
-			const friendship = friendships.find(f =>
-				(f.requester_netid === currentUserNetid && f.requested_netid === netid) ||
-				(f.requester_netid === netid && f.requested_netid === currentUserNetid),
-			);
-			let status: string = "none";
-			if (friendship) {
-				if (friendship.status === "accepted") status = "accepted";
-				else if (friendship.requester_netid === currentUserNetid) status = "pending_sent";
-				else status = "pending_received";
-			}
-			friendStatusMap.set(netid, { status, count: friendCountMap.get(netid) || 0 });
-		}
+		const savedMap = new Map(mySaved.map(s => [s.saved_netid, s.note]));
 
 		const json = people.map((person) => {
 			const sanitized = person.toSanitizedObject();
@@ -500,12 +503,18 @@ export default class PeopleRouter {
 				like_count: likeCountMap.get(person.netid) || 0,
 				liked_by_me: myLikeSet.has(person.netid),
 			} : undefined;
-			const friendData = person.netid ? friendStatusMap.get(person.netid) : undefined;
+			const savedData = savedOwnerNetid && person.netid
+				? {
+					saved: savedMap.has(person.netid),
+					note: savedMap.get(person.netid) ?? null,
+					list_ids: myListIds.get(person.netid) ?? [],
+				}
+				: undefined;
 			return {
 				...sanitized,
 				...(profile && { user_profile: profile }),
 				...(likeData && { like_data: likeData }),
-				...(friendData && { friend_data: friendData }),
+				...(savedData && { saved_data: savedData }),
 			};
 		});
 

@@ -22,3 +22,21 @@ Yalemoji's server-authenticated `POST /api/v1/lookup` endpoint, up to 100 per
 request. Missing avatars and temporary lookup failures render the public default
 `https://www.yalemoji.com/assets/default-avatar.png?v=3`. Directory photos remain
 in `image`; the transparent Yalemoji appears separately in each card's lower right.
+
+Saved contacts and lists require a login session. `GET /v3/saved/me` lists the
+session owner's saves; `GET`, `PUT`, `PATCH`, and `DELETE /v3/saved/:netid` read,
+save, edit a private note, or unsave a person. List creation and listing use
+`/v3/saved-lists`; rename/delete use `/v3/saved-lists/:id`, and removing a member
+uses `DELETE /v3/saved-lists/:id/members/:netid`. Removing a person's final list
+membership fully unsaves them. Deleting a list keeps people saved only if they
+belong to another list.
+
+For session-authenticated search, `POST /v3/people` accepts `is_saved: ["true"]`
+and `saved_list: ["LIST_ID"]` filters and includes `saved_data` with `saved`,
+`note`, and `list_ids`. Saved browsing is newest first; name and birthday searches
+retain their relevance/proximity ordering and YaleMoji enrichment. Directory API
+keys never receive `saved_data` or saved-filter results, including cached responses.
+
+The old friendship table is retained, but its routes are removed. Existing
+friendships are not automatically converted to saves; that migration remains a
+separate deployment prerequisite.

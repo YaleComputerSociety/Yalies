@@ -54,3 +54,16 @@ test("personal avatars still render for both the viewer and other people", () =>
 		assert.match(html, /data-has-yalemoji="true"/);
 	}
 });
+
+test("opting out hides personal and default avatars for every viewer", () => {
+	for(const yalemoji of [null, { png_url: "https://example.com/avatar.png", background_url: "https://example.com/bg.svg" }]) {
+		const person = { netid: "hidden1", first_name: "Hidden", last_name: "Test", yalemoji,
+			user_profile: { netid: "hidden1", show_yalemoji: false } };
+		for(const viewer of ["hidden1", "other1", undefined]) {
+			const html = card(person, viewer);
+			assert.doesNotMatch(html, /avatar\.png|bg\.svg|Yalemoji status|Expand .*Yalemoji/);
+			assert.match(html, /data-has-yalemoji="false"/);
+			assert.match(html, /Person details/);
+		}
+	}
+});

@@ -41,18 +41,33 @@
 			box-shadow: shared.$shadow-lg;
 		}
 
+		&:has([data-menu-open="true"]) {
+			z-index: 10;
+		}
+
+		.save_to_list {
+			float: right;
+			margin: 0 0 6px 8px;
+			z-index: 2;
+		}
+
         .info_box {
             display: flex;
             flex-direction: row;
             align-items: flex-start;
 
+			.photo_column {
+				flex: 0 0 107px;
+				min-width: 0;
+				margin-right: 16px;
+			}
+
 			.profile_image_frame {
-                width: 105px;
-                height: 125px;
-                border-radius: 10px;
-                overflow: hidden;
-                min-width: 105px;
-                margin-right: 16px;
+				width: 100%;
+				height: 127px;
+				border-radius: 10px;
+				overflow: hidden;
+				box-sizing: border-box;
 				box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 				border: 1px solid shared.$border-color;
 
@@ -65,28 +80,29 @@
             }
             .details {
 				min-width: 0;
-                white-space: nowrap;
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-                gap: 6px;
-				overflow: hidden;
-				text-overflow: ellipsis;
+				flex: 1;
+				// A float reserves only the button's area: text regains the full
+				// column width once it flows below the top-right save control.
+				display: flow-root;
+				white-space: normal;
 				padding-top: 2px;
 
 				.name_row {
-					display: flex;
-					align-items: center;
-					gap: 4px;
-					margin-bottom: 4px;
+					margin-bottom: 10px;
+				}
+
+				.row + .row {
+					margin-top: 6px;
 				}
                 .name {
                     margin: 0;
                     font-size: 16px;
 					font-weight: 700;
 					color: shared.$accent-color;
-					overflow: hidden;
-					text-overflow: ellipsis;
+					min-width: 0;
+					max-width: 100%;
+					white-space: normal;
+					overflow-wrap: anywhere;
                 }
                 .row {
 					font-size: 13px;
@@ -97,6 +113,12 @@
 					gap: 8px;
 					overflow: hidden;
 					text-overflow: ellipsis;
+
+					span {
+						min-width: 0;
+						white-space: normal;
+						overflow-wrap: anywhere;
+					}
 
 					svg {
 						width: 12px;
@@ -119,13 +141,24 @@
 						flex-shrink: 0;
 					}
 
-					&:first-child {
-						color: shared.$foreground-color;
-						font-weight: 500;
-						svg {
-							opacity: 0.7;
+					&.major_row {
+						&[data-major-icon="computer"] { --major-color: var(--major-laptop); }
+						&[data-major-icon="planet"] { --major-color: var(--major-planet); }
+						&[data-major-icon="brain"] { --major-color: var(--major-brain); }
+						&[data-major-icon="dna"] { --major-color: var(--major-dna); }
+						&[data-major-icon="flask"] { --major-color: var(--major-flask); }
+						&[data-major-icon="government"] { --major-color: var(--major-government); }
+						&[data-major-icon="briefcase"] { --major-color: var(--major-briefcase); }
+						&[data-major-icon="calculator"] { --major-color: var(--major-chart); }
+						&[data-major-icon="drafting"] { --major-color: var(--major-drafting); }
+						&[data-major-icon="book"] { --major-color: var(--major-book); }
+
+						&:not([data-major-icon="battery"]) svg {
+							color: var(--major-color, #{shared.$accent-color});
+							opacity: 1;
 						}
 					}
+
 					&.birthday_today {
 						align-self: flex-start;
 						max-width: 100%;
@@ -180,29 +213,22 @@
 				display: flex;
 				align-items: flex-start;
 
-				.profile_image_frame {
-					width: 105px;
-					height: 125px;
-					min-width: 105px;
-					max-width: 105px;
-					min-height: 125px;
-					max-height: 125px;
+				.photo_column {
 					margin-right: 12px;
-					flex: 0 0 105px;
 				}
 				.details {
 					.name {
-						font-size: 15px;
+						font-size: 17px;
 					}
 					.row {
-						font-size: 12px;
+						font-size: 14px;
 					}
 				}
 			}
 
 			.card_footer {
 				margin-top: 14px;
-				font-size: 11px;
+				font-size: 13px;
 			}
 		}
 	}
@@ -219,17 +245,17 @@
 			}
 
 			.info_box {
-				.profile_image_frame {
+				.photo_column {
 					margin-right: 10px;
+				}
+				.profile_image_frame {
 					border-radius: 8px;
 				}
 				.details {
-					gap: 4px;
-					.name {
-						font-size: 14px;
+					.name_row {
+						margin-bottom: 8px;
 					}
 					.row {
-						font-size: 11px;
 						gap: 5px;
 					}
 				}
@@ -258,6 +284,68 @@
 		width: 12px;
 		flex-shrink: 0;
 		opacity: 0.65;
+	}
+}
+
+.saved_grid {
+	align-items: start;
+}
+
+.people_grid .person_with_note {
+	width: 380px;
+	max-width: 100%;
+	align-self: start;
+	border-radius: 20px;
+	background: color-mix(in srgb, shared.$accent-color 9%, shared.$card-background-color);
+	box-shadow: shared.$shadow-sm;
+
+	.person {
+		width: 100%;
+		z-index: 1;
+	}
+
+	&:has([data-menu-open="true"]) {
+		z-index: 10;
+	}
+
+	@include shared.tablet() {
+		width: 100%;
+	}
+
+	@include shared.responsive() {
+		width: 100%;
+	}
+}
+
+.note_preview {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 11px 20px 14px;
+	border: none;
+	border-radius: 0 0 20px 20px;
+	background: transparent;
+	color: color-mix(in srgb, shared.$accent-color 75%, shared.$secondary-color);
+	font: inherit;
+	font-size: 13px;
+	font-style: italic;
+	line-height: 1.5;
+	text-align: left;
+	cursor: pointer;
+
+	span {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+		overflow-wrap: anywhere;
+		white-space: pre-line;
+	}
+
+	&:focus-visible {
+		outline: 2px solid shared.$accent-color;
+		outline-offset: 2px;
 	}
 }
 

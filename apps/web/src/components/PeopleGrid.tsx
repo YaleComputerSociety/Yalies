@@ -1,17 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Person } from "yalies-shared";
 import styles from "./peoplegrid.module.scss";
 import PersonModal from "./PersonModal";
+import CardContactActions from "./CardContactActions";
 import PersonCardShell from "./PersonCardShell";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { faBook, faCake, faGraduationCap, faHouse, faUsers } from "@fortawesome/free-solid-svg-icons";
-import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
+import { faCake, faGraduationCap, faHouse, faUsers } from "@fortawesome/free-solid-svg-icons";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { COLLEGE_SHIELDS } from "@/consts";
-import EmailCopyButton from "./EmailCopyButton";
-import { normalizeExternalUrl } from "@/utils/externalUrl";
+import SaveToListButton from "./SaveToListButton";
+import { getSavedEntry, useSavedLists } from "@/hooks/useSavedLists";
+import { formatCardCollegeYear, formatCardMajor } from "@/helpers/cardLabels";
+import MajorIcon from "./MajorIcon";
+import { getMajorIconKind } from "@/helpers/majorIconKind";
 
 function CollegeIcon({ collegeCode }: { collegeCode: string }) {
 	const shield = COLLEGE_SHIELDS[collegeCode];
@@ -25,11 +27,6 @@ function LoadingIcon() {
 			<img src="/logo.svg" alt="Loading" className={styles.loading_icon} />
 		</div>
 	);
-}
-
-function formatCollegeYear(person: Person) {
-	const college = person.college?.replace(/\s+College$/i, "");
-	return [college, person.year && `'${String(person.year).slice(-2)}`].filter(Boolean).join(" ");
 }
 
 function formatBirthday(person: Person) {
@@ -59,19 +56,37 @@ export default function PeopleGrid({
 	hasReachedEnd,
 	isSearching,
 	sectionTitle,
+	showSavedNotes = false,
+	currentListId,
+	paginationLength,
+	emptyMessage = "No results found. Try a different search or adjust your filters.",
 }: {
 	people: Person[];
 	loadMoreFunction: () => void;
 	hasReachedEnd: boolean;
 	isSearching?: boolean;
 	sectionTitle?: string;
+	showSavedNotes?: boolean;
+	currentListId?: number;
+	paginationLength?: number;
+	emptyMessage?: string;
 }) {
 	const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+	const savedLists = useSavedLists();
+	const loadMoreTarget = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if(paginationLength === undefined || hasReachedEnd || isSearching || !loadMoreTarget.current) return;
+		const observer = new IntersectionObserver(entries => {
+			if(entries.some(entry => entry.isIntersecting)) loadMoreFunction();
+		}, { rootMargin: "400px" });
+		observer.observe(loadMoreTarget.current);
+		return () => observer.disconnect();
+	}, [hasReachedEnd, isSearching, loadMoreFunction, paginationLength]);
 
 	const peopleElems = people.map(person => {
 		const hasCollegeShield = person.college_code && person.college_code in COLLEGE_SHIELDS;
 
-		const collegeYearText = formatCollegeYear(person);
+		const collegeYearText = formatCardCollegeYear(person);
 		const hometownText = formatHometown(person);
 		const birthdayText = formatBirthday(person);
 		const birthdayToday = isBirthdayToday(person);
@@ -84,13 +99,13 @@ export default function PeopleGrid({
 					) : person.year ? (
 						<FontAwesomeIcon icon={faGraduationCap} />
 					) : null}
-					<span>{collegeYearText}</span>
+					<span title={person.college}>{collegeYearText}</span>
 				</div>
 			),
-			person.major && (
-				<div key="major" className={styles.row}>
-					<FontAwesomeIcon icon={faBook} />
-					<span>{person.major}</span>
+			person.major && person.major.trim().toLowerCase() !== "undeclared" && (
+				<div key="major" className={`${styles.row} ${styles.major_row}`} data-major-icon={getMajorIconKind(person.major)}>
+					<MajorIcon major={person.major} />
+					<span title={person.major}>{formatCardMajor(person.major)}</span>
 				</div>
 			),
 			hometownText && (
@@ -107,67 +122,37 @@ export default function PeopleGrid({
 			),
 		];
 
-		const linkedinUrl = normalizeExternalUrl(person.user_profile?.linkedin_url);
-		const instagramUrl = normalizeExternalUrl(person.user_profile?.instagram_url);
 
 		const cardContent = (
 			<>
 				<div className={styles.info_box}>
-					<div className={styles.profile_image_frame}>
-						<img
-							className={styles.profile_image}
-							src={person.image || "/no_image.png"}
-							alt={`${person.first_name} ${person.last_name}`}
-							loading="lazy"
-							decoding="async"
-							onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
-						/>
+					<div className={styles.photo_column}>
+						<div className={styles.profile_image_frame}>
+							<img
+								className={styles.profile_image}
+								src={person.image || "/no_image.png"}
+								alt={`${person.first_name} ${person.last_name}`}
+								loading="lazy"
+								decoding="async"
+								onError={(e) => { (e.target as HTMLImageElement).src = "/no_image.png"; }}
+							/>
+						</div>
+						<CardContactActions person={person} />
 					</div>
 					<div className={styles.details}>
+						{person.netid && <SaveToListButton person={person} currentListId={currentListId} className={styles.save_to_list} />}
 						<div className={styles.name_row}>
 							<h3 className={styles.name}>{person.first_name} {person.last_name}</h3>
 						</div>
 						{detailRows}
 					</div>
 				</div>
-				<div className={styles.card_footer}>
-					<div className={styles.card_socials}>
-						{linkedinUrl && (
-							<a
-								href={linkedinUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								onClick={e => e.stopPropagation()}
-								aria-label="LinkedIn"
-							>
-								<FontAwesomeIcon icon={faLinkedin as IconProp} />
-							</a>
-						)}
-						{instagramUrl && (
-							<a
-								href={instagramUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								onClick={e => e.stopPropagation()}
-								aria-label="Instagram"
-							>
-								<FontAwesomeIcon icon={faInstagram as IconProp} />
-							</a>
-						)}
-					</div>
-					{person.email && (
-						<EmailCopyButton
-							className={styles.email_link}
-							email={person.email}
-							stopPropagation
-						/>
-					)}
-				</div>
 			</>
 		);
 
 		return (
-			<PersonCardShell key={person.netid} person={person} onOpen={() => setSelectedPerson(person)}>
+			<PersonCardShell key={person.netid} person={person} onOpen={() => setSelectedPerson(person)}
+				notePreview={showSavedNotes ? getSavedEntry(savedLists, person)?.note : undefined}>
 				{cardContent}
 			</PersonCardShell>
 		);
@@ -180,12 +165,13 @@ export default function PeopleGrid({
 			{isSearching && people.length === 0 && <LoadingIcon />}
 			{showEmpty && (
 				<div style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}>
-					No results found. Try a different search or adjust your filters.
+					{emptyMessage}
 				</div>
 			)}
 			<InfiniteScroll
-				className={styles.people_grid}
-				dataLength={people.length}
+				style={{ overflow: "visible" }}
+				className={`${styles.people_grid} ${showSavedNotes ? styles.saved_grid : ""}`}
+				dataLength={paginationLength ?? people.length}
 				next={loadMoreFunction}
 				hasMore={!hasReachedEnd}
 				loader={<LoadingIcon />}
@@ -198,9 +184,11 @@ export default function PeopleGrid({
 				)}
 				{peopleElems}
 			</InfiniteScroll>
+			{paginationLength !== undefined && <div ref={loadMoreTarget} aria-hidden="true" />}
 			{selectedPerson && (
 				<PersonModal
 					person={selectedPerson}
+					currentListId={currentListId}
 					onClose={() => setSelectedPerson(null)}
 				/>
 			)}

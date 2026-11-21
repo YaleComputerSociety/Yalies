@@ -54,7 +54,14 @@ export type Person = {
     yalemoji?: YaleMojiAvatar | null;
     user_profile?: UserProfile;
     like_data?: { like_count: number; liked_by_me: boolean };
-    friend_data?: { status: string; count: number };
+    saved_data?: { saved: boolean; note: string | null; list_ids: number[] };
+};
+
+export type SavedList = {
+	id: number;
+	name: string;
+	description?: string | null;
+	count: number;
 };
 
 export type ApiKey = {
@@ -67,6 +74,7 @@ export type ApiKey = {
 
 export type UserProfile = {
 	netid: string;
+	show_yalemoji?: boolean;
 	description?: string;
 	interests?: string[];
 	linkedin_url?: string;

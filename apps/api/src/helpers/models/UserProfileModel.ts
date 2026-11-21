@@ -4,6 +4,7 @@ import { UserProfile } from "yalies-shared";
 
 export default class UserProfileModel extends Model {
 	declare netid: string;
+	declare show_yalemoji: boolean;
 	declare description: string;
 	declare interests: string[];
 	declare linkedin_url: string;
@@ -14,6 +15,7 @@ export default class UserProfileModel extends Model {
 	static initModel(sequelize: Sequelize) {
 		UserProfileModel.init({
 			netid: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
+			show_yalemoji: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
 			description: { type: DataTypes.TEXT },
 			interests: { type: DataTypes.ARRAY(DataTypes.STRING) },
 			linkedin_url: { type: DataTypes.STRING },
@@ -30,6 +32,7 @@ export default class UserProfileModel extends Model {
 	toSanitizedObject(): UserProfile {
 		return {
 			netid: this.netid,
+			show_yalemoji: this.show_yalemoji !== false,
 			...this.description != null && { description: this.description },
 			...this.interests != null && { interests: this.interests },
 			...this.linkedin_url != null && { linkedin_url: this.linkedin_url },

@@ -4,3 +4,4 @@ export * from "./validation.js";
 export * from "./location.js";
 export * from "./util.js";
 export * from "./notifications.js";
+export * from "./discovery.js";

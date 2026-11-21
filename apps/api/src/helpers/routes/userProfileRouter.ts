@@ -1,3 +1,5 @@
+import { ACCOUNT_SETUP_MIN_POINTS } from "yalies-shared";
+import { QueryTypes } from "sequelize";
 import express, { Request, Response } from "express";
 import multer from "multer";
 import { Storage } from "@google-cloud/storage";
@@ -6,6 +8,9 @@ import fs from "fs";
 import os from "os";
 import { randomUUID } from "crypto";
 import CAS from "../cas.js";
+import DiscoveryProfileModel from "../models/DiscoveryProfileModel.js";
+import { parseDiscoveryUpdate } from "../discoveryProfile.js";
+import { getAccountSetup } from "../accountSetup.js";
 import UserProfileModel from "../models/UserProfileModel.js";
 import PersonModel from "../models/PersonModel.js";
 import DataChangeRequestModel from "../models/DataChangeRequestModel.js";
@@ -121,6 +126,10 @@ export default class UserProfileRouter {
 			}
 			return next();
 		});
+		router.get("/me/setup", CAS.requireAuthenticationSessionOnly, this.getMySetup);
+		router.get("/me/discovery", CAS.requireAuthenticationSessionOnly, this.getMyDiscoveryProfile);
+		router.put("/me/discovery", CAS.requireAuthenticationSessionOnly, this.updateMyDiscoveryProfile);
+		router.get("/me/discovery/stats", CAS.requireAuthenticationSessionOnly, this.getMyDiscoveryStats);
 		router.get("/me/full", CAS.requireAuthenticationSessionOnly, this.getMyFullProfile);
 		router.get("/me/yalemoji", CAS.requireAuthenticationSessionOnly, this.getMyYaleMoji);
 		router.get("/me", CAS.requireAuthenticationSessionOnly, this.getMyProfile);
@@ -131,6 +140,70 @@ export default class UserProfileRouter {
 		router.delete("/me", CAS.requireAuthenticationSessionOnly, this.deleteMyProfile);
 		router.get("/:netid", CAS.requireAuthentication, this.getProfile);
 		return router;
+	};
+
+	getMySetup = async (req: Request, res: Response) => {
+		res.set("Cache-Control", "no-store");
+		try {
+			const setup = await getAccountSetup(req.netid);
+			if(!setup) return res.status(503).json({ error: "Could not check your Yalemoji. Please try again." });
+			return res.status(200).json(setup);
+		} catch {
+			return res.status(500).json({ error: "Could not check account setup. Please try again." });
+		}
+	};
+
+	getMyDiscoveryProfile = async (req: Request, res: Response) => {
+		res.set("Cache-Control", "no-store");
+		try {
+			const profile = await DiscoveryProfileModel.findByPk(req.netid);
+			return res.status(200).json(profile?.toPrivateObject() ?? {});
+		} catch(error) {
+			console.error("Error fetching discovery profile", error);
+			return res.status(500).json({ error: "Could not load discovery profile." });
+		}
+	};
+
+	updateMyDiscoveryProfile = async (req: Request, res: Response) => {
+		res.set("Cache-Control", "no-store");
+		let update;
+		try {
+			update = parseDiscoveryUpdate(req.body);
+		} catch(error) {
+			return res.status(400).json({ error: (error as Error).message });
+		}
+		try {
+			const values = "skip" in update ? { [`skip_${update.skip}`]: true }
+				: { ...update, ...Object.fromEntries(Object.keys(update).map(field => [`skip_${field}`, false])) };
+			const [profile] = await DiscoveryProfileModel.upsert({ ...values, netid: req.netid, updated_at: new Date() });
+			return res.status(200).json(profile.toPrivateObject());
+		} catch(error) {
+			console.error("Error saving discovery profile", error);
+			return res.status(500).json({ error: "Could not save discovery choice." });
+		}
+	};
+
+	getMyDiscoveryStats = async (req: Request, res: Response) => {
+		res.set("Cache-Control", "no-store");
+		try {
+			const setup = await getAccountSetup(req.netid);
+			if(!setup) return res.status(503).json({ error: "Could not check account setup. Please try again." });
+			if(setup.points < ACCOUNT_SETUP_MIN_POINTS) {
+				return res.status(403).json({ error: "Finish your profile to unlock discovery insights.", code: "discovery_profile_required" });
+			}
+			// Only the session owner's NetID is ever searched. Return a count,
+			// never the identities, queries, or results of other searchers.
+			const [stats] = await DiscoveryProfileModel.sequelize!.query<{ searches_this_week: string }>(`
+				SELECT COUNT(*) AS searches_this_week FROM recents
+				WHERE results @> ARRAY[CAST($netid AS TEXT)]
+				AND timestamp >= NOW() - INTERVAL '7 days'
+				AND LOWER(netid) <> LOWER(CAST($netid AS TEXT))
+			`, { bind: { netid: req.netid }, type: QueryTypes.SELECT });
+			return res.status(200).json({ searches_this_week: Number(stats.searches_this_week) });
+		} catch(error) {
+			console.error("Error fetching discovery stats", error);
+			return res.status(500).json({ error: "Could not load discovery stats." });
+		}
 	};
 
 	getMyFullProfile = async (req: Request, res: Response) => {
@@ -184,7 +257,10 @@ export default class UserProfileRouter {
 	};
 
 	updateMyProfile = async (req: Request, res: Response) => {
-		const { description, interests, linkedin_url, instagram_url, classes } = req.body;
+		const { description, interests, linkedin_url, instagram_url, classes, show_yalemoji } = req.body;
+		if(show_yalemoji !== undefined && typeof show_yalemoji !== "boolean") {
+			return res.status(400).send("show_yalemoji must be a boolean.");
+		}
 		const normalizedLinkedinUrl = normalizeSocialUrl("linkedin", linkedin_url);
 		const normalizedInstagramUrl = normalizeSocialUrl("instagram", instagram_url);
 
@@ -203,6 +279,7 @@ export default class UserProfileRouter {
 				...linkedin_url !== undefined && { linkedin_url: normalizedLinkedinUrl },
 				...instagram_url !== undefined && { instagram_url: normalizedInstagramUrl },
 				...classes !== undefined && { classes },
+				...show_yalemoji !== undefined && { show_yalemoji },
 				updated_at: new Date(),
 			});
 			return res.status(200).json(profile.toSanitizedObject());
