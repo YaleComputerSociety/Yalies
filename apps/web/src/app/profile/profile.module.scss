@@ -1,7 +1,7 @@
 @use "../../shared.scss";
 
 #profile_page {
-	@include shared.info_page();
+	margin: 0 auto;
 }
 
 .settings_container {
@@ -581,3 +581,168 @@
 		&:disabled { opacity: 0.6; cursor: default; }
 	}
 }
+
+#profile_page {
+	width: 100%;
+	max-width: 1080px;
+	box-sizing: border-box;
+	padding: 40px 28px 64px;
+
+	h2 { margin: 0 0 10px; font-size: 18px; font-weight: 500; color: shared.$foreground-color; }
+}
+
+.page_title {
+	text-align: center;
+	color: shared.$accent-color;
+	font-size: clamp(28px, 4vw, 38px);
+	margin: 12px 0 48px;
+	letter-spacing: -1px;
+}
+
+.profile_grid {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 34px 22px;
+	align-items: stretch;
+
+	> section { display: flex; flex-direction: column; min-width: 0; }
+	> section > div { flex: 1; }
+
+	@include shared.responsive() {
+		grid-template-columns: 1fr;
+		gap: 26px;
+		> section { grid-column: 1; }
+	}
+}
+
+.information_section, .discovery_section { grid-column: span 4; }
+.yalemoji_section, .stats_section { grid-column: span 2; }
+
+.person_card, .yalemoji_card, .stats_card, .discovery_card {
+	border: 1px solid shared.$border-color;
+	border-radius: 16px;
+	background: shared.$card-background-color;
+	box-shadow: shared.$shadow-sm;
+	padding: 24px;
+	margin: 0;
+}
+
+.person_card {
+	.card_header { gap: 20px; }
+	.person_name { font-size: 23px; padding-right: 12px; line-height: 1.25; }
+	.info_row { font-size: 13px; }
+	.college_shield { width: 20px; height: 23px; object-fit: contain; }
+	.save_section { margin-top: 4px; flex-wrap: wrap; justify-content: space-between; }
+	.save_message { margin-top: 10px; font-size: 12px; }
+}
+
+.social_fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-top: 22px;
+	padding-top: 18px;
+	border-top: 1px solid shared.$border-color;
+
+	label > span:first-child { font-size: 12px; font-weight: 500; color: shared.$secondary-color; }
+	input {
+		font: inherit;
+		font-size: 12px;
+		padding: 10px;
+		border: 1px solid shared.$border-color;
+		border-radius: 7px;
+		background: shared.$background-color;
+		color: shared.$foreground-color;
+		min-width: 0;
+		&:focus-visible { outline: 2px solid shared.$accent-color; outline-offset: 2px; }
+	}
+	@include shared.small-mobile() { grid-template-columns: 1fr; gap: 0; }
+}
+
+.yalemoji_card { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+.yalemoji_preview {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: shared.$muted-color;
+	background-size: cover;
+	background-position: center;
+	border-radius: 12px;
+	padding: 10px;
+	text-decoration: none;
+	color: shared.$accent-color;
+	flex: 1;
+	min-height: 200px;
+	img { width: 100%; max-width: 200px; height: 190px; object-fit: contain; }
+	span { font-size: 12px; font-weight: 500; padding: 7px; background: shared.$card-background-color; border-radius: 6px; }
+}
+.yalemoji_toggle { justify-content: space-between; font-size: 12px; line-height: 1.5; }
+
+.stats_card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: 10px;
+	min-height: 300px;
+	p { margin: 0; font-size: 14px; line-height: 1.6; }
+}
+.stat_number { font-size: 64px; line-height: 1.3; font-weight: 500; color: shared.$accent-color; font-variant-numeric: tabular-nums; }
+.blurred_stat { filter: blur(10px); user-select: none; opacity: 0.5; }
+.stats_lock {
+	margin-top: 16px;
+	padding-top: 18px;
+	border-top: 1px solid shared.$border-color;
+	p { font-size: 12px; margin: 10px 0; }
+	> span:last-child { font-size: 11px; color: shared.$secondary-color; }
+}
+.private_badge { font-size: 11px; background: shared.$muted-color; color: shared.$secondary-color; padding: 5px 10px; border-radius: 20px; }
+.stats_caption { font-size: 11px; line-height: 1.5; color: shared.$secondary-color; margin-top: 12px; }
+.discovery_intro { font-size: 14px; line-height: 1.6; margin: 0 0 24px; }
+.discovery_hint { font-size: 11px; color: shared.$secondary-color; line-height: 1.6; margin: 0 0 20px; }
+.discovery_field {
+	border: 0;
+	padding: 0;
+	margin: 0 0 18px;
+	min-width: 0;
+	legend { width: 100%; box-sizing: border-box; padding: 0; font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+}
+.discovery_options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+	button {
+		font: inherit;
+		font-size: 11px;
+		line-height: 1.4;
+		padding: 7px 11px;
+		border: 1px solid shared.$border-color;
+		border-radius: 6px;
+		background: shared.$muted-color;
+		color: shared.$foreground-color;
+		cursor: pointer;
+		&:hover:not(:disabled) { border-color: shared.$accent-color; }
+		&[aria-pressed="true"] { background: shared.$accent-color; border-color: shared.$accent-color; color: #fff; }
+		&:focus-visible { outline: 2px solid shared.$accent-color; outline-offset: 3px; }
+		&:disabled { cursor: wait; }
+	}
+}
+.discovery_status { display: block; min-height: 16px; font-size: 11px; line-height: 1.5; color: shared.$secondary-color; }
+
+.stats_expanded { grid-column: 1 / -1; }
+
+.discovery_skip, .discovery_show {
+	float: right;
+	font: inherit;
+	font-size: 11px;
+	border: 0;
+	margin-left: 10px;
+	padding: 3px 7px;
+	border-radius: 5px;
+	cursor: pointer;
+	&:focus-visible { outline: 2px solid shared.$accent-color; outline-offset: 2px; }
+}
+.discovery_skip { color: shared.$secondary-color; background: transparent; }
+.discovery_show { color: shared.$secondary-color; background: shared.$muted-color; }

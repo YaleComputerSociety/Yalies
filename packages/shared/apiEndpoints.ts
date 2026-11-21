@@ -13,6 +13,9 @@ export const API = {
 	filters: `${API_PREFIX}/filters`,
 
 	profileMe: `${API_PREFIX}/profile/me`,
+	profileMeSetup: `${API_PREFIX}/profile/me/setup`,
+	profileMeDiscovery: `${API_PREFIX}/profile/me/discovery`,
+	profileMeDiscoveryStats: `${API_PREFIX}/profile/me/discovery/stats`,
 	profileMeFull: `${API_PREFIX}/profile/me/full`,
 	profileMeYaleMoji: `${API_PREFIX}/profile/me/yalemoji`,
 	profileMePhoto: `${API_PREFIX}/profile/me/photo`,

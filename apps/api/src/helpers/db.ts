@@ -2,6 +2,8 @@ import { Sequelize } from "sequelize";
 import PersonModel from "./models/PersonModel.js";
 import SessionModel from "./models/SessionModel.js";
 import APIKeyModel from "./models/APIKeyModel.js";
+import DiscoveryProfileModel from "./models/DiscoveryProfileModel.js";
+import { DISCOVERY_SETUP_SQL } from "./discoveryProfile.js";
 import UserProfileModel from "./models/UserProfileModel.js";
 import ProfileLikeModel from "./models/ProfileLikeModel.js";
 import SavedContactModel from "./models/SavedContactModel.js";
@@ -32,6 +34,7 @@ export const RECENTS_SETUP_SQL = `
 	);
 	ALTER TABLE recents ADD COLUMN IF NOT EXISTS search_mode TEXT;
 	ALTER TABLE recents ADD COLUMN IF NOT EXISTS results TEXT[];
+	CREATE INDEX IF NOT EXISTS recents_results_gin ON recents USING gin (results);
 `;
 
 export default class DB {
@@ -83,6 +86,7 @@ export default class DB {
 				);
 			`);
 			await this.#sql.query(RECENTS_SETUP_SQL);
+			await this.#sql.query(DISCOVERY_SETUP_SQL);
 			await this.#sql.query(`
 				ALTER TABLE user_profile
 				ADD COLUMN IF NOT EXISTS description TEXT,
@@ -214,6 +218,7 @@ export default class DB {
 		SessionModel.initModel(this.#sql);
 		APIKeyModel.initModel(this.#sql);
 		UserProfileModel.initModel(this.#sql);
+		DiscoveryProfileModel.initModel(this.#sql);
 		ProfileLikeModel.initModel(this.#sql);
 		SavedContactModel.initModel(this.#sql);
 		SavedListModel.initModel(this.#sql);

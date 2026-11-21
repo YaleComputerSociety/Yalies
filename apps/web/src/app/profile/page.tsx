@@ -3,20 +3,22 @@ import { API_URL, COLLEGE_SHIELDS } from "@/consts";
 
 import styles from "./profile.module.scss";
 import { useSession } from "@/components/NavigationShell";
-import Input from "@/components/Input";
+
 import Button from "@/components/Button";
 import { Lexend_Deca } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import { Person, UserProfile, API } from "yalies-shared";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconProp } from "@fortawesome/fontawesome-svg-core";
+
 import { faGraduationCap, faBook, faHouse, faBuilding, faUser, faGear, faTrash, faPen, faCamera, faCloudArrowUp, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { faInstagram, faLinkedin } from "@fortawesome/free-brands-svg-icons";
+
 import { useRouter } from "next/navigation";
 import { getProfile, invalidateProfileCache, type PendingPhotoRequest } from "@/hooks/useProfileCache";
 import { invalidateHomeCache } from "@/hooks/useHomeCache";
 import ChangeRequestModal from "@/components/ChangeRequestModal";
 import EmailCopyButton from "@/components/EmailCopyButton";
+import DiscoveryCards from "./DiscoveryCards";
+import ProfileYaleMojiCard from "./ProfileYaleMojiCard";
 import { getSocialUrlError, normalizeSocialUrl } from "@/utils/externalUrl";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
@@ -29,7 +31,6 @@ export default function ProfilePage() {
 	const [person, setPerson] = useState<Person | null>(null);
 	const [linkedinUrl, setLinkedinUrl] = useState("");
 	const [instagramUrl, setInstagramUrl] = useState("");
-	const [showYaleMoji, setShowYaleMoji] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveMessage, setSaveMessage] = useState("");
 	const [settingsOpen, setSettingsOpen] = useState(false);
@@ -52,7 +53,6 @@ export default function ProfilePage() {
 		setProfile(data);
 		setLinkedinUrl(data.linkedin_url ?? "");
 		setInstagramUrl(data.instagram_url ?? "");
-		setShowYaleMoji(data.show_yalemoji !== false);
 		if(personData) {
 			setPerson(personData);
 		}
@@ -103,7 +103,6 @@ export default function ProfilePage() {
 				body: JSON.stringify({
 					linkedin_url: normalizedLinkedinUrl || null,
 					instagram_url: normalizedInstagramUrl || null,
-					show_yalemoji: showYaleMoji,
 				}),
 			});
 		} catch(e) {
@@ -123,15 +122,12 @@ export default function ProfilePage() {
 		setProfile(data);
 		setLinkedinUrl(data.linkedin_url ?? "");
 		setInstagramUrl(data.instagram_url ?? "");
-		setShowYaleMoji(data.show_yalemoji !== false);
 		invalidateProfileCache();
 		invalidateHomeCache();
 		setSaveMessage("Profile saved!");
 		setIsSaving(false);
 	};
 
-	const linkedinHref = normalizeSocialUrl("linkedin", linkedinUrl) || "";
-	const instagramHref = normalizeSocialUrl("instagram", instagramUrl) || "";
 	const linkedinError = getSocialUrlError("linkedin", linkedinUrl);
 	const instagramError = getSocialUrlError("instagram", instagramUrl);
 
@@ -271,7 +267,6 @@ export default function ProfilePage() {
 	const displayName = person
 		? `${person.preferred_name || person.first_name} ${person.last_name}`
 		: profile?.netid ?? "";
-	const hasContactRow = person?.email || linkedinHref || instagramHref;
 
 	return (
 		<>
@@ -286,201 +281,171 @@ export default function ProfilePage() {
 					/>
 				)}
 
-				<div className={styles.person_card}>
-					<div className={styles.settings_container} ref={settingsRef}>
-						<button
-							className={styles.settings_button}
-							onClick={() => { setSettingsOpen(!settingsOpen); setDeleteStep(0); }}
-						>
-							<FontAwesomeIcon icon={faGear} />
-						</button>
-						{settingsOpen && (
-							<div className={styles.settings_dropdown}>
+				<h1 className={styles.page_title}>Search, your way</h1>
+				<div className={styles.profile_grid}>
+					<section className={styles.information_section} aria-labelledby="information-heading">
+						<h2 id="information-heading">Your information</h2>
+						<div className={styles.person_card}>
+							<div className={styles.settings_container} ref={settingsRef}>
 								<button
-									className={styles.data_change_button}
-									onClick={handleRequestDataChange}
+									className={styles.settings_button}
+									aria-label="Profile settings"
+									aria-expanded={settingsOpen}
+									onClick={() => { setSettingsOpen(!settingsOpen); setDeleteStep(0); }}
 								>
-									<FontAwesomeIcon icon={faPen} />
-									<span>Request Info Update</span>
+									<FontAwesomeIcon icon={faGear} />
 								</button>
-								<button
-									className={styles.delete_button}
-									onClick={handleDeleteClick}
-								>
-									<FontAwesomeIcon icon={faTrash} />
-									{deleteStep === 0 && <span>Delete Profile</span>}
-									{deleteStep === 1 && <span>Are you sure?</span>}
-									{deleteStep === 2 && <span>Click again to confirm</span>}
-								</button>
+								{settingsOpen && (
+									<div className={styles.settings_dropdown}>
+										<button
+											className={styles.data_change_button}
+											onClick={handleRequestDataChange}
+										>
+											<FontAwesomeIcon icon={faPen} />
+											<span>Request Info Update</span>
+										</button>
+										<button
+											className={styles.delete_button}
+											onClick={handleDeleteClick}
+										>
+											<FontAwesomeIcon icon={faTrash} />
+											{deleteStep === 0 && <span>Delete Profile</span>}
+											{deleteStep === 1 && <span>Are you sure?</span>}
+											{deleteStep === 2 && <span>Click again to confirm</span>}
+										</button>
+									</div>
+								)}
 							</div>
-						)}
-					</div>
 
-					<div className={styles.card_header}>
-						<div className={styles.photo_section}>
-							{photoPreview || person?.image ? (
-								<img
-									className={styles.profile_image}
-									src={photoPreview || person?.image || ""}
-									alt={displayName}
-								/>
-							) : (
-								<div className={styles.photo_placeholder}>
-									<FontAwesomeIcon icon={faUser} />
+							<div className={styles.card_header}>
+								<div className={styles.photo_section}>
+									{photoPreview || person?.image ? (
+										<img
+											className={styles.profile_image}
+											src={photoPreview || person?.image || ""}
+											alt={displayName}
+										/>
+									) : (
+										<div className={styles.photo_placeholder}>
+											<FontAwesomeIcon icon={faUser} />
+										</div>
+									)}
+									<button
+										type="button"
+										className={styles.photo_edit_button}
+										onClick={() => fileInputRef.current?.click()}
+										disabled={photoUploading || !!photoRequest}
+										aria-label={photoRequest ? "Photo awaiting review" : "Choose a new profile photo"}
+									>
+										<FontAwesomeIcon icon={faCamera} />
+										<span>{photoRequest ? "Pending" : "Change"}</span>
+									</button>
+									<input
+										ref={fileInputRef}
+										type="file"
+										accept="image/jpeg,image/png,image/webp"
+										onChange={handlePhotoSelect}
+										className={styles.photo_file_input}
+									/>
+								</div>
+								<div className={styles.person_details}>
+									<div className={styles.name_block}>
+										<span className={styles.person_name}>{displayName}</span>
+										{person?.pronouns && (
+											<span className={styles.pronouns}>{person.pronouns}</span>
+										)}
+									</div>
+									<div className={styles.info_rows}>
+										{person?.college && (
+											<div className={styles.info_row}>
+												{person.college_code && COLLEGE_SHIELDS[person.college_code] ? (
+													<img
+														src={COLLEGE_SHIELDS[person.college_code]}
+														alt={person.college_code}
+														className={styles.college_shield}
+													/>
+												) : (
+													<FontAwesomeIcon icon={faBuilding} />
+												)}
+												<span>{person.college}</span>
+											</div>
+										)}
+										{person?.year && (
+											<div className={styles.info_row}>
+												<FontAwesomeIcon icon={faGraduationCap} />
+												<span>Class of {person.year}</span>
+											</div>
+										)}
+										{person?.school && (
+											<div className={styles.info_row}>
+												<FontAwesomeIcon icon={faBuilding} />
+												<span>{person.school}</span>
+											</div>
+										)}
+										{person?.major && (
+											<div className={styles.info_row}>
+												<FontAwesomeIcon icon={faBook} />
+												<span>{person.major}</span>
+											</div>
+										)}
+										{person?.address && (
+											<div className={styles.info_row}>
+												<FontAwesomeIcon icon={faHouse} />
+												<span>{person.address}</span>
+											</div>
+										)}
+									</div>
+								</div>
+							</div>
+							{selectedPhoto && (
+								<div className={styles.photo_confirmation}>
+									<div>
+										<strong>Submit this photo?</strong>
+										<span>An admin will review it before it replaces your current picture.</span>
+									</div>
+									<div className={styles.photo_confirmation_actions}>
+										<button type="button" onClick={clearSelectedPhoto} disabled={photoUploading}>
+											<FontAwesomeIcon icon={faXmark} /> Cancel
+										</button>
+										<button type="button" className={styles.photo_submit_button} onClick={submitPhoto} disabled={photoUploading}>
+											<FontAwesomeIcon icon={faCloudArrowUp} />
+											{photoUploading ? "Submitting…" : "Submit for review"}
+										</button>
+									</div>
 								</div>
 							)}
-							<button
-								type="button"
-								className={styles.photo_edit_button}
-								onClick={() => fileInputRef.current?.click()}
-								disabled={photoUploading || !!photoRequest}
-								aria-label={photoRequest ? "Photo awaiting review" : "Choose a new profile photo"}
-							>
-								<FontAwesomeIcon icon={faCamera} />
-								<span>{photoRequest ? "Pending" : "Change"}</span>
-							</button>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/jpeg,image/png,image/webp"
-								onChange={handlePhotoSelect}
-								className={styles.photo_file_input}
-							/>
-						</div>
-						<div className={styles.person_details}>
-							<div className={styles.name_block}>
-								<span className={styles.person_name}>{displayName}</span>
-								{person?.pronouns && (
-									<span className={styles.pronouns}>{person.pronouns}</span>
-								)}
-							</div>
-							<div className={styles.info_rows}>
-								{person?.college && (
-									<div className={styles.info_row}>
-										{person.college_code && COLLEGE_SHIELDS[person.college_code] ? (
-											<img
-												src={COLLEGE_SHIELDS[person.college_code]}
-												alt={person.college_code}
-												className={styles.college_shield}
-											/>
-										) : (
-											<FontAwesomeIcon icon={faBuilding} />
-										)}
-										<span>{person.college}</span>
+							{photoRequest && !selectedPhoto && (
+								<div className={styles.photo_pending_notice}>
+									<img src={photoRequest.preview_image} alt="Pending profile photo" />
+									<div>
+										<strong>Photo awaiting review</strong>
+										<span>Your current photo will stay visible until an admin approves this one.</span>
 									</div>
-								)}
-								{person?.year && (
-									<div className={styles.info_row}>
-										<FontAwesomeIcon icon={faGraduationCap} />
-										<span>Class of {person.year}</span>
-									</div>
-								)}
-								{person?.school && (
-									<div className={styles.info_row}>
-										<FontAwesomeIcon icon={faBuilding} />
-										<span>{person.school}</span>
-									</div>
-								)}
-								{person?.major && (
-									<div className={styles.info_row}>
-										<FontAwesomeIcon icon={faBook} />
-										<span>{person.major}</span>
-									</div>
-								)}
-								{person?.address && (
-									<div className={styles.info_row}>
-										<FontAwesomeIcon icon={faHouse} />
-										<span>{person.address}</span>
-									</div>
-								)}
-							</div>
-						</div>
-					</div>
-					{selectedPhoto && (
-						<div className={styles.photo_confirmation}>
-							<div>
-								<strong>Submit this photo?</strong>
-								<span>An admin will review it before it replaces your current picture.</span>
-							</div>
-							<div className={styles.photo_confirmation_actions}>
-								<button type="button" onClick={clearSelectedPhoto} disabled={photoUploading}>
-									<FontAwesomeIcon icon={faXmark} /> Cancel
-								</button>
-								<button type="button" className={styles.photo_submit_button} onClick={submitPhoto} disabled={photoUploading}>
-									<FontAwesomeIcon icon={faCloudArrowUp} />
-									{photoUploading ? "Submitting…" : "Submit for review"}
-								</button>
-							</div>
-						</div>
-					)}
-					{photoRequest && !selectedPhoto && (
-						<div className={styles.photo_pending_notice}>
-							<img src={photoRequest.preview_image} alt="Pending profile photo" />
-							<div>
-								<strong>Photo awaiting review</strong>
-								<span>Your current photo will stay visible until an admin approves this one.</span>
-							</div>
-						</div>
-					)}
-					{photoMessage && <div className={styles.photo_message} role="status">{photoMessage}</div>}
-					{hasContactRow && (
-						<div className={styles.contact_section}>
-							<div className={styles.contact_socials}>
-								{linkedinHref && (
-									<a href={linkedinHref} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-										<FontAwesomeIcon icon={faLinkedin as IconProp} />
-									</a>
-								)}
-								{instagramHref && (
-									<a href={instagramHref} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-										<FontAwesomeIcon icon={faInstagram as IconProp} />
-									</a>
-								)}
-							</div>
-							{person?.email && (
-								<EmailCopyButton className={styles.contact_email} email={person.email} />
+								</div>
 							)}
+							{photoMessage && <div className={styles.photo_message} role="status">{photoMessage}</div>}
+							<div className={styles.social_fields}>
+								<label className={styles.field}>
+									<span>Instagram</span>
+									<input type="url" placeholder="https://instagram.com/yourhandle" value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} disabled={!profile || isSaving} />
+									{instagramError && <span className={styles.field_error}>{instagramError}</span>}
+								</label>
+								<label className={styles.field}>
+									<span>LinkedIn</span>
+									<input type="url" placeholder="https://linkedin.com/in/yourname" value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} disabled={!profile || isSaving} />
+									{linkedinError && <span className={styles.field_error}>{linkedinError}</span>}
+								</label>
+							</div>
+							<div className={styles.save_section}>
+								{person?.email && <EmailCopyButton className={styles.contact_email} email={person.email} />}
+								<Button onClick={saveProfile} disabled={!profile || isSaving}>{isSaving ? "Saving…" : "Save social links"}</Button>
+							</div>
+							{saveMessage && <span role="status" className={styles.save_message}>{saveMessage}</span>}
 						</div>
-					)}
+					</section>
+					<ProfileYaleMojiCard profile={profile} onSaved={setProfile} />
+					<DiscoveryCards />
 				</div>
-
-				<h2>Social Links</h2>
-				<div className={styles.field}>
-					<label>LinkedIn URL</label>
-					<Input
-						placeholder="https://linkedin.com/in/yourname"
-						value={linkedinUrl}
-						onChange={e => setLinkedinUrl(e.target.value)}
-					/>
-					{linkedinError && <span className={styles.field_error}>{linkedinError}</span>}
-				</div>
-				<div className={styles.field}>
-					<label>Instagram URL</label>
-					<Input
-						placeholder="https://instagram.com/yourhandle"
-						value={instagramUrl}
-						onChange={e => setInstagramUrl(e.target.value)}
-					/>
-					{instagramError && <span className={styles.field_error}>{instagramError}</span>}
-				</div>
-
-				<h2>Yalemoji</h2>
-				<label className={styles.yalemoji_toggle}>
-					<input
-						type="checkbox"
-						role="switch"
-						checked={showYaleMoji}
-						onChange={event => setShowYaleMoji(event.target.checked)}
-						disabled={!profile || isSaving}
-					/>
-					<span>Show my Yalemoji on my Yalies card</span>
-				</label>
-
-				<div className={styles.save_section}>
-					<Button onClick={saveProfile} disabled={!profile || isSaving}>{isSaving ? "Saving..." : "Save"}</Button>
-					{saveMessage && <span className={styles.save_message}>{saveMessage}</span>}
-				</div>
-
 			</div>
 		</>
 	);

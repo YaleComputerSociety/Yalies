@@ -415,3 +415,9 @@
 		&.delete_action { color: shared.$destructive-color; }
 	}
 }
+
+.all_saved.all_saved_active {
+	background: shared.$accent-color;
+	border-color: shared.$accent-color;
+	color: #fff;
+}

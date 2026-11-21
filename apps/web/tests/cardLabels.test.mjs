@@ -16,7 +16,7 @@ function load(path, imports = {}) {
 	return exports;
 }
 
-const { MAJOR_ABBREVIATIONS, COLLEGE_ABBREVIATIONS, formatCardCollegeYear, formatCardMajor } = load("../src/helpers/cardLabels.ts");
+const { MAJOR_ABBREVIATIONS, COLLEGE_SHORT_NAMES, formatCardCollegeYear, formatCardMajor } = load("../src/helpers/cardLabels.ts");
 const { ALLOWED_MAJORS } = load("../../pipeline/src/allowedMajors.ts", { "html-entities": { decode: value => value } });
 const { getMajorIconKind } = load("../src/helpers/majorIconKind.ts");
 
@@ -26,13 +26,15 @@ test("every approved major has an editable nonempty card acronym", () => {
 	for(const major of ALLOWED_MAJORS) assert.ok(MAJOR_ABBREVIATIONS[major].trim(), major);
 });
 
-test("college names use their directory shorthands, with graduation years intact", () => {
-	assert.equal(Object.keys(COLLEGE_ABBREVIATIONS).length, 14);
-	assert.equal(formatCardCollegeYear({ college: "Benjamin Franklin College", year: 2029 }), "BF '29");
-	assert.equal(formatCardCollegeYear({ college: "Berkeley College", college_code: "BK", year: 2028 }), "BK '28");
-	assert.equal(formatCardCollegeYear({ college: "Morse College" }), "MC");
-	assert.equal(formatCardCollegeYear({ college: "Pauli Murray College" }), "MY");
-	assert.equal(formatCardCollegeYear({ college_code: "bf" }), "BF");
+test("college names use short display names, with graduation years intact", () => {
+	assert.equal(Object.keys(COLLEGE_SHORT_NAMES).length, 14);
+	assert.equal(formatCardCollegeYear({ college: "Benjamin Franklin College", year: 2029 }), "Franklin '29");
+	assert.equal(formatCardCollegeYear({ college: "Berkeley College", college_code: "BK", year: 2028 }), "Berkeley '28");
+	assert.equal(formatCardCollegeYear({ college: "Morse College" }), "Morse");
+	assert.equal(formatCardCollegeYear({ college: "Pauli Murray College" }), "Murray");
+	assert.equal(formatCardCollegeYear({ college_code: "bf" }), "Franklin");
+	assert.equal(formatCardCollegeYear({ college: "Grace Hopper College", college_code: "GH", year: 2029 }), "Hopper '29");
+	assert.equal(formatCardCollegeYear({ college: "Grace Hopper College" }), "Hopper");
 });
 
 test("unrecognized majors and college names stay readable instead of disappearing", () => {

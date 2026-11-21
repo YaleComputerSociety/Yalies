@@ -17,6 +17,24 @@ export const COLLEGE_ABBREVIATIONS: Readonly<Record<string, string>> = Object.fr
 	"Timothy Dwight College": "TD",
 });
 
+// Card display names are separate from the directory's college codes.
+export const COLLEGE_SHORT_NAMES: Readonly<Record<string, string>> = Object.freeze({
+	"Benjamin Franklin College": "Franklin",
+	"Berkeley College": "Berkeley",
+	"Branford College": "Branford",
+	"Davenport College": "Davenport",
+	"Ezra Stiles College": "Stiles",
+	"Grace Hopper College": "Hopper",
+	"Jonathan Edwards College": "JE",
+	"Morse College": "Morse",
+	"Pauli Murray College": "Murray",
+	"Pierson College": "Pierson",
+	"Silliman College": "Silliman",
+	"Saybrook College": "Saybrook",
+	"Trumbull College": "Trumbull",
+	"Timothy Dwight College": "TD",
+});
+
 // Suggested display acronyms, ready to edit. Keys exactly match all 86 entries in
 // apps/pipeline/src/allowedMajors.ts; the coverage test checks for missing majors.
 // These labels affect cards only. Stored names and filter values stay unchanged.
@@ -109,12 +127,14 @@ export const MAJOR_ABBREVIATIONS: Readonly<Record<string, string>> = Object.free
 	"Women'sGender&SexualityStudies": "WGSS",
 });
 
-const collegeCodes = new Set(Object.values(COLLEGE_ABBREVIATIONS));
+const collegeNamesByCode = new Map(Object.entries(COLLEGE_ABBREVIATIONS)
+	.map(([name, code]) => [code, COLLEGE_SHORT_NAMES[name]]));
 
 export function formatCardCollegeYear(person: Pick<Person, "college" | "college_code" | "year">) {
 	const code = person.college_code?.trim().toUpperCase();
-	const college = code && collegeCodes.has(code) ? code
-		: COLLEGE_ABBREVIATIONS[person.college?.trim() ?? ""] ?? person.college?.replace(/\s+College$/i, "");
+	const name = person.college?.trim();
+	const college = (code ? collegeNamesByCode.get(code) : undefined)
+		?? COLLEGE_SHORT_NAMES[name ?? ""] ?? name?.replace(/\s+College$/i, "");
 	return [college, person.year && `'${String(person.year).slice(-2)}`].filter(Boolean).join(" ");
 }
 

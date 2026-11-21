@@ -9,7 +9,7 @@ const source = ts.transpileModule(readFileSync(new URL("../src/helpers/savedList
 	compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 runInNewContext(source, { exports });
-const { filterSavedPeople, getListClipboard } = exports;
+const { filterSavedPeople, getListClipboard, savedPeopleForList } = exports;
 
 const people = Array.from({ length: 105 }, (_, index) => ({
 	netid: `student${index}`, email: `student${index}@yale.edu`,
@@ -39,4 +39,24 @@ test("clipboard export includes the whole list, one value per line, without dupl
 	assert.equal(emails.missing, 1);
 	assert.equal(emails.text.split("\n").length, 2);
 	assert.ok(!emails.text.endsWith("\n"));
+});
+
+
+test("All saved combines overlapping lists without duplicates and respects current removals and notes", () => {
+	const contacts = [people[0], people[1], { ...people[0], netid: people[0].netid.toUpperCase() }, people[2], people[3]];
+	const entries = {
+		student0: { listIds: [1, 2], note: "Shared person" },
+		student1: { listIds: [2], note: "Updated note" },
+		student2: null,
+		student3: { listIds: [], note: null },
+	};
+	const getEntry = person => entries[person.netid.toLowerCase()];
+	const all = savedPeopleForList(contacts, getEntry);
+	assert.equal(all.length, 2);
+	assert.deepEqual(Array.from(all, p => p.netid.toLowerCase()), ["student0", "student1"]);
+	assert.equal(all[1].saved_data.note, "Updated note");
+	assert.equal(savedPeopleForList(contacts, getEntry, 1).length, 1);
+	assert.equal(savedPeopleForList(contacts, getEntry, 2).length, 2);
+	assert.equal(savedPeopleForList(contacts, getEntry, 999).length, 0);
+	assert.equal(savedPeopleForList([], getEntry).length, 0);
 });

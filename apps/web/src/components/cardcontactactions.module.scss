@@ -6,6 +6,8 @@
 	width: calc(100% - 2px);
 	margin-inline: auto;
 	margin-top: 6px;
+	margin-bottom: 0;
+	padding-bottom: 0;
 }
 
 .actions .control {
@@ -15,8 +17,10 @@
 	justify-content: center;
 	flex: 0 0 20px;
 	min-width: 0;
-	height: 30px;
-	padding: 0;
+	height: auto;
+	margin: 0;
+	padding: 8px 0 0;
+	line-height: 1;
 	border: none;
 	border-radius: 0;
 	background: transparent;

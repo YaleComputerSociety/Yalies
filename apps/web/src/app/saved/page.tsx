@@ -20,7 +20,7 @@ import {
 import SavedListChip from "./SavedListChip";
 import SavedListDescription from "./SavedListDescription";
 import SavedListImport from "./SavedListImport";
-import { filterSavedPeople, getListClipboard } from "@/helpers/savedListTools";
+import { filterSavedPeople, getListClipboard, savedPeopleForList } from "@/helpers/savedListTools";
 
 const logoFont = Lexend_Deca({ subsets: ["latin"] });
 
@@ -33,7 +33,7 @@ export default function SavedPage() {
 	const { isAuthenticated, setAuthenticated } = useSession();
 	const savedLists = useSavedLists();
 	const [isUnauthenticated, setUnauthenticated] = useState(false);
-	const [selectedListId, setSelectedListId] = useState<number | null>(null);
+	const [selectedListId, setSelectedListId] = useState<number | "all" | null>(null);
 	const [people, setPeople] = useState<Person[]>([]);
 	const [visibleLimit, setVisibleLimit] = useState(RENDER_BATCH);
 	const [reloadVersion, setReloadVersion] = useState(0);
@@ -70,12 +70,14 @@ export default function SavedPage() {
 		}
 	};
 
-	const selectedList = savedLists.lists.find(list => list.id === selectedListId)
+	const isAllSaved = selectedListId === "all";
+	const selectedList = isAllSaved ? null : savedLists.lists.find(list => list.id === selectedListId)
 		?? savedLists.lists.find(list => list.id === savedLists.defaultListId)
 		?? savedLists.lists[0] ?? null;
 	const activeListId = selectedList?.id;
-	const activeListRef = useRef(activeListId);
-	useEffect(() => { activeListRef.current = activeListId; }, [activeListId]);
+	const activeView = isAllSaved ? "all" : activeListId;
+	const activeListRef = useRef(activeView);
+	useEffect(() => { activeListRef.current = activeView; }, [activeView]);
 
 	useEffect(() => {
 		refreshSavedLists().catch(error => {
@@ -88,17 +90,17 @@ export default function SavedPage() {
 	}, [isAuthenticated]);
 
 	useEffect(() => {
-		if(activeListId !== undefined && !savedLists.lists.some(list => list.id === selectedListId)) {
+		if(!isAllSaved && activeListId !== undefined && !savedLists.lists.some(list => list.id === selectedListId)) {
 			setSelectedListId(activeListId);
 		}
-	}, [activeListId, savedLists.lists, selectedListId]);
+	}, [activeListId, savedLists.lists, selectedListId, isAllSaved]);
 
 	useEffect(() => {
 		setQuery(""); setYear(""); setCollege(""); setCopyLabels({}); setImportResult(null);
 		const timers = copyTimers.current;
 		Object.values(timers).forEach(timer => clearTimeout(timer));
 		return () => Object.values(timers).forEach(timer => clearTimeout(timer));
-	}, [activeListId]);
+	}, [activeView]);
 
 	useEffect(() => {
 		if(!importResult) return;
@@ -107,10 +109,10 @@ export default function SavedPage() {
 		return () => clearTimeout(timer);
 	}, [importResult]);
 
-	useEffect(() => { setVisibleLimit(RENDER_BATCH); }, [activeListId, deferredQuery, year, college]);
+	useEffect(() => { setVisibleLimit(RENDER_BATCH); }, [activeView, deferredQuery, year, college]);
 
 	useEffect(() => {
-		if(activeListId === undefined) return;
+		if(!isAllSaved && activeListId === undefined) return;
 		const controller = new AbortController();
 		setPeople([]); setIsLoading(true); setError("");
 		const load = async () => {
@@ -120,7 +122,7 @@ export default function SavedPage() {
 					const response = await fetch(`${API_URL}${API.people}`, {
 						method: "POST", credentials: "include", signal: controller.signal,
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ filters: { saved_list: [String(activeListId)] }, page, page_size: PAGE_SIZE }),
+						body: JSON.stringify({ filters: isAllSaved ? { is_saved: ["true"] } : { saved_list: [String(activeListId)] }, page, page_size: PAGE_SIZE }),
 					});
 					if(response.status === 401) { setAuthenticated(false); return; }
 					if(!response.ok) throw new Error("Could not load this list. Please try again.");
@@ -137,20 +139,18 @@ export default function SavedPage() {
 		};
 		void load();
 		return () => controller.abort();
-	}, [activeListId, reloadVersion, setAuthenticated]);
+	}, [activeListId, isAllSaved, reloadVersion, setAuthenticated]);
 
-	const memberPeople = useMemo(() => people.flatMap(person => {
-		const entry = getSavedEntry(savedLists, person);
-		if(!entry || activeListId === undefined || !entry.listIds.includes(activeListId)) return [];
-		return [{ ...person, saved_data: { saved: true, note: entry.note, list_ids: entry.listIds } }];
-	}), [people, savedLists, activeListId]);
+	const memberPeople = useMemo(() => isAllSaved || activeListId !== undefined
+		? savedPeopleForList(people, person => getSavedEntry(savedLists, person), activeListId) : [],
+	[people, savedLists, activeListId, isAllSaved]);
 	const filteredPeople = useMemo(() => filterSavedPeople(memberPeople, deferredQuery, year, college), [memberPeople, deferredQuery, year, college]);
 	const years = useMemo(() => Array.from(new Set(memberPeople.flatMap(person => person.year ? [person.year] : []))).sort((a, b) => b - a), [memberPeople]);
 	const colleges = useMemo(() => Array.from(new Set(memberPeople.flatMap(person => person.college ? [person.college] : []))).sort(), [memberPeople]);
 	const visiblePeople = filteredPeople.slice(0, visibleLimit);
 	const hasFilters = Boolean(query.trim() || year || college);
 	const copyList = async (field: "netid" | "email") => {
-		const listId = activeListId;
+		const listId = activeView;
 		const result = getListClipboard(memberPeople, field);
 		let label = "Copied!";
 		try {
@@ -199,12 +199,16 @@ export default function SavedPage() {
 
 	const emptyMessage = hasFilters
 		? "No people match these filters. Try another name, note, year, or college."
-		: `No one in ${selectedList?.name ?? "this list"} yet. Import email addresses or NetIDs below, or save someone from the Directory.`;
+		: isAllSaved ? "No saved people yet. Save someone from the Directory to see them here."
+			: `No one in ${selectedList?.name ?? "this list"} yet. Import email addresses or NetIDs below, or save someone from the Directory.`;
 
 	return (
 		<>
 			<div className={`${styles.saved_header} ${logoFont.className}`}>
 				<div className={styles.list_chips} role="tablist" aria-label="Lists">
+					<button type="button" role="tab" aria-selected={isAllSaved}
+						className={`${styles.chip} ${styles.all_saved} ${isAllSaved ? styles.all_saved_active : ""}`}
+						onClick={() => setSelectedListId("all")}>All saved</button>
 					{savedLists.lists.map(list => (
 						<SavedListChip key={list.id} list={list} selected={activeListId === list.id}
 							onSelect={() => setSelectedListId(list.id)} onDuplicate={setSelectedListId} onError={setMessage} />
@@ -248,8 +252,8 @@ export default function SavedPage() {
 						</button>
 					)}
 				</div>
-				{selectedList && <div className={styles.description_toolbar}>
-					<SavedListDescription key={selectedList.id} list={selectedList} />
+				{(selectedList || isAllSaved) && <div className={styles.description_toolbar}>
+					{selectedList && <SavedListDescription key={selectedList.id} list={selectedList} />}
 					{memberPeople.length > 0 && <div className={styles.description_actions}>
 						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy NetIDs for the entire list, one per line" aria-live="polite" onClick={() => void copyList("netid")}>{copyLabels.netid ?? "Copy NetIDs"}</button>
 						<button type="button" className={`${styles.secondary_action} ${styles.copy_button}`} disabled={isLoading || !!error} title="Copy email addresses for the entire list, one per line" aria-live="polite" onClick={() => void copyList("email")}>{copyLabels.email ?? "Copy emails"}</button>

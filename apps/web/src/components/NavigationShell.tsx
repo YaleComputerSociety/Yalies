@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import Navbar, { type NavbarProps } from "./Navbar";
+import ProfileSetupProvider from "./ProfileSetupProvider";
 import Topbar from "./Topbar";
 import YaleMojiBanner from "./YaleMojiBanner";
 import { getProfile } from "@/hooks/useProfileCache";
@@ -65,11 +66,13 @@ export default function NavigationShell({ children }: { children: React.ReactNod
 	return (
 		<SessionContext.Provider value={session}>
 			<NavbarContentContext.Provider value={register}>
-				{showNavbar && <Topbar>
-					<YaleMojiBanner isAuthenticated={isAuthenticated} />
-					<Navbar {...navbarProps} isAuthenticated={isAuthenticated} />
-				</Topbar>}
-				{children}
+				<ProfileSetupProvider isAuthenticated={isAuthenticated}>
+					{showNavbar && <Topbar>
+						<YaleMojiBanner isAuthenticated={isAuthenticated} />
+						<Navbar {...navbarProps} isAuthenticated={isAuthenticated} />
+					</Topbar>}
+					{children}
+				</ProfileSetupProvider>
 			</NavbarContentContext.Provider>
 		</SessionContext.Provider>
 	);

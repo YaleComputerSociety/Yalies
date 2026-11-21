@@ -24,3 +24,15 @@ export function getListClipboard(people: Person[], field: "netid" | "email") {
 	}
 	return { text: Array.from(values.values()).join("\n"), count: values.size, missing };
 }
+
+export function savedPeopleForList(people: Person[], getEntry: (person: Person) => { listIds: number[]; note: string | null } | null, listId?: number): Person[] {
+	const unique = new Map<string, Person>();
+	for(const person of people) {
+		const entry = getEntry(person);
+		if(!person.netid || !entry?.listIds.length || (listId !== undefined && !entry.listIds.includes(listId))) continue;
+		unique.set(person.netid.trim().toLowerCase(), { ...person,
+			saved_data: { saved: true, note: entry.note, list_ids: entry.listIds },
+		});
+	}
+	return Array.from(unique.values());
+}

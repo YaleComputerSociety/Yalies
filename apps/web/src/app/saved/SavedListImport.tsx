@@ -26,7 +26,7 @@ export default function SavedListImport({ listId, onImported }: {
 			<label htmlFor={`list-import-${listId}`}>Paste email addresses or NetIDs</label>
 			<p className={styles.field_hint}>Use commas, spaces, or new lines. We use whichever single separator finds the most people. Up to 1,000 entries.</p>
 			<textarea id={`list-import-${listId}`} autoFocus rows={5} maxLength={50000} value={text}
-				placeholder={"alex@yale.edu\nabc123\njamie@yale.edu"} disabled={busy} onChange={event => setText(event.target.value)} />
+				placeholder={"first.last@yale.edu\nabc123\nfirst.last@yale.edu"} disabled={busy} onChange={event => setText(event.target.value)} />
 			<div className={styles.action_row}>
 				<button type="submit" className={styles.primary_action} disabled={busy || !text.trim()}>{busy ? "Finding and adding…" : "Find and add people"}</button>
 				<button type="button" className={styles.secondary_action} disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
